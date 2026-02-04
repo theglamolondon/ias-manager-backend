@@ -1,6 +1,8 @@
 package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import net.ivoireautoservice.ias_manager.auth.RoleEnum;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
@@ -11,6 +13,8 @@ import java.util.Collection;
 import java.util.List;
 
 @Entity
+@Getter
+@Setter
 public class Utilisateur implements UserDetails {
 
 

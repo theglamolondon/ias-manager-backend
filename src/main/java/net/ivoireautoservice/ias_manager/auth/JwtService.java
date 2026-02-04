@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cglib.core.internal.Function;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,9 +16,13 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private JwtProperties props;
+    private final JwtProperties props;
 
-    public String generateToken(UserDetails userDetails) {
+	public JwtService(JwtProperties props) {
+		this.props = props;
+	}
+
+	public String generateToken(UserDetails userDetails) {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuer(this.props.getIssuer())

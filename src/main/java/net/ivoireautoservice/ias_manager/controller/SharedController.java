@@ -1,0 +1,250 @@
+package net.ivoireautoservice.ias_manager.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.dto.core.Categorie;
+import net.ivoireautoservice.ias_manager.dto.core.FamilleProduit;
+import net.ivoireautoservice.ias_manager.dto.core.Service;
+import net.ivoireautoservice.ias_manager.dto.core.TypeDepense;
+import net.ivoireautoservice.ias_manager.dto.core.TypeIntervention;
+import net.ivoireautoservice.ias_manager.dto.core.TypeStatutPieceComptable;
+import net.ivoireautoservice.ias_manager.dto.core.TypeVehicule;
+import net.ivoireautoservice.ias_manager.dto.request.CategorieRequest;
+import net.ivoireautoservice.ias_manager.dto.request.FamilleProduitRequest;
+import net.ivoireautoservice.ias_manager.dto.request.ServiceRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeDepenseRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeInterventionRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeStatutPieceComptableRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeVehiculeRequest;
+import net.ivoireautoservice.ias_manager.services.SharedService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/commons")
+@RequiredArgsConstructor
+public class SharedController {
+
+    private final SharedService sharedService;
+
+    // ==================== CATEGORIES ====================
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<Categorie>> getAllCategories() {
+        return ResponseEntity.ok(sharedService.getAllCategories());
+    }
+
+    @GetMapping("/categories/{id}")
+    public ResponseEntity<Categorie> getCategorieById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getCategorieById(id));
+    }
+
+    @PostMapping("/categories")
+    public ResponseEntity<Categorie> createCategorie(@Valid @RequestBody CategorieRequest request) {
+        Categorie created = sharedService.createCategorie(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<Categorie> updateCategorie(
+            @PathVariable Long id,
+            @Valid @RequestBody CategorieRequest request) {
+        return ResponseEntity.ok(sharedService.updateCategorie(id, request));
+    }
+
+    @DeleteMapping("/categories/{id}")
+    public ResponseEntity<Void> deleteCategorie(@PathVariable Long id) {
+        sharedService.deleteCategorie(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== TYPES VEHICULE ====================
+
+    @GetMapping("/types-vehicule")
+    public ResponseEntity<List<TypeVehicule>> getAllTypesVehicule() {
+        return ResponseEntity.ok(sharedService.getAllTypesVehicule());
+    }
+
+    @GetMapping("/types-vehicule/{id}")
+    public ResponseEntity<TypeVehicule> getTypeVehiculeById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getTypeVehiculeById(id));
+    }
+
+    @PostMapping("/types-vehicule")
+    public ResponseEntity<TypeVehicule> createTypeVehicule(@Valid @RequestBody TypeVehiculeRequest request) {
+        TypeVehicule created = sharedService.createTypeVehicule(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/types-vehicule/{id}")
+    public ResponseEntity<TypeVehicule> updateTypeVehicule(
+            @PathVariable Long id,
+            @Valid @RequestBody TypeVehiculeRequest request) {
+        return ResponseEntity.ok(sharedService.updateTypeVehicule(id, request));
+    }
+
+    @DeleteMapping("/types-vehicule/{id}")
+    public ResponseEntity<Void> deleteTypeVehicule(@PathVariable Long id) {
+        sharedService.deleteTypeVehicule(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== SERVICES ====================
+
+    @GetMapping("/services")
+    public ResponseEntity<List<Service>> getAllServices() {
+        return ResponseEntity.ok(sharedService.getAllServices());
+    }
+
+    @GetMapping("/services/{id}")
+    public ResponseEntity<Service> getServiceById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getServiceById(id));
+    }
+
+    @PostMapping("/services")
+    public ResponseEntity<Service> createService(@Valid @RequestBody ServiceRequest request) {
+        Service created = sharedService.createService(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/services/{id}")
+    public ResponseEntity<Service> updateService(
+            @PathVariable Long id,
+            @Valid @RequestBody ServiceRequest request) {
+        return ResponseEntity.ok(sharedService.updateService(id, request));
+    }
+
+    @DeleteMapping("/services/{id}")
+    public ResponseEntity<Void> deleteService(@PathVariable Long id) {
+        sharedService.deleteService(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== TYPES INTERVENTION ====================
+
+    @GetMapping("/types-intervention")
+    public ResponseEntity<List<TypeIntervention>> getAllTypesIntervention() {
+        return ResponseEntity.ok(sharedService.getAllTypesIntervention());
+    }
+
+    @GetMapping("/types-intervention/{id}")
+    public ResponseEntity<TypeIntervention> getTypeInterventionById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getTypeInterventionById(id));
+    }
+
+    @PostMapping("/types-intervention")
+    public ResponseEntity<TypeIntervention> createTypeIntervention(@Valid @RequestBody TypeInterventionRequest request) {
+        TypeIntervention created = sharedService.createTypeIntervention(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/types-intervention/{id}")
+    public ResponseEntity<TypeIntervention> updateTypeIntervention(
+            @PathVariable Long id,
+            @Valid @RequestBody TypeInterventionRequest request) {
+        return ResponseEntity.ok(sharedService.updateTypeIntervention(id, request));
+    }
+
+    @DeleteMapping("/types-intervention/{id}")
+    public ResponseEntity<Void> deleteTypeIntervention(@PathVariable Long id) {
+        sharedService.deleteTypeIntervention(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== FAMILLES PRODUIT ====================
+
+    @GetMapping("/familles-produit")
+    public ResponseEntity<List<FamilleProduit>> getAllFamillesProduit() {
+        return ResponseEntity.ok(sharedService.getAllFamillesProduit());
+    }
+
+    @GetMapping("/familles-produit/{id}")
+    public ResponseEntity<FamilleProduit> getFamilleProduitById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getFamilleProduitById(id));
+    }
+
+    @PostMapping("/familles-produit")
+    public ResponseEntity<FamilleProduit> createFamilleProduit(@Valid @RequestBody FamilleProduitRequest request) {
+        FamilleProduit created = sharedService.createFamilleProduit(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/familles-produit/{id}")
+    public ResponseEntity<FamilleProduit> updateFamilleProduit(
+            @PathVariable Long id,
+            @Valid @RequestBody FamilleProduitRequest request) {
+        return ResponseEntity.ok(sharedService.updateFamilleProduit(id, request));
+    }
+
+    @DeleteMapping("/familles-produit/{id}")
+    public ResponseEntity<Void> deleteFamilleProduit(@PathVariable Long id) {
+        sharedService.deleteFamilleProduit(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== TYPES STATUT PIECE COMPTABLE ====================
+
+    @GetMapping("/types-statut-piece-comptable")
+    public ResponseEntity<List<TypeStatutPieceComptable>> getAllTypesStatutPieceComptable() {
+        return ResponseEntity.ok(sharedService.getAllTypesStatutPieceComptable());
+    }
+
+    @GetMapping("/types-statut-piece-comptable/{id}")
+    public ResponseEntity<TypeStatutPieceComptable> getTypeStatutPieceComptableById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getTypeStatutPieceComptableById(id));
+    }
+
+    @PostMapping("/types-statut-piece-comptable")
+    public ResponseEntity<TypeStatutPieceComptable> createTypeStatutPieceComptable(
+            @Valid @RequestBody TypeStatutPieceComptableRequest request) {
+        TypeStatutPieceComptable created = sharedService.createTypeStatutPieceComptable(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/types-statut-piece-comptable/{id}")
+    public ResponseEntity<TypeStatutPieceComptable> updateTypeStatutPieceComptable(
+            @PathVariable Long id,
+            @Valid @RequestBody TypeStatutPieceComptableRequest request) {
+        return ResponseEntity.ok(sharedService.updateTypeStatutPieceComptable(id, request));
+    }
+
+    @DeleteMapping("/types-statut-piece-comptable/{id}")
+    public ResponseEntity<Void> deleteTypeStatutPieceComptable(@PathVariable Long id) {
+        sharedService.deleteTypeStatutPieceComptable(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ==================== TYPES DEPENSE ====================
+
+    @GetMapping("/types-depense")
+    public ResponseEntity<List<TypeDepense>> getAllTypesDepense() {
+        return ResponseEntity.ok(sharedService.getAllTypesDepense());
+    }
+
+    @GetMapping("/types-depense/{id}")
+    public ResponseEntity<TypeDepense> getTypeDepenseById(@PathVariable Long id) {
+        return ResponseEntity.ok(sharedService.getTypeDepenseById(id));
+    }
+
+    @PostMapping("/types-depense")
+    public ResponseEntity<TypeDepense> createTypeDepense(@Valid @RequestBody TypeDepenseRequest request) {
+        TypeDepense created = sharedService.createTypeDepense(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/types-depense/{id}")
+    public ResponseEntity<TypeDepense> updateTypeDepense(
+            @PathVariable Long id,
+            @Valid @RequestBody TypeDepenseRequest request) {
+        return ResponseEntity.ok(sharedService.updateTypeDepense(id, request));
+    }
+
+    @DeleteMapping("/types-depense/{id}")
+    public ResponseEntity<Void> deleteTypeDepense(@PathVariable Long id) {
+        sharedService.deleteTypeDepense(id);
+        return ResponseEntity.noContent().build();
+    }
+}

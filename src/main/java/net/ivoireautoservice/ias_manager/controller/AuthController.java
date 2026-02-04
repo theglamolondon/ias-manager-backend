@@ -33,7 +33,8 @@ public class AuthController {
         );
 
         final UserDetails user = (UserDetails) auth.getPrincipal();
-        final String jwt = jwtService.generateToken(user);
+		assert user != null;
+		final String jwt = jwtService.generateToken(user);
         return ResponseEntity.ok(new AuthenticationResponse(jwt));
     }
 }
