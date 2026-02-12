@@ -10,6 +10,8 @@ import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.ChauffeurMapper;
 import net.ivoireautoservice.ias_manager.repository.ChauffeurRepository;
 import net.ivoireautoservice.ias_manager.repository.EmployeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class ChauffeurService {
     private final ChauffeurRepository chauffeurRepository;
     private final EmployeRepository employeRepository;
     private final ChauffeurMapper chauffeurMapper;
+    private final Logger logger = LoggerFactory.getLogger(ChauffeurService.class);
 
     @Transactional(readOnly = true)
     public List<Chauffeur> getAllChauffeurs() {

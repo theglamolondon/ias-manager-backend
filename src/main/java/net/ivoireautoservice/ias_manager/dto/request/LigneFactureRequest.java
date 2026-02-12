@@ -6,7 +6,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class LignePieceComptableRequest {
+public class LigneFactureRequest {
 
 	private String reference;
 	private Long qte;

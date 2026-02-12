@@ -16,12 +16,19 @@ public interface VehiculeMapper {
     @Mapping(source = "type.libelle", target = "typeLibelle")
     @Mapping(source = "type.categorie.id", target = "categorieId")
     @Mapping(source = "type.categorie.libelle", target = "categorieLibelle")
+    @Mapping(source = "marque.id", target = "marqueId")
+    @Mapping(source = "marque.libelle", target = "marqueLibelle")
+    @Mapping(source = "typeCarburant.id", target = "typeCarburantId")
+    @Mapping(source = "typeCarburant.libelle", target = "typeCarburantLibelle")
     Vehicule toDto(VehiculeEntity entity);
 
     List<Vehicule> toDtoList(List<VehiculeEntity> entities);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "type", ignore = true)
+    @Mapping(target = "marque", ignore = true)
+    @Mapping(target = "typeCarburant", ignore = true)
+    @Mapping(target = "statut", ignore = true)
     @Mapping(target = "photoAvant", ignore = true)
     @Mapping(target = "photoArriere", ignore = true)
     @Mapping(target = "photoCoteDroit", ignore = true)
@@ -30,6 +37,8 @@ public interface VehiculeMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "type", ignore = true)
+    @Mapping(target = "marque", ignore = true)
+    @Mapping(target = "typeCarburant", ignore = true)
     @Mapping(target = "photoAvant", ignore = true)
     @Mapping(target = "photoArriere", ignore = true)
     @Mapping(target = "photoCoteDroit", ignore = true)

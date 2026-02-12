@@ -34,11 +34,15 @@ public class VehiculeRequest {
 	private String concessionnaire;
 	private Boolean isReforme;
 
-	@NotNull(message = "Le statut est obligatoire")
-	private VehiculeStatusEnum statut;
+	@Builder.Default
+	private VehiculeStatusEnum statut = VehiculeStatusEnum.DISPONIBLE;
+
+	private String marque;
 
 	@NotNull(message = "Le type de véhicule est obligatoire")
 	private Long typeId;
+
+	private Long typeCarburantId;
 
 	private String photoAvantId;
 	private String photoArriereId;

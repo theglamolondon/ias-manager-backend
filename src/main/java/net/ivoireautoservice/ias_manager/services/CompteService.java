@@ -109,7 +109,7 @@ public class CompteService {
         CompteEntity compte = compteRepository.findById(compteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Compte", compteId));
 
-        Utilisateur utilisateur = userRepository.findById(request.getUtilisateurId().intValue())
+        Utilisateur utilisateur = userRepository.findById(request.getUtilisateurId())
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", request.getUtilisateurId()));
 
         LigneCompteEntity entity = LigneCompteEntity.builder()

@@ -38,9 +38,9 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.getAllVehicules(pageable));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long id) {
-        return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
+    @GetMapping("/{vehiculeId}")
+    public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long vehiculeId) {
+        return ResponseEntity.ok(vehiculeService.getVehiculeById(vehiculeId));
     }
 
     @GetMapping("/immatriculation/{immatriculation}")
@@ -69,18 +69,18 @@ public class VehiculeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{vehiculeId}")
     public ResponseEntity<Vehicule> updateVehicule(
-            @PathVariable Long id,
+            @PathVariable Long vehiculeId,
             @Valid @RequestBody VehiculeRequest request) {
-        return ResponseEntity.ok(vehiculeService.updateVehicule(id, request));
+        return ResponseEntity.ok(vehiculeService.updateVehicule(vehiculeId, request));
     }
 
-    @PatchMapping("/{id}/statut")
+    @PatchMapping("/{vehiculeId}/statut")
     public ResponseEntity<Vehicule> updateStatut(
-            @PathVariable Long id,
+            @PathVariable Long vehiculeId,
             @RequestParam VehiculeStatusEnum statut) {
-        return ResponseEntity.ok(vehiculeService.updateStatut(id, statut));
+        return ResponseEntity.ok(vehiculeService.updateStatut(vehiculeId, statut));
     }
 
     // ==================== INTERVENTIONS ====================
@@ -117,9 +117,9 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.updatePhotos(id, photoAvant, photoArriere, photoCoteDroit, photoCoteGauche));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteVehicule(@PathVariable Long id) {
-        vehiculeService.deleteVehicule(id);
+    @DeleteMapping("/{vehiculeId}")
+    public ResponseEntity<Void> deleteVehicule(@PathVariable Long vehiculeId) {
+        vehiculeService.deleteVehicule(vehiculeId);
         return ResponseEntity.noContent().build();
     }
 }

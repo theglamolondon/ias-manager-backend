@@ -2,19 +2,20 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "PIECES_COMPTABLES")
+@Table(name = "FACTURES")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@ToString(exclude = {"typeStatut", "partenaire"})
-@EqualsAndHashCode(exclude = {"typeStatut", "partenaire"})
-public class PieceComptableEntity {
+@ToString(exclude = {"partenaire"})
+@EqualsAndHashCode(exclude = {"partenaire"})
+public class FactureEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,9 +41,8 @@ public class PieceComptableEntity {
 
 	private String objet;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "type_statut_id", referencedColumnName = "id")
-	private TypeStatutPieceComptableEntity typeStatut;
+	@Enumerated(EnumType.ORDINAL)
+	private FactureStatusEnum statut;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "partenaire_id", referencedColumnName = "id")

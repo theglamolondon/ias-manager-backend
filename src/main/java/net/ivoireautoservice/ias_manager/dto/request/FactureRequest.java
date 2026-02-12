@@ -1,13 +1,19 @@
-package net.ivoireautoservice.ias_manager.dto.core;
+package net.ivoireautoservice.ias_manager.dto.request;
 
+import jakarta.validation.Valid;
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Data @AllArgsConstructor @NoArgsConstructor @Builder @ToString
-public class PieceComptable {
-	private Long id;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class FactureRequest {
+
 	private String numProforma;
 	private LocalDateTime dhmsCreationPiece;
 	private String numFacture;
@@ -18,8 +24,9 @@ public class PieceComptable {
 	private LocalDate delaiLivraison;
 	private LocalDate validite;
 	private String objet;
-	private Long typeStatutId;
-	private String typeStatutLibelle;
+	private FactureStatusEnum statut;
 	private Long partenaireId;
-	private String partenaireRaisonSociale;
+
+	@Valid
+	private List<LigneFactureRequest> items;
 }

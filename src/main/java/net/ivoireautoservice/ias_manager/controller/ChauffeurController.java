@@ -6,6 +6,8 @@ import net.ivoireautoservice.ias_manager.dto.core.Chauffeur;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.ChauffeurRequest;
 import net.ivoireautoservice.ias_manager.services.ChauffeurService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +23,7 @@ import java.util.List;
 public class ChauffeurController {
 
     private final ChauffeurService chauffeurService;
+    private final Logger logger = LoggerFactory.getLogger(ChauffeurController.class);
 
     @GetMapping
     public ResponseEntity<PagedResponse<Chauffeur>> getAllChauffeurs(

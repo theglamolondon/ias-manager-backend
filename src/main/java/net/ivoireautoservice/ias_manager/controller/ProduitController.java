@@ -2,8 +2,10 @@ package net.ivoireautoservice.ias_manager.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.dto.core.EntreeStock;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.core.Produit;
+import net.ivoireautoservice.ias_manager.dto.request.EntreeStockRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ProduitRequest;
 import net.ivoireautoservice.ias_manager.services.ProduitService;
 import org.springframework.data.domain.PageRequest;
@@ -70,5 +72,11 @@ public class ProduitController {
     public ResponseEntity<Void> deleteProduit(@PathVariable Long id) {
         produitService.deleteProduit(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/entrees")
+    public ResponseEntity<EntreeStock> enregistrerEntreeStock(@Valid @RequestBody EntreeStockRequest request) {
+        EntreeStock created = produitService.enregistrerEntreeStock(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

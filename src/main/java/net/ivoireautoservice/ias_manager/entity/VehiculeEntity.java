@@ -12,8 +12,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@ToString(exclude = {"type", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
-@EqualsAndHashCode(exclude = {"type", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
+@ToString(exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
+@EqualsAndHashCode(exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
 public class VehiculeEntity {
 
 	@Id
@@ -44,11 +44,20 @@ public class VehiculeEntity {
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private VehiculeStatusEnum statut;
+	@Builder.Default
+	private VehiculeStatusEnum statut = VehiculeStatusEnum.DISPONIBLE;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "type_id", referencedColumnName = "id", nullable = false)
 	private TypeVehiculeEntity type;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "marque_id")
+	private MarqueEntity marque;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "type_carburant_id")
+	private TypeCarburantEntity typeCarburant;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "photo_avant_id")

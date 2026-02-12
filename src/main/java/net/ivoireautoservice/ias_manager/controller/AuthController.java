@@ -5,14 +5,13 @@ import net.ivoireautoservice.ias_manager.auth.dto.AuthenticationRequest;
 import net.ivoireautoservice.ias_manager.auth.dto.AuthenticationResponse;
 import net.ivoireautoservice.ias_manager.auth.JwtService;
 import net.ivoireautoservice.ias_manager.auth.UtilisateurDetailsService;
+import net.ivoireautoservice.ias_manager.entity.Utilisateur;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,9 +31,22 @@ public class AuthController {
             )
         );
 
-        final UserDetails user = (UserDetails) auth.getPrincipal();
+        final Utilisateur user = (Utilisateur) auth.getPrincipal();
 		assert user != null;
 		final String jwt = jwtService.generateToken(user);
-        return ResponseEntity.ok(new AuthenticationResponse(jwt));
+        return ResponseEntity.ok(buildResponse(jwt, user));
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<AuthenticationResponse> info(@AuthenticationPrincipal Utilisateur user) {
+        return ResponseEntity.ok(buildResponse(null, user));
+    }
+
+    private AuthenticationResponse buildResponse(String token, Utilisateur user) {
+        String role = user.getAuthorities().stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse(null);
+        return new AuthenticationResponse(token, user.getNom(), user.getPrenom(), user.getEmail(), role);
     }
 }

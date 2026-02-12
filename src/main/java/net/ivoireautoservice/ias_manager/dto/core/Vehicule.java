@@ -30,10 +30,14 @@ public class Vehicule {
 	private String concessionnaire;
 	private Boolean isReforme;
 	private VehiculeStatusEnum statut;
+	private Long marqueId;
+	private String marqueLibelle;
 	private Long typeId;
 	private String typeLibelle;
 	private Long categorieId;
 	private String categorieLibelle;
+	private Long typeCarburantId;
+	private String typeCarburantLibelle;
 	private Media photoAvant;
 	private Media photoArriere;
 	private Media photoCoteDroit;

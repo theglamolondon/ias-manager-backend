@@ -4,14 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "LIGNES_PIECE_COMPTABLE")
+@Table(name = "LIGNES_FACTURE")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@ToString(exclude = {"pieceComptable", "produit"})
-@EqualsAndHashCode(exclude = {"pieceComptable", "produit"})
-public class LignePieceComptableEntity {
+@ToString(exclude = {"facture", "produit"})
+@EqualsAndHashCode(exclude = {"facture", "produit"})
+public class LigneFactureEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,8 +30,8 @@ public class LignePieceComptableEntity {
 	private Long montantHt;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "piece_comptable_id", referencedColumnName = "id", nullable = false)
-	private PieceComptableEntity pieceComptable;
+	@JoinColumn(name = "facture_id", referencedColumnName = "id", nullable = false)
+	private FactureEntity facture;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "produit_id", referencedColumnName = "id")

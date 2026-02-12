@@ -7,7 +7,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TypeStatutPieceComptableRequest {
+public class TypeCarburantRequest {
 
 	@NotBlank(message = "Le libellé est obligatoire")
 	private String libelle;

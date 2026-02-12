@@ -8,6 +8,7 @@ import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.entity.InterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.MediaEntity;
+import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
@@ -17,6 +18,7 @@ import net.ivoireautoservice.ias_manager.mapper.InterventionMapper;
 import net.ivoireautoservice.ias_manager.mapper.VehiculeMapper;
 import net.ivoireautoservice.ias_manager.repository.InterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
+import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeVehiculeRepository;
 import net.ivoireautoservice.ias_manager.repository.VehiculeRepository;
@@ -34,10 +36,12 @@ public class VehiculeService {
 
     private final VehiculeRepository vehiculeRepository;
     private final TypeVehiculeRepository typeVehiculeRepository;
+    private final TypeCarburantRepository typeCarburantRepository;
     private final TypeInterventionRepository typeInterventionRepository;
     private final InterventionRepository interventionRepository;
     private final MediaRepository mediaRepository;
     private final MediaService mediaService;
+    private final SharedService sharedService;
     private final VehiculeMapper vehiculeMapper;
     private final InterventionMapper interventionMapper;
 
@@ -88,6 +92,9 @@ public class VehiculeService {
 
         VehiculeEntity entity = vehiculeMapper.toEntity(request);
         entity.setType(type);
+        entity.setStatut(VehiculeStatusEnum.DISPONIBLE);
+        resolveMarque(request, entity);
+        resolveTypeCarburant(request, entity);
         resolvePhotos(request, entity);
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
@@ -104,6 +111,8 @@ public class VehiculeService {
 
         vehiculeMapper.updateEntity(request, entity);
         entity.setType(type);
+        resolveMarque(request, entity);
+        resolveTypeCarburant(request, entity);
         resolvePhotos(request, entity);
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
@@ -179,6 +188,24 @@ public class VehiculeService {
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
         return vehiculeMapper.toDto(saved);
+    }
+
+    private void resolveMarque(VehiculeRequest request, VehiculeEntity entity) {
+        if (request.getMarque() != null && !request.getMarque().isBlank()) {
+            entity.setMarque(sharedService.getOrCreateMarque(request.getMarque()));
+        } else {
+            entity.setMarque(null);
+        }
+    }
+
+    private void resolveTypeCarburant(VehiculeRequest request, VehiculeEntity entity) {
+        if (request.getTypeCarburantId() != null) {
+            TypeCarburantEntity typeCarburant = typeCarburantRepository.findById(request.getTypeCarburantId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Type de carburant", request.getTypeCarburantId()));
+            entity.setTypeCarburant(typeCarburant);
+        } else {
+            entity.setTypeCarburant(null);
+        }
     }
 
     private void resolvePhotos(VehiculeRequest request, VehiculeEntity entity) {

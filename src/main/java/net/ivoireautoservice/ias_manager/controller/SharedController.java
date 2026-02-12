@@ -4,17 +4,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Categorie;
 import net.ivoireautoservice.ias_manager.dto.core.FamilleProduit;
+import net.ivoireautoservice.ias_manager.dto.core.Marque;
 import net.ivoireautoservice.ias_manager.dto.core.Service;
+import net.ivoireautoservice.ias_manager.dto.core.TypeCarburant;
 import net.ivoireautoservice.ias_manager.dto.core.TypeDepense;
 import net.ivoireautoservice.ias_manager.dto.core.TypeIntervention;
-import net.ivoireautoservice.ias_manager.dto.core.TypeStatutPieceComptable;
 import net.ivoireautoservice.ias_manager.dto.core.TypeVehicule;
 import net.ivoireautoservice.ias_manager.dto.request.CategorieRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FamilleProduitRequest;
+import net.ivoireautoservice.ias_manager.dto.request.MarqueRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ServiceRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeCarburantRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeDepenseRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeInterventionRequest;
-import net.ivoireautoservice.ias_manager.dto.request.TypeStatutPieceComptableRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeVehiculeRequest;
 import net.ivoireautoservice.ias_manager.services.SharedService;
 import org.springframework.http.HttpStatus;
@@ -185,38 +187,6 @@ public class SharedController {
         return ResponseEntity.noContent().build();
     }
 
-    // ==================== TYPES STATUT PIECE COMPTABLE ====================
-
-    @GetMapping("/types-statut-piece-comptable")
-    public ResponseEntity<List<TypeStatutPieceComptable>> getAllTypesStatutPieceComptable() {
-        return ResponseEntity.ok(sharedService.getAllTypesStatutPieceComptable());
-    }
-
-    @GetMapping("/types-statut-piece-comptable/{id}")
-    public ResponseEntity<TypeStatutPieceComptable> getTypeStatutPieceComptableById(@PathVariable Long id) {
-        return ResponseEntity.ok(sharedService.getTypeStatutPieceComptableById(id));
-    }
-
-    @PostMapping("/types-statut-piece-comptable")
-    public ResponseEntity<TypeStatutPieceComptable> createTypeStatutPieceComptable(
-            @Valid @RequestBody TypeStatutPieceComptableRequest request) {
-        TypeStatutPieceComptable created = sharedService.createTypeStatutPieceComptable(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @PutMapping("/types-statut-piece-comptable/{id}")
-    public ResponseEntity<TypeStatutPieceComptable> updateTypeStatutPieceComptable(
-            @PathVariable Long id,
-            @Valid @RequestBody TypeStatutPieceComptableRequest request) {
-        return ResponseEntity.ok(sharedService.updateTypeStatutPieceComptable(id, request));
-    }
-
-    @DeleteMapping("/types-statut-piece-comptable/{id}")
-    public ResponseEntity<Void> deleteTypeStatutPieceComptable(@PathVariable Long id) {
-        sharedService.deleteTypeStatutPieceComptable(id);
-        return ResponseEntity.noContent().build();
-    }
-
     // ==================== TYPES DEPENSE ====================
 
     @GetMapping("/types-depense")
@@ -246,5 +216,31 @@ public class SharedController {
     public ResponseEntity<Void> deleteTypeDepense(@PathVariable Long id) {
         sharedService.deleteTypeDepense(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== TYPES CARBURANT ====================
+
+    @GetMapping("/types-carburant")
+    public ResponseEntity<List<TypeCarburant>> getAllTypesCarburant() {
+        return ResponseEntity.ok(sharedService.getAllTypesCarburant());
+    }
+
+    @PostMapping("/types-carburant")
+    public ResponseEntity<TypeCarburant> createTypeCarburant(@Valid @RequestBody TypeCarburantRequest request) {
+        TypeCarburant created = sharedService.createTypeCarburant(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    // ==================== MARQUES ====================
+
+    @GetMapping("/marques")
+    public ResponseEntity<List<Marque>> getAllMarques() {
+        return ResponseEntity.ok(sharedService.getAllMarques());
+    }
+
+    @PostMapping("/marques")
+    public ResponseEntity<Marque> createMarque(@Valid @RequestBody MarqueRequest request) {
+        Marque created = sharedService.createMarque(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

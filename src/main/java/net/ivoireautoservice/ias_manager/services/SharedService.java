@@ -3,39 +3,44 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Categorie;
 import net.ivoireautoservice.ias_manager.dto.core.FamilleProduit;
+import net.ivoireautoservice.ias_manager.dto.core.Marque;
 import net.ivoireautoservice.ias_manager.dto.core.Service;
+import net.ivoireautoservice.ias_manager.dto.core.TypeCarburant;
 import net.ivoireautoservice.ias_manager.dto.core.TypeDepense;
 import net.ivoireautoservice.ias_manager.dto.core.TypeIntervention;
-import net.ivoireautoservice.ias_manager.dto.core.TypeStatutPieceComptable;
 import net.ivoireautoservice.ias_manager.dto.core.TypeVehicule;
 import net.ivoireautoservice.ias_manager.dto.request.CategorieRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FamilleProduitRequest;
+import net.ivoireautoservice.ias_manager.dto.request.MarqueRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ServiceRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeCarburantRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeDepenseRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeInterventionRequest;
-import net.ivoireautoservice.ias_manager.dto.request.TypeStatutPieceComptableRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeVehiculeRequest;
 import net.ivoireautoservice.ias_manager.entity.CategorieEntity;
 import net.ivoireautoservice.ias_manager.entity.FamilleProduitEntity;
+import net.ivoireautoservice.ias_manager.entity.MarqueEntity;
 import net.ivoireautoservice.ias_manager.entity.ServiceEntity;
+import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeDepenseEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
-import net.ivoireautoservice.ias_manager.entity.TypeStatutPieceComptableEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.CategorieMapper;
 import net.ivoireautoservice.ias_manager.mapper.FamilleProduitMapper;
+import net.ivoireautoservice.ias_manager.mapper.MarqueMapper;
 import net.ivoireautoservice.ias_manager.mapper.ServiceMapper;
+import net.ivoireautoservice.ias_manager.mapper.TypeCarburantMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeDepenseMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeInterventionMapper;
-import net.ivoireautoservice.ias_manager.mapper.TypeStatutPieceComptableMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeVehiculeMapper;
 import net.ivoireautoservice.ias_manager.repository.CategoryRepository;
 import net.ivoireautoservice.ias_manager.repository.FamilleProduitRepository;
+import net.ivoireautoservice.ias_manager.repository.MarqueRepository;
 import net.ivoireautoservice.ias_manager.repository.ServiceRepository;
+import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeDepenseRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
-import net.ivoireautoservice.ias_manager.repository.TypeStatutPieceComptableRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeVehiculeRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,18 +52,20 @@ public class SharedService {
 
     private final CategoryRepository categoryRepository;
     private final TypeVehiculeRepository typeVehiculeRepository;
+    private final MarqueRepository marqueRepository;
     private final ServiceRepository serviceRepository;
     private final TypeInterventionRepository typeInterventionRepository;
     private final FamilleProduitRepository familleProduitRepository;
-    private final TypeStatutPieceComptableRepository typeStatutPieceComptableRepository;
     private final TypeDepenseRepository typeDepenseRepository;
+    private final TypeCarburantRepository typeCarburantRepository;
     private final CategorieMapper categorieMapper;
     private final TypeVehiculeMapper typeVehiculeMapper;
+    private final MarqueMapper marqueMapper;
     private final ServiceMapper serviceMapper;
     private final TypeInterventionMapper typeInterventionMapper;
     private final FamilleProduitMapper familleProduitMapper;
-    private final TypeStatutPieceComptableMapper typeStatutPieceComptableMapper;
     private final TypeDepenseMapper typeDepenseMapper;
+    private final TypeCarburantMapper typeCarburantMapper;
 
     // ==================== CATEGORIES ====================
 
@@ -118,6 +125,7 @@ public class SharedService {
                 .orElseThrow(() -> new ResourceNotFoundException("Catégorie", request.getCategorieId()));
 
         TypeVehiculeEntity entity = typeVehiculeMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         entity.setCategorie(categorie);
 
         TypeVehiculeEntity saved = typeVehiculeRepository.save(entity);
@@ -164,6 +172,7 @@ public class SharedService {
     @Transactional
     public Service createService(ServiceRequest request) {
         ServiceEntity entity = serviceMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         ServiceEntity saved = serviceRepository.save(entity);
         return serviceMapper.toDto(saved);
     }
@@ -261,44 +270,6 @@ public class SharedService {
         familleProduitRepository.deleteById(id);
     }
 
-    // ==================== TYPES STATUT PIECE COMPTABLE ====================
-
-    @Transactional(readOnly = true)
-    public List<TypeStatutPieceComptable> getAllTypesStatutPieceComptable() {
-        return typeStatutPieceComptableMapper.toDtoList(typeStatutPieceComptableRepository.findAll());
-    }
-
-    @Transactional(readOnly = true)
-    public TypeStatutPieceComptable getTypeStatutPieceComptableById(Long id) {
-        TypeStatutPieceComptableEntity entity = typeStatutPieceComptableRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Type de statut pièce comptable", id));
-        return typeStatutPieceComptableMapper.toDto(entity);
-    }
-
-    @Transactional
-    public TypeStatutPieceComptable createTypeStatutPieceComptable(TypeStatutPieceComptableRequest request) {
-        TypeStatutPieceComptableEntity entity = typeStatutPieceComptableMapper.toEntity(request);
-        TypeStatutPieceComptableEntity saved = typeStatutPieceComptableRepository.save(entity);
-        return typeStatutPieceComptableMapper.toDto(saved);
-    }
-
-    @Transactional
-    public TypeStatutPieceComptable updateTypeStatutPieceComptable(Long id, TypeStatutPieceComptableRequest request) {
-        TypeStatutPieceComptableEntity entity = typeStatutPieceComptableRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Type de statut pièce comptable", id));
-        typeStatutPieceComptableMapper.updateEntity(request, entity);
-        TypeStatutPieceComptableEntity saved = typeStatutPieceComptableRepository.save(entity);
-        return typeStatutPieceComptableMapper.toDto(saved);
-    }
-
-    @Transactional
-    public void deleteTypeStatutPieceComptable(Long id) {
-        if (!typeStatutPieceComptableRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Type de statut pièce comptable", id);
-        }
-        typeStatutPieceComptableRepository.deleteById(id);
-    }
-
     // ==================== TYPES DEPENSE ====================
 
     @Transactional(readOnly = true)
@@ -335,5 +306,41 @@ public class SharedService {
             throw new ResourceNotFoundException("Type de dépense", id);
         }
         typeDepenseRepository.deleteById(id);
+    }
+
+    // ==================== TYPES CARBURANT ====================
+
+    @Transactional(readOnly = true)
+    public List<TypeCarburant> getAllTypesCarburant() {
+        return typeCarburantMapper.toDtoList(typeCarburantRepository.findAll());
+    }
+
+    @Transactional
+    public TypeCarburant createTypeCarburant(TypeCarburantRequest request) {
+        TypeCarburantEntity entity = typeCarburantMapper.toEntity(request);
+        TypeCarburantEntity saved = typeCarburantRepository.save(entity);
+        return typeCarburantMapper.toDto(saved);
+    }
+
+    // ==================== MARQUES ====================
+
+    @Transactional(readOnly = true)
+    public List<Marque> getAllMarques() {
+        return marqueMapper.toDtoList(marqueRepository.findAll());
+    }
+
+    @Transactional
+    public Marque createMarque(MarqueRequest request) {
+        MarqueEntity entity = marqueMapper.toEntity(request);
+        MarqueEntity saved = marqueRepository.save(entity);
+        return marqueMapper.toDto(saved);
+    }
+
+    @Transactional
+    public MarqueEntity getOrCreateMarque(String libelle) {
+        return marqueRepository.findByLibelleIgnoreCase(libelle)
+                .orElseGet(() -> marqueRepository.save(
+                        MarqueEntity.builder().libelle(libelle).build()
+                ));
     }
 }

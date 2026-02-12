@@ -15,6 +15,7 @@ public class Chauffeur {
 	private String employeNom;
 	private String employePrenoms;
 	private String numeroPermis;
+	private LocalDate expDatePermis;
 	private LocalDate expDatePermisC;
 	private LocalDate expDatePermisD;
 	private LocalDate expDatePermisE;
