@@ -3,6 +3,8 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Facture;
 import net.ivoireautoservice.ias_manager.dto.core.LigneFacture;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonClient;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
@@ -13,12 +15,8 @@ import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
-import net.ivoireautoservice.ias_manager.mapper.FactureMapper;
-import net.ivoireautoservice.ias_manager.mapper.LigneFactureMapper;
-import net.ivoireautoservice.ias_manager.repository.FactureRepository;
-import net.ivoireautoservice.ias_manager.repository.LigneFactureRepository;
-import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
-import net.ivoireautoservice.ias_manager.repository.ProduitRepository;
+import net.ivoireautoservice.ias_manager.mapper.*;
+import net.ivoireautoservice.ias_manager.repository.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,16 +30,34 @@ public class FactureService {
 
 	private final FactureRepository factureRepository;
 	private final LigneFactureRepository ligneFactureRepository;
+	private final LivraisonClientRepository livraisonClientRepository;
+	private final LivraisonFournisseurRepository livraisonFournisseurRepository;
+	private final SortieProduitRepository sortieProduitRepository;
+	private final EntreeProduitRepository entreeProduitRepository;
 	private final PartenaireRepository partenaireRepository;
 	private final ProduitRepository produitRepository;
 	private final FactureMapper factureMapper;
 	private final LigneFactureMapper ligneFactureMapper;
+	private final LivraisonClientMapper livraisonClientMapper;
+	private final LivraisonFournisseurMapper livraisonFournisseurMapper;
+	private final SortieProduitMapper sortieProduitMapper;
+	private final EntreeProduitMapper entreeProduitMapper;
 
 	// ==================== FACTURES ====================
 
 	@Transactional(readOnly = true)
 	public PagedResponse<Facture> getAllFactures(Pageable pageable) {
 		return PagedResponse.of(factureRepository.findAll(pageable).map(this::toDtoWithItems));
+	}
+
+	@Transactional(readOnly = true)
+	public PagedResponse<Facture> getFacturesClients(Pageable pageable) {
+		return PagedResponse.of(factureRepository.findByPartenaireIsClientTrue(pageable).map(this::toDtoWithItems));
+	}
+
+	@Transactional(readOnly = true)
+	public PagedResponse<Facture> getFacturesFournisseurs(Pageable pageable) {
+		return PagedResponse.of(factureRepository.findByPartenaireIsFournisseurTrue(pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
@@ -186,10 +202,6 @@ public class FactureService {
 		FactureStatusEnum statutActuel = entity.getStatut();
 		validerTransition(statutActuel, nouveauStatut);
 
-		if (nouveauStatut == FactureStatusEnum.FACTUREE) {
-			decrementerStock(entity);
-		}
-
 		entity.setStatut(nouveauStatut);
 		FactureEntity saved = factureRepository.save(entity);
 		return toDtoWithItems(saved);
@@ -198,7 +210,7 @@ public class FactureService {
 	private void validerTransition(FactureStatusEnum actuel, FactureStatusEnum nouveau) {
 		boolean valide = switch (actuel) {
 			case BROUILLON -> nouveau == FactureStatusEnum.PROFORMA || nouveau == FactureStatusEnum.ANNULEE;
-			case PROFORMA -> nouveau == FactureStatusEnum.FACTUREE || nouveau == FactureStatusEnum.ANNULEE;
+			case PROFORMA -> nouveau == FactureStatusEnum.FACTUREE || nouveau == FactureStatusEnum.PAYEE || nouveau == FactureStatusEnum.ANNULEE;
 			case FACTUREE -> nouveau == FactureStatusEnum.PAYEE;
 			case PAYEE, ANNULEE -> false;
 		};
@@ -206,18 +218,6 @@ public class FactureService {
 		if (!valide) {
 			throw new BadRequestException(
 					String.format("Transition de statut invalide : %s → %s", actuel, nouveau));
-		}
-	}
-
-	private void decrementerStock(FactureEntity facture) {
-		List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(facture.getId());
-		for (LigneFactureEntity ligne : lignes) {
-			if (ligne.getProduit() != null && ligne.getQte() != null) {
-				ProduitEntity produit = ligne.getProduit();
-				long stockActuel = produit.getStock() != null ? produit.getStock() : 0;
-				produit.setStock(stockActuel - ligne.getQte());
-				produitRepository.save(produit);
-			}
 		}
 	}
 
@@ -258,6 +258,26 @@ public class FactureService {
 		Facture dto = factureMapper.toDto(entity);
 		List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(entity.getId());
 		dto.setItems(ligneFactureMapper.toDtoList(lignes));
+
+		// Livraison client
+		livraisonClientRepository.findByFactureId(entity.getId()).ifPresentOrElse(
+				livraison -> {
+					LivraisonClient livraisonDto = livraisonClientMapper.toDto(livraison);
+					livraisonDto.setSorties(sortieProduitMapper.toDtoList(
+							sortieProduitRepository.findByLivraisonClientId(livraison.getId())));
+					dto.setLivraison(livraisonDto);
+				},
+				() -> {
+					// Livraison fournisseur
+					livraisonFournisseurRepository.findByFactureId(entity.getId()).ifPresent(livraison -> {
+						LivraisonFournisseur livraisonDto = livraisonFournisseurMapper.toDto(livraison);
+						livraisonDto.setEntrees(entreeProduitMapper.toDtoList(
+								entreeProduitRepository.findByLivraisonFournisseurId(livraison.getId())));
+						dto.setLivraison(livraisonDto);
+					});
+				}
+		);
+
 		return dto;
 	}
 }

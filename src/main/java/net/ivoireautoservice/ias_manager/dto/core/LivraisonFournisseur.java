@@ -1,12 +1,13 @@
 package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-@Data @AllArgsConstructor @NoArgsConstructor @Builder @ToString
-public class LivraisonFournisseur {
-	private Long id;
+@Data @AllArgsConstructor @NoArgsConstructor @SuperBuilder @ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class LivraisonFournisseur extends Livraison {
 	private String numero;
-	private LocalDateTime dhmsLivraison;
+	private List<EntreeProduit> entrees;
 }

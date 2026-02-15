@@ -24,4 +24,5 @@ public class Facture {
 	private Long partenaireId;
 	private String partenaireRaisonSociale;
 	private List<LigneFacture> items;
+	private Livraison livraison;
 }

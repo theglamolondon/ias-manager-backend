@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="appName" source="spring.application.name" />
+<!--    <springProperty name="LOG_PATH" source="logging.file.path" />-->
+<!--    <springProperty name="LOG_FILE_NAME" source="logging.file.name" />-->
+    <property name="LOG_PATTERN" value="%d{dd-MM-yyyy HH:mm:ss} [${appName}] %highlight(%-5level) [%X{correlationId}] - %msg%n" />
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    <!--<appender name="SAVE-TO-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${LOG_FILE_NAME}</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/dcr-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>360</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>${LOG_PATTERN}</Pattern>
+        </encoder>
+    </appender>-->
+
+    <root level="INFO">
+        <appender-ref ref="console" />
+    </root>
+
+</configuration>

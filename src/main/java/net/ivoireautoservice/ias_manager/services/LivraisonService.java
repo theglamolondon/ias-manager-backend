@@ -7,6 +7,8 @@ import net.ivoireautoservice.ias_manager.dto.request.LivraisonClientRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.SortieProduitRequest;
 import net.ivoireautoservice.ias_manager.entity.*;
+import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
+import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.EntreeProduitMapper;
 import net.ivoireautoservice.ias_manager.mapper.LivraisonClientMapper;
@@ -17,6 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class LivraisonService {
@@ -25,6 +31,8 @@ public class LivraisonService {
     private final SortieProduitRepository sortieProduitRepository;
     private final LivraisonFournisseurRepository livraisonFournisseurRepository;
     private final EntreeProduitRepository entreeProduitRepository;
+    private final FactureRepository factureRepository;
+    private final LigneFactureRepository ligneFactureRepository;
     private final ProduitRepository produitRepository;
     private final LivraisonClientMapper livraisonClientMapper;
     private final SortieProduitMapper sortieProduitMapper;
@@ -67,6 +75,61 @@ public class LivraisonService {
             throw new ResourceNotFoundException("Livraison client", id);
         }
         livraisonClientRepository.deleteById(id);
+    }
+
+    @Transactional
+    public LivraisonClient enregistrerLivraisonClient(Long factureId) {
+        FactureEntity facture = factureRepository.findById(factureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
+
+        if (facture.getStatut() != FactureStatusEnum.PROFORMA) {
+            throw new BadRequestException("La livraison client nécessite une facture avec le statut PROFORMA");
+        }
+
+        // Créer la livraison client
+        LivraisonClientEntity livraison = LivraisonClientEntity.builder()
+                .dhmsLivraison(LocalDateTime.now())
+                .facture(facture)
+                .build();
+        LivraisonClientEntity savedLivraison = livraisonClientRepository.save(livraison);
+
+        // Créer les sorties produit pour chaque ligne ayant un produit
+        List<SortieProduitEntity> sorties = new ArrayList<>();
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(factureId);
+        for (LigneFactureEntity ligne : lignes) {
+            if (ligne.getProduit() != null && ligne.getQte() != null) {
+                SortieProduitEntity sortie = SortieProduitEntity.builder()
+                        .quantite(ligne.getQte())
+                        .livraisonClient(savedLivraison)
+                        .produit(ligne.getProduit())
+                        .build();
+                sorties.add(sortieProduitRepository.save(sortie));
+            }
+        }
+
+        // Décrémenter le stock
+        decrementerStock(facture);
+
+        // Passer le statut à FACTUREE
+        facture.setStatut(FactureStatusEnum.FACTUREE);
+        factureRepository.save(facture);
+
+        // Construire la réponse
+        LivraisonClient dto = livraisonClientMapper.toDto(savedLivraison);
+        dto.setSorties(sortieProduitMapper.toDtoList(sorties));
+        return dto;
+    }
+
+    private void decrementerStock(FactureEntity facture) {
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(facture.getId());
+        for (LigneFactureEntity ligne : lignes) {
+            if (ligne.getProduit() != null && ligne.getQte() != null) {
+                ProduitEntity produit = ligne.getProduit();
+                long stockActuel = produit.getStock() != null ? produit.getStock() : 0;
+                produit.setStock(stockActuel - ligne.getQte());
+                produitRepository.save(produit);
+            }
+        }
     }
 
     // ==================== SORTIES PRODUIT ====================
@@ -132,7 +195,13 @@ public class LivraisonService {
     public LivraisonFournisseur createLivraisonFournisseur(LivraisonFournisseurRequest request) {
         LivraisonFournisseurEntity entity = livraisonFournisseurMapper.toEntity(request);
         LivraisonFournisseurEntity saved = livraisonFournisseurRepository.save(entity);
-        return livraisonFournisseurMapper.toDto(saved);
+
+        // Enregistrer les entrées produit et incrémenter le stock
+        List<EntreeProduitEntity> entrees = saveEntrees(saved, request.getItems());
+
+        LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(saved);
+        dto.setEntrees(entreeProduitMapper.toDtoList(entrees));
+        return dto;
     }
 
     @Transactional
@@ -188,5 +257,28 @@ public class LivraisonService {
             throw new ResourceNotFoundException("Entrée produit", entreeId);
         }
         entreeProduitRepository.deleteById(entreeId);
+    }
+
+    // ==================== HELPERS ====================
+
+    private List<EntreeProduitEntity> saveEntrees(LivraisonFournisseurEntity livraison, List<EntreeProduitRequest> items) {
+        List<EntreeProduitEntity> entrees = new ArrayList<>();
+        if (items == null || items.isEmpty()) return entrees;
+
+        for (EntreeProduitRequest item : items) {
+            ProduitEntity produit = produitRepository.findById(item.getProduitId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Produit", item.getProduitId()));
+
+            EntreeProduitEntity entree = entreeProduitMapper.toEntity(item);
+            entree.setLivraisonFournisseur(livraison);
+            entree.setProduit(produit);
+            entrees.add(entreeProduitRepository.save(entree));
+
+            // Incrémenter le stock
+            long stockActuel = produit.getStock() != null ? produit.getStock() : 0;
+            produit.setStock(stockActuel + item.getQuantite());
+            produitRepository.save(produit);
+        }
+        return entrees;
     }
 }

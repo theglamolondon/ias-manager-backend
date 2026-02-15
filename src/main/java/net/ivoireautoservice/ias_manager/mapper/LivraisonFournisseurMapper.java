@@ -12,13 +12,18 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface LivraisonFournisseurMapper {
 
+    @Mapping(source = "facture.id", target = "factureId")
+    @Mapping(source = "facture.numProforma", target = "factureNumProforma")
+    @Mapping(target = "entrees", ignore = true)
     LivraisonFournisseur toDto(LivraisonFournisseurEntity entity);
 
     List<LivraisonFournisseur> toDtoList(List<LivraisonFournisseurEntity> entities);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "facture", ignore = true)
     LivraisonFournisseurEntity toEntity(LivraisonFournisseurRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "facture", ignore = true)
     void updateEntity(LivraisonFournisseurRequest request, @MappingTarget LivraisonFournisseurEntity entity);
 }

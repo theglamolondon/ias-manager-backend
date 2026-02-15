@@ -9,6 +9,8 @@ import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.services.FactureService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class FactureController {
 
 	private final FactureService factureService;
+	private final Logger logger = LoggerFactory.getLogger(FactureController.class);
 
 	// ==================== FACTURES ====================
 
@@ -34,6 +37,28 @@ public class FactureController {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
 		return ResponseEntity.ok(factureService.getAllFactures(pageable));
+	}
+
+	@GetMapping("/clients")
+	public ResponseEntity<PagedResponse<Facture>> getFacturesClients(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int taille,
+			@RequestParam(defaultValue = "id") String tri,
+			@RequestParam(defaultValue = "asc") String ordre) {
+		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
+		Pageable pageable = PageRequest.of(page, taille, sort);
+		return ResponseEntity.ok(factureService.getFacturesClients(pageable));
+	}
+
+	@GetMapping("/fournisseurs")
+	public ResponseEntity<PagedResponse<Facture>> getFacturesFournisseurs(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int taille,
+			@RequestParam(defaultValue = "id") String tri,
+			@RequestParam(defaultValue = "asc") String ordre) {
+		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
+		Pageable pageable = PageRequest.of(page, taille, sort);
+		return ResponseEntity.ok(factureService.getFacturesFournisseurs(pageable));
 	}
 
 	@GetMapping("/{id}")
@@ -71,54 +96,14 @@ public class FactureController {
 	}
 
 	@PatchMapping("/{id}/statut")
-	public ResponseEntity<Facture> changerStatut(
+	public ResponseEntity<?> changerStatut(
 			@PathVariable Long id,
 			@RequestParam FactureStatusEnum statut) {
-		return ResponseEntity.ok(factureService.changerStatut(id, statut));
-	}
-
-	// ==================== LIGNES FACTURE ====================
-
-	@GetMapping("/{factureId}/lignes")
-	public ResponseEntity<PagedResponse<LigneFacture>> getLignesByFacture(
-			@PathVariable Long factureId,
-			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int taille,
-			@RequestParam(defaultValue = "id") String tri,
-			@RequestParam(defaultValue = "asc") String ordre) {
-		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
-		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getLignesByFacture(factureId, pageable));
-	}
-
-	@GetMapping("/{factureId}/lignes/{ligneId}")
-	public ResponseEntity<LigneFacture> getLigneById(
-			@PathVariable Long factureId,
-			@PathVariable Long ligneId) {
-		return ResponseEntity.ok(factureService.getLigneById(factureId, ligneId));
-	}
-
-	@PostMapping("/{factureId}/lignes")
-	public ResponseEntity<LigneFacture> createLigne(
-			@PathVariable Long factureId,
-			@Valid @RequestBody LigneFactureRequest request) {
-		LigneFacture created = factureService.createLigne(factureId, request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(created);
-	}
-
-	@PutMapping("/{factureId}/lignes/{ligneId}")
-	public ResponseEntity<LigneFacture> updateLigne(
-			@PathVariable Long factureId,
-			@PathVariable Long ligneId,
-			@Valid @RequestBody LigneFactureRequest request) {
-		return ResponseEntity.ok(factureService.updateLigne(factureId, ligneId, request));
-	}
-
-	@DeleteMapping("/{factureId}/lignes/{ligneId}")
-	public ResponseEntity<Void> deleteLigne(
-			@PathVariable Long factureId,
-			@PathVariable Long ligneId) {
-		factureService.deleteLigne(factureId, ligneId);
-		return ResponseEntity.noContent().build();
+		try{
+			return ResponseEntity.ok(factureService.changerStatut(id, statut));
+		}catch (Exception e){
+			logger.error("ERREUR | {} | {}", e.getMessage(), e.getStackTrace());
+			return ResponseEntity.badRequest().body(e.getMessage());
+		}
 	}
 }

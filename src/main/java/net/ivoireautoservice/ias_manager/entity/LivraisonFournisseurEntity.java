@@ -2,23 +2,17 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "LIVRAISONS_FOURNISSEUR")
-@Data
-@AllArgsConstructor
+@Getter @Setter
 @NoArgsConstructor
-@Builder
-public class LivraisonFournisseurEntity {
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+@AllArgsConstructor
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class LivraisonFournisseurEntity extends BaseLivraisonEntity {
 
 	@Column(unique = true)
 	private String numero;
-
-	private LocalDateTime dhmsLivraison;
 }

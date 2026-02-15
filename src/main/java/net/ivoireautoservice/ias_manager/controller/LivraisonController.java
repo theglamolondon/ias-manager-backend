@@ -24,6 +24,12 @@ public class LivraisonController {
 
     // ==================== LIVRAISONS CLIENT ====================
 
+    @PostMapping("/clients/facture/{factureId}")
+    public ResponseEntity<LivraisonClient> enregistrerLivraisonClient(@PathVariable Long factureId) {
+        LivraisonClient created = livraisonService.enregistrerLivraisonClient(factureId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
     @GetMapping("/clients")
     public ResponseEntity<PagedResponse<LivraisonClient>> getAllLivraisonsClient(
             @RequestParam(defaultValue = "0") int page,

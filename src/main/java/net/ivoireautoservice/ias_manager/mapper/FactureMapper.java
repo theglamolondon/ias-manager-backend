@@ -15,6 +15,7 @@ public interface FactureMapper {
     @Mapping(source = "partenaire.id", target = "partenaireId")
     @Mapping(source = "partenaire.raisonSociale", target = "partenaireRaisonSociale")
     @Mapping(target = "items", ignore = true)
+    @Mapping(target = "livraison", ignore = true)
     Facture toDto(FactureEntity entity);
 
     List<Facture> toDtoList(List<FactureEntity> entities);

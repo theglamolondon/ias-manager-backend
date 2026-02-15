@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface LivraisonFournisseurRepository extends JpaRepository<LivraisonFournisseurEntity, Long> {
 
     Optional<LivraisonFournisseurEntity> findByNumero(String numero);
+    Optional<LivraisonFournisseurEntity> findByFactureId(Long factureId);
 }

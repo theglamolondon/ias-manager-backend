@@ -12,6 +12,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -45,7 +47,7 @@ public class AuthController {
     private AuthenticationResponse buildResponse(String token, Utilisateur user) {
         String role = user.getAuthorities().stream()
                 .findFirst()
-                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .map(a -> Objects.requireNonNull(a.getAuthority()).replace("ROLE_", ""))
                 .orElse(null);
         return new AuthenticationResponse(token, user.getNom(), user.getPrenom(), user.getEmail(), role);
     }
