@@ -2,16 +2,17 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "ENTREES_PRODUIT")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"produit", "livraisonFournisseur"})
-@EqualsAndHashCode(exclude = {"produit", "livraisonFournisseur"})
-public class EntreeProduitEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"produit", "livraisonFournisseur"})
+public class EntreeProduitEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

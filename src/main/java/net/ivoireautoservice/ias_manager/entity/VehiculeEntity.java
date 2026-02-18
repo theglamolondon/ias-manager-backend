@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 
 import java.time.LocalDate;
@@ -11,10 +12,10 @@ import java.time.LocalDate;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
-@EqualsAndHashCode(exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
-public class VehiculeEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
+public class VehiculeEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

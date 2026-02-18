@@ -18,6 +18,6 @@ public interface MediaMapper {
 
     @Named("idToUrl")
     default String idToUrl(String id) {
-        return "/api/resources/" + id;
+        return "/resources/" + id;
     }
 }

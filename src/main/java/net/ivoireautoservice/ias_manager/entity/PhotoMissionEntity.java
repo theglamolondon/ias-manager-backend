@@ -2,16 +2,17 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "PHOTOS_MISSION")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"mission", "media"})
-@EqualsAndHashCode(exclude = {"mission", "media"})
-public class PhotoMissionEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"mission", "media"})
+public class PhotoMissionEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

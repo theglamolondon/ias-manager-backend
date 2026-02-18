@@ -8,6 +8,7 @@ import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.entity.*;
+import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
 import net.ivoireautoservice.ias_manager.mapper.MediaMapper;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -30,6 +33,7 @@ public class MissionService {
 	private final PhotoMissionRepository photoMissionRepository;
 	private final VehiculeRepository vehiculeRepository;
 	private final ChauffeurRepository chauffeurRepository;
+	private final PartenaireRepository partenaireRepository;
 	private final TypeDepenseRepository typeDepenseRepository;
 	private final MissionMapper missionMapper;
 	private final DepenseMissionMapper depenseMissionMapper;
@@ -65,17 +69,31 @@ public class MissionService {
 
 	@Transactional
 	public Mission createMission(MissionRequest request) {
+		// Validation sous-traitance / chauffeur
+		if (Boolean.TRUE.equals(request.getIsSousTraitee())) {
+			if (request.getDetailsVehiculeSousTraitance() == null || request.getDetailsVehiculeSousTraitance().isBlank()) {
+				throw new BadRequestException("Les détails du véhicule de sous-traitance sont obligatoires pour une mission sous-traitée");
+			}
+		} else {
+			if (request.getChauffeurId() == null) {
+				throw new BadRequestException("Le chauffeur est obligatoire pour une mission non sous-traitée");
+			}
+		}
+
 		VehiculeEntity vehicule = vehiculeRepository.findById(request.getVehiculeId())
 				.orElseThrow(() -> new ResourceNotFoundException("Véhicule", request.getVehiculeId()));
 
 		MissionEntity entity = missionMapper.toEntity(request);
 		entity.setVehicule(vehicule);
+		resolveRelations(request, entity);
 
-		if (Boolean.TRUE.equals(request.getWithChauffeur()) && request.getChauffeurId() != null) {
-			ChauffeurEntity chauffeur = chauffeurRepository.findById(request.getChauffeurId())
-					.orElseThrow(() -> new ResourceNotFoundException("Chauffeur", request.getChauffeurId()));
-			entity.setChauffeur(chauffeur);
-		}
+		// Champs non renseignés à la création
+		entity.setDhmsDebutReel(null);
+		entity.setDhmsFinReel(null);
+		entity.setKilometrageArrive(null);
+
+		// Calcul des champs dérivés
+		computeCalculatedFields(entity);
 
 		MissionEntity saved = missionRepository.save(entity);
 		return missionMapper.toDto(saved);
@@ -91,14 +109,7 @@ public class MissionService {
 
 		missionMapper.updateEntity(request, entity);
 		entity.setVehicule(vehicule);
-
-		if (Boolean.TRUE.equals(request.getWithChauffeur()) && request.getChauffeurId() != null) {
-			ChauffeurEntity chauffeur = chauffeurRepository.findById(request.getChauffeurId())
-					.orElseThrow(() -> new ResourceNotFoundException("Chauffeur", request.getChauffeurId()));
-			entity.setChauffeur(chauffeur);
-		} else {
-			entity.setChauffeur(null);
-		}
+		resolveRelations(request, entity);
 
 		MissionEntity saved = missionRepository.save(entity);
 		return missionMapper.toDto(saved);
@@ -139,5 +150,41 @@ public class MissionService {
 		photoMissionRepository.save(photo);
 
 		return media;
+	}
+
+	// ==================== HELPERS ====================
+
+	private void computeCalculatedFields(MissionEntity entity) {
+		if (entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
+			long nbreJours = ChronoUnit.DAYS.between(entity.getDhmsDebutPrevi(), entity.getDhmsFinPrevi());
+			if (nbreJours < 1) nbreJours = 1;
+			entity.setDureeLocation(nbreJours);
+
+			if (entity.getTarifJournalier() != null) {
+				entity.setMontantTotalHT(entity.getTarifJournalier().multiply(BigDecimal.valueOf(nbreJours)));
+			}
+
+			if (entity.getPerdiem() != null) {
+				entity.setTotalPerdiem(entity.getPerdiem().multiply(BigDecimal.valueOf(nbreJours)));
+			}
+		}
+	}
+
+	private void resolveRelations(MissionRequest request, MissionEntity entity) {
+		if (Boolean.TRUE.equals(request.getWithChauffeur()) && request.getChauffeurId() != null) {
+			ChauffeurEntity chauffeur = chauffeurRepository.findById(request.getChauffeurId())
+					.orElseThrow(() -> new ResourceNotFoundException("Chauffeur", request.getChauffeurId()));
+			entity.setChauffeur(chauffeur);
+		} else {
+			entity.setChauffeur(null);
+		}
+
+		if (request.getClientId() != null) {
+			PartenaireEntity client = partenaireRepository.findById(request.getClientId())
+					.orElseThrow(() -> new ResourceNotFoundException("Partenaire", request.getClientId()));
+			entity.setClient(client);
+		} else {
+			entity.setClient(null);
+		}
 	}
 }

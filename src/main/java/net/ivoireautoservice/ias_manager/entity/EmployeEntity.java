@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 
@@ -10,10 +11,10 @@ import java.time.LocalDate;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"service"})
-@EqualsAndHashCode(exclude = {"service"})
-public class EmployeEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"service"})
+public class EmployeEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

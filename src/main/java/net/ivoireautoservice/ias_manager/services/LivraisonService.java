@@ -3,7 +3,6 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.dto.request.EntreeProduitRequest;
-import net.ivoireautoservice.ias_manager.dto.request.LivraisonClientRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.SortieProduitRequest;
 import net.ivoireautoservice.ias_manager.entity.*;
@@ -54,22 +53,6 @@ public class LivraisonService {
     }
 
     @Transactional
-    public LivraisonClient createLivraisonClient(LivraisonClientRequest request) {
-        LivraisonClientEntity entity = livraisonClientMapper.toEntity(request);
-        LivraisonClientEntity saved = livraisonClientRepository.save(entity);
-        return livraisonClientMapper.toDto(saved);
-    }
-
-    @Transactional
-    public LivraisonClient updateLivraisonClient(Long id, LivraisonClientRequest request) {
-        LivraisonClientEntity entity = livraisonClientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Livraison client", id));
-        livraisonClientMapper.updateEntity(request, entity);
-        LivraisonClientEntity saved = livraisonClientRepository.save(entity);
-        return livraisonClientMapper.toDto(saved);
-    }
-
-    @Transactional
     public void deleteLivraisonClient(Long id) {
         if (!livraisonClientRepository.existsById(id)) {
             throw new ResourceNotFoundException("Livraison client", id);
@@ -82,8 +65,12 @@ public class LivraisonService {
         FactureEntity facture = factureRepository.findById(factureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
 
-        if (facture.getStatut() != FactureStatusEnum.PROFORMA) {
-            throw new BadRequestException("La livraison client nécessite une facture avec le statut PROFORMA");
+        if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.PAYEE) {
+            throw new BadRequestException("La livraison client nécessite une facture PROFORMA ou PAYEE");
+        }
+
+        if (livraisonClientRepository.findByFactureId(factureId).isPresent()) {
+            throw new BadRequestException("Cette facture a déjà fait l'objet d'une livraison client");
         }
 
         // Créer la livraison client
@@ -110,9 +97,11 @@ public class LivraisonService {
         // Décrémenter le stock
         decrementerStock(facture);
 
-        // Passer le statut à FACTUREE
-        facture.setStatut(FactureStatusEnum.FACTUREE);
-        factureRepository.save(facture);
+        // Passer le statut à FACTUREE uniquement si PROFORMA
+        if (facture.getStatut() == FactureStatusEnum.PROFORMA) {
+            facture.setStatut(FactureStatusEnum.FACTUREE);
+            factureRepository.save(facture);
+        }
 
         // Construire la réponse
         LivraisonClient dto = livraisonClientMapper.toDto(savedLivraison);
@@ -194,9 +183,38 @@ public class LivraisonService {
     @Transactional
     public LivraisonFournisseur createLivraisonFournisseur(LivraisonFournisseurRequest request) {
         LivraisonFournisseurEntity entity = livraisonFournisseurMapper.toEntity(request);
-        LivraisonFournisseurEntity saved = livraisonFournisseurRepository.save(entity);
 
-        // Enregistrer les entrées produit et incrémenter le stock
+        if (request.getFactureId() != null) {
+            FactureEntity facture = factureRepository.findById(request.getFactureId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Facture", request.getFactureId()));
+
+            if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.PAYEE) {
+                throw new BadRequestException("La livraison fournisseur nécessite une facture avec le statut PROFORMA ou PAYEE");
+            }
+
+            if (livraisonFournisseurRepository.findByFactureId(request.getFactureId()).isPresent()) {
+                throw new BadRequestException("Cette facture a déjà fait l'objet d'une livraison fournisseur");
+            }
+
+            entity.setFacture(facture);
+            LivraisonFournisseurEntity saved = livraisonFournisseurRepository.save(entity);
+
+            // Créer les entrées depuis les lignes de la facture
+            List<EntreeProduitEntity> entrees = saveEntreesFromFacture(saved, facture);
+
+            // Passer à FACTUREE uniquement si PROFORMA
+            if (facture.getStatut() == FactureStatusEnum.PROFORMA) {
+                facture.setStatut(FactureStatusEnum.FACTUREE);
+                factureRepository.save(facture);
+            }
+
+            LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(saved);
+            dto.setEntrees(entreeProduitMapper.toDtoList(entrees));
+            return dto;
+        }
+
+        // Sinon, utiliser les items fournis (comportement existant)
+        LivraisonFournisseurEntity saved = livraisonFournisseurRepository.save(entity);
         List<EntreeProduitEntity> entrees = saveEntrees(saved, request.getItems());
 
         LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(saved);
@@ -260,6 +278,28 @@ public class LivraisonService {
     }
 
     // ==================== HELPERS ====================
+
+    private List<EntreeProduitEntity> saveEntreesFromFacture(LivraisonFournisseurEntity livraison, FactureEntity facture) {
+        List<EntreeProduitEntity> entrees = new ArrayList<>();
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(facture.getId());
+        for (LigneFactureEntity ligne : lignes) {
+            if (ligne.getProduit() != null && ligne.getQte() != null) {
+                EntreeProduitEntity entree = EntreeProduitEntity.builder()
+                        .quantite(ligne.getQte())
+                        .livraisonFournisseur(livraison)
+                        .produit(ligne.getProduit())
+                        .build();
+                entrees.add(entreeProduitRepository.save(entree));
+
+                // Incrémenter le stock
+                ProduitEntity produit = ligne.getProduit();
+                long stockActuel = produit.getStock() != null ? produit.getStock() : 0;
+                produit.setStock(stockActuel + ligne.getQte());
+                produitRepository.save(produit);
+            }
+        }
+        return entrees;
+    }
 
     private List<EntreeProduitEntity> saveEntrees(LivraisonFournisseurEntity livraison, List<EntreeProduitRequest> items) {
         List<EntreeProduitEntity> entrees = new ArrayList<>();

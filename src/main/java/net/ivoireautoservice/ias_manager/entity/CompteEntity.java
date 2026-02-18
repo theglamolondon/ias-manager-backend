@@ -2,14 +2,16 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "COMPTES")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class CompteEntity {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class CompteEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

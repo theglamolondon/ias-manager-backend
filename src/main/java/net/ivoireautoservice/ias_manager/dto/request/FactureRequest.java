@@ -24,6 +24,7 @@ public class FactureRequest {
 	private LocalDate delaiLivraison;
 	private LocalDate validite;
 	private String objet;
+	private Boolean factureClient;
 	private FactureStatusEnum statut;
 	private Long partenaireId;
 

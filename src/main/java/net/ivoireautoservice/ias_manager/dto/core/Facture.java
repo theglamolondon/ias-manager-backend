@@ -20,6 +20,7 @@ public class Facture {
 	private LocalDate delaiLivraison;
 	private LocalDate validite;
 	private String objet;
+	private Boolean factureClient;
 	private FactureStatusEnum statut;
 	private Long partenaireId;
 	private String partenaireRaisonSociale;

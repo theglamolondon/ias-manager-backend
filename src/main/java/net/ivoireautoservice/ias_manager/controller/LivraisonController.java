@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.dto.request.EntreeProduitRequest;
-import net.ivoireautoservice.ias_manager.dto.request.LivraisonClientRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.SortieProduitRequest;
 import net.ivoireautoservice.ias_manager.services.LivraisonService;
@@ -46,53 +45,9 @@ public class LivraisonController {
         return ResponseEntity.ok(livraisonService.getLivraisonClientById(id));
     }
 
-    @PostMapping("/clients")
-    public ResponseEntity<LivraisonClient> createLivraisonClient(
-            @Valid @RequestBody LivraisonClientRequest request) {
-        LivraisonClient created = livraisonService.createLivraisonClient(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @PutMapping("/clients/{id}")
-    public ResponseEntity<LivraisonClient> updateLivraisonClient(
-            @PathVariable Long id,
-            @Valid @RequestBody LivraisonClientRequest request) {
-        return ResponseEntity.ok(livraisonService.updateLivraisonClient(id, request));
-    }
-
     @DeleteMapping("/clients/{id}")
     public ResponseEntity<Void> deleteLivraisonClient(@PathVariable Long id) {
         livraisonService.deleteLivraisonClient(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // ==================== SORTIES PRODUIT ====================
-
-    @GetMapping("/clients/{livraisonId}/sorties")
-    public ResponseEntity<PagedResponse<SortieProduit>> getSortiesByLivraison(
-            @PathVariable Long livraisonId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int taille,
-            @RequestParam(defaultValue = "id") String tri,
-            @RequestParam(defaultValue = "asc") String ordre) {
-        Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
-        Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(livraisonService.getSortiesByLivraison(livraisonId, pageable));
-    }
-
-    @PostMapping("/clients/{livraisonId}/sorties")
-    public ResponseEntity<SortieProduit> createSortieProduit(
-            @PathVariable Long livraisonId,
-            @Valid @RequestBody SortieProduitRequest request) {
-        SortieProduit created = livraisonService.createSortieProduit(livraisonId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @DeleteMapping("/clients/{livraisonId}/sorties/{sortieId}")
-    public ResponseEntity<Void> deleteSortieProduit(
-            @PathVariable Long livraisonId,
-            @PathVariable Long sortieId) {
-        livraisonService.deleteSortieProduit(livraisonId, sortieId);
         return ResponseEntity.noContent().build();
     }
 
@@ -136,36 +91,6 @@ public class LivraisonController {
     @DeleteMapping("/fournisseurs/{id}")
     public ResponseEntity<Void> deleteLivraisonFournisseur(@PathVariable Long id) {
         livraisonService.deleteLivraisonFournisseur(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    // ==================== ENTREES PRODUIT ====================
-
-    @GetMapping("/fournisseurs/{livraisonId}/entrees")
-    public ResponseEntity<PagedResponse<EntreeProduit>> getEntreesByLivraison(
-            @PathVariable Long livraisonId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int taille,
-            @RequestParam(defaultValue = "id") String tri,
-            @RequestParam(defaultValue = "asc") String ordre) {
-        Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
-        Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(livraisonService.getEntreesByLivraison(livraisonId, pageable));
-    }
-
-    @PostMapping("/fournisseurs/{livraisonId}/entrees")
-    public ResponseEntity<EntreeProduit> createEntreeProduit(
-            @PathVariable Long livraisonId,
-            @Valid @RequestBody EntreeProduitRequest request) {
-        EntreeProduit created = livraisonService.createEntreeProduit(livraisonId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @DeleteMapping("/fournisseurs/{livraisonId}/entrees/{entreeId}")
-    public ResponseEntity<Void> deleteEntreeProduit(
-            @PathVariable Long livraisonId,
-            @PathVariable Long entreeId) {
-        livraisonService.deleteEntreeProduit(livraisonId, entreeId);
         return ResponseEntity.noContent().build();
     }
 }

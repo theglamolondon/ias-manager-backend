@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 
 import java.time.LocalDate;
@@ -12,10 +13,10 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"partenaire"})
-@EqualsAndHashCode(exclude = {"partenaire"})
-public class FactureEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"partenaire"})
+public class FactureEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,6 +41,8 @@ public class FactureEntity {
 	private LocalDate validite;
 
 	private String objet;
+
+	private Boolean factureClient;
 
 	@Enumerated(EnumType.ORDINAL)
 	private FactureStatusEnum statut;

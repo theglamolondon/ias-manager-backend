@@ -30,13 +30,14 @@ public class FactureController {
 
 	@GetMapping
 	public ResponseEntity<PagedResponse<Facture>> getAllFactures(
+			@RequestParam(required = false) Boolean factureClient,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "id") String tri,
 			@RequestParam(defaultValue = "asc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getAllFactures(pageable));
+		return ResponseEntity.ok(factureService.getAllFactures(factureClient, pageable));
 	}
 
 	@GetMapping("/clients")
@@ -59,6 +60,15 @@ public class FactureController {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
 		return ResponseEntity.ok(factureService.getFacturesFournisseurs(pageable));
+	}
+
+	@GetMapping("/livrables")
+	public ResponseEntity<PagedResponse<Facture>> getFacturesLivrables(
+			@RequestParam(required = false) Boolean factureClient,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int taille) {
+		Pageable pageable = PageRequest.of(page, taille, Sort.by("createdAt").descending());
+		return ResponseEntity.ok(factureService.getFacturesLivrables(factureClient, pageable));
 	}
 
 	@GetMapping("/{id}")

@@ -9,13 +9,9 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {VehiculeMapper.class, ChauffeurMapper.class, PartenaireMapper.class})
 public interface MissionMapper {
 
-	@Mapping(source = "vehicule.id", target = "vehiculeId")
-	@Mapping(source = "vehicule.immatriculation", target = "vehiculeImmatriculation")
-	@Mapping(source = "chauffeur.id", target = "chauffeurId")
-	@Mapping(source = "chauffeur.numeroPermis", target = "chauffeurNumeroPermis")
 	@Mapping(target = "depenses", ignore = true)
 	@Mapping(target = "medias", ignore = true)
 	Mission toDto(MissionEntity entity);
@@ -25,10 +21,12 @@ public interface MissionMapper {
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
+	@Mapping(target = "client", ignore = true)
 	MissionEntity toEntity(MissionRequest request);
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
+	@Mapping(target = "client", ignore = true)
 	void updateEntity(MissionRequest request, @MappingTarget MissionEntity entity);
 }

@@ -46,7 +46,10 @@ public class FactureService {
 	// ==================== FACTURES ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getAllFactures(Pageable pageable) {
+	public PagedResponse<Facture> getAllFactures(Boolean factureClient, Pageable pageable) {
+		if (factureClient != null) {
+			return PagedResponse.of(factureRepository.findByFactureClient(factureClient, pageable).map(this::toDtoWithItems));
+		}
 		return PagedResponse.of(factureRepository.findAll(pageable).map(this::toDtoWithItems));
 	}
 
@@ -58,6 +61,15 @@ public class FactureService {
 	@Transactional(readOnly = true)
 	public PagedResponse<Facture> getFacturesFournisseurs(Pageable pageable) {
 		return PagedResponse.of(factureRepository.findByPartenaireIsFournisseurTrue(pageable).map(this::toDtoWithItems));
+	}
+
+	@Transactional(readOnly = true)
+	public PagedResponse<Facture> getFacturesLivrables(Boolean factureClient, Pageable pageable) {
+		List<FactureStatusEnum> statuts = List.of(FactureStatusEnum.PROFORMA, FactureStatusEnum.PAYEE);
+		if (factureClient != null) {
+			return PagedResponse.of(factureRepository.findFacturesSansLivraison(statuts, factureClient, pageable).map(this::toDtoWithItems));
+		}
+		return PagedResponse.of(factureRepository.findFacturesSansLivraison(statuts, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)

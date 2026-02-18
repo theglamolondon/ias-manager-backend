@@ -2,14 +2,16 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "MARQUES")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class MarqueEntity {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class MarqueEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

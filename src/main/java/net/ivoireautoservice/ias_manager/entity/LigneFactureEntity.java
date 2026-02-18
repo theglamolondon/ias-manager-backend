@@ -2,16 +2,17 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "LIGNES_FACTURE")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @ToString(exclude = {"facture", "produit"})
-@EqualsAndHashCode(exclude = {"facture", "produit"})
-public class LigneFactureEntity {
+@EqualsAndHashCode(callSuper = true, exclude = {"facture", "produit"})
+public class LigneFactureEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

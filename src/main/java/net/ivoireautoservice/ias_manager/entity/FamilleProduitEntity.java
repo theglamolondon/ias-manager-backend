@@ -2,14 +2,16 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "FAMILLES_PRODUIT")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class FamilleProduitEntity {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class FamilleProduitEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

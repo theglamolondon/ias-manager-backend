@@ -2,7 +2,9 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,16 +12,18 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-@ToString(exclude = {"vehicule", "chauffeur"})
-@EqualsAndHashCode(exclude = {"vehicule", "chauffeur"})
-public class MissionEntity {
+@SuperBuilder
+@ToString(exclude = {"vehicule", "chauffeur", "client"})
+@EqualsAndHashCode(callSuper = true, exclude = {"vehicule", "chauffeur", "client"})
+public class MissionEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	private Long reference;
+
+	private String codeMission;
 
 	@Column(name = "dhms_debut_previ")
 	private LocalDateTime dhmsDebutPrevi;
@@ -35,17 +39,34 @@ public class MissionEntity {
 
 	private String itineraire;
 
+	private String destination;
+
 	private Boolean isInterieur;
 
 	private Boolean withChauffeur;
 
 	private Boolean isConfirmer;
 
-	private Long perdiem;
+	private Boolean isSousTraitee;
+
+	private String detailsVehiculeSousTraitance;
+
+	private BigDecimal perdiem;
+
+	private BigDecimal totalPerdiem;
+
+	private BigDecimal tarifJournalier;
+
+	private BigDecimal montantTotalHT;
+
+	private Long dureeLocation;
 
 	private Long kilometrageDepart;
 
 	private Long kilometrageArrive;
+
+	@Column(columnDefinition = "TEXT")
+	private String observations;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "vehicule_id", nullable = false)
@@ -54,4 +75,8 @@ public class MissionEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "chauffeur_id")
 	private ChauffeurEntity chauffeur;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "client_id")
+	private PartenaireEntity client;
 }

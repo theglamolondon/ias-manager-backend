@@ -2,14 +2,16 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "TYPES_INTERVENTION")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class TypeInterventionEntity {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class TypeInterventionEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

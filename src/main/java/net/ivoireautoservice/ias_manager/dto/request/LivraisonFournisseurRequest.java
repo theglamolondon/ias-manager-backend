@@ -15,5 +15,7 @@ public class LivraisonFournisseurRequest {
 
 	private LocalDateTime dhmsLivraison;
 
+	private Long factureId;
+
 	private List<EntreeProduitRequest> items;
 }

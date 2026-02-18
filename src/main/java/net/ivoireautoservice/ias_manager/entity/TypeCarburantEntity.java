@@ -2,14 +2,16 @@ package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "TYPES_CARBURANT")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class TypeCarburantEntity {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class TypeCarburantEntity extends AuditableEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

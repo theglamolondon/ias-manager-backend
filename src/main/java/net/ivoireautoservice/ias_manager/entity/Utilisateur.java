@@ -1,8 +1,8 @@
 package net.ivoireautoservice.ias_manager.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.auth.RoleEnum;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
@@ -15,7 +15,11 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-public class Utilisateur implements UserDetails {
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class Utilisateur extends AuditableEntity implements UserDetails {
 
 
 
