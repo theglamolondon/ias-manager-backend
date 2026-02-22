@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 
 import java.time.LocalDateTime;
 
@@ -27,6 +28,10 @@ public class LigneCompteEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "compte_id", nullable = false)
 	private CompteEntity compte;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private CompteLigneType type;
 
 	@Column(name = "dhms_operation", nullable = false)
 	private LocalDateTime dhmsOperation;

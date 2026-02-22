@@ -7,5 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class TypeDepenseRequest {
+	private Long id;
 	private String libelle;
 }

@@ -57,12 +57,6 @@ public class CompteController {
         return ResponseEntity.ok(compteService.updateCompte(id, request));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCompte(@PathVariable Long id) {
-        compteService.deleteCompte(id);
-        return ResponseEntity.noContent().build();
-    }
-
 
     @GetMapping("/{compteId}/lignes")
     public ResponseEntity<PagedResponse<LigneCompte>> getLignesByCompte(

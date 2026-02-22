@@ -9,6 +9,8 @@ import lombok.*;
 @Builder
 public class TypeCarburantRequest {
 
+	private Long id;
+
 	@NotBlank(message = "Le libellé est obligatoire")
 	private String libelle;
 }

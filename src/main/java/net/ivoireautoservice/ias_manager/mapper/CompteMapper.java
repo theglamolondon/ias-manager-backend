@@ -9,7 +9,7 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {UtilisateurMapper.class, CompteUtilisateurMapper.class})
 public interface CompteMapper {
 
     Compte toDto(CompteEntity entity);
@@ -17,8 +17,12 @@ public interface CompteMapper {
     List<Compte> toDtoList(List<CompteEntity> entities);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "manager", ignore = true)
+    @Mapping(target = "utilisateurs", ignore = true)
     CompteEntity toEntity(CompteRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "manager", ignore = true)
+    @Mapping(target = "utilisateurs", ignore = true)
     void updateEntity(CompteRequest request, @MappingTarget CompteEntity entity);
 }

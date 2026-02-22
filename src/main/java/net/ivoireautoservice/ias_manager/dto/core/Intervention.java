@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 
 import java.time.LocalDate;
 
@@ -15,8 +16,8 @@ public class Intervention {
 	private String objet;
 	private String details;
 	private Long cout;
-	private Long typeInterventionId;
-	private String typeInterventionLibelle;
-	private Long vehiculeId;
-	private String vehiculeImmatriculation;
+	private InterventionStatut statut;
+	private TypeIntervention typeIntervention;
+	private Vehicule vehicule;
+	private Partenaire fournisseur;
 }

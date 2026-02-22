@@ -4,13 +4,17 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "COMPTES")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@EqualsAndHashCode(callSuper = true)
+@ToString(exclude = "utilisateurs")
+@EqualsAndHashCode(callSuper = true, exclude = "utilisateurs")
 public class CompteEntity extends AuditableEntity {
 
 	@Id
@@ -28,6 +32,15 @@ public class CompteEntity extends AuditableEntity {
 	@Column(nullable = false)
 	private Long balance;
 
-	@Column(name = "is_appro", nullable = false)
-	private Boolean isAppro;
+	@Column(name = "can_appro", nullable = false)
+	@Builder.Default
+	private Boolean canAppro = false;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "utilisateur_id")
+	private Utilisateur manager;
+
+	@OneToMany(mappedBy = "compte", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
+	private List<CompteUtilisateurEntity> utilisateurs = new ArrayList<>();
 }

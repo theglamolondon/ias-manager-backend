@@ -9,6 +9,8 @@ import lombok.*;
 @Builder
 public class MarqueRequest {
 
+	private Long id;
+
 	@NotBlank(message = "Le libellé est obligatoire")
 	private String libelle;
 }

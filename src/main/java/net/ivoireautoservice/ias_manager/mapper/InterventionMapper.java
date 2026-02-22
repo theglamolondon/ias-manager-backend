@@ -9,13 +9,9 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {VehiculeMapper.class, TypeInterventionMapper.class, PartenaireMapper.class})
 public interface InterventionMapper {
 
-    @Mapping(source = "typeIntervention.id", target = "typeInterventionId")
-    @Mapping(source = "typeIntervention.libelle", target = "typeInterventionLibelle")
-    @Mapping(source = "vehicule.id", target = "vehiculeId")
-    @Mapping(source = "vehicule.immatriculation", target = "vehiculeImmatriculation")
     Intervention toDto(InterventionEntity entity);
 
     List<Intervention> toDtoList(List<InterventionEntity> entities);
@@ -23,10 +19,12 @@ public interface InterventionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "typeIntervention", ignore = true)
     @Mapping(target = "vehicule", ignore = true)
+    @Mapping(target = "fournisseur", ignore = true)
     InterventionEntity toEntity(InterventionRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "typeIntervention", ignore = true)
     @Mapping(target = "vehicule", ignore = true)
+    @Mapping(target = "fournisseur", ignore = true)
     void updateEntity(InterventionRequest request, @MappingTarget InterventionEntity entity);
 }

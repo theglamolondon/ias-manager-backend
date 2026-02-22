@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +16,7 @@ public class LigneCompte {
 	private String utilisateurPrenom;
 	private Long compteId;
 	private String compteIntitule;
+	private CompteLigneType type;
 	private LocalDateTime dhmsOperation;
 	private String objet;
 	private Long montant;

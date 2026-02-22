@@ -19,4 +19,9 @@ public class InterventionRequest {
 
 	@NotNull(message = "Le type d'intervention est obligatoire")
 	private Long typeInterventionId;
+
+	@NotNull(message = "Le véhicule est obligatoire")
+	private Long vehiculeId;
+
+	private Long fournisseurId;
 }

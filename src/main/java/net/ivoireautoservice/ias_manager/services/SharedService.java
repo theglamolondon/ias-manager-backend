@@ -249,6 +249,7 @@ public class SharedService {
     @Transactional
     public FamilleProduit createFamilleProduit(FamilleProduitRequest request) {
         FamilleProduitEntity entity = familleProduitMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         FamilleProduitEntity saved = familleProduitRepository.save(entity);
         return familleProduitMapper.toDto(saved);
     }
@@ -287,6 +288,7 @@ public class SharedService {
     @Transactional
     public TypeDepense createTypeDepense(TypeDepenseRequest request) {
         TypeDepenseEntity entity = typeDepenseMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         TypeDepenseEntity saved = typeDepenseRepository.save(entity);
         return typeDepenseMapper.toDto(saved);
     }
@@ -318,6 +320,7 @@ public class SharedService {
     @Transactional
     public TypeCarburant createTypeCarburant(TypeCarburantRequest request) {
         TypeCarburantEntity entity = typeCarburantMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         TypeCarburantEntity saved = typeCarburantRepository.save(entity);
         return typeCarburantMapper.toDto(saved);
     }
@@ -332,6 +335,7 @@ public class SharedService {
     @Transactional
     public Marque createMarque(MarqueRequest request) {
         MarqueEntity entity = marqueMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
         MarqueEntity saved = marqueRepository.save(entity);
         return marqueMapper.toDto(saved);
     }
