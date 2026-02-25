@@ -10,6 +10,7 @@ import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.EmployeMapper;
 import net.ivoireautoservice.ias_manager.repository.EmployeRepository;
 import net.ivoireautoservice.ias_manager.repository.ServiceRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +31,11 @@ public class EmployeService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Employe> getAllEmployes(Pageable pageable) {
-        return PagedResponse.of(employeRepository.findAll(pageable)
-                .map(employeMapper::toDto));
+    public PagedResponse<Employe> getAllEmployes(String keyword, Pageable pageable) {
+        Page<EmployeEntity> page = (keyword != null && !keyword.isBlank())
+                ? employeRepository.searchByKeyword(keyword.trim(), pageable)
+                : employeRepository.findAll(pageable);
+        return PagedResponse.of(page.map(employeMapper::toDto));
     }
 
     @Transactional(readOnly = true)

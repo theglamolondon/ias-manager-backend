@@ -46,7 +46,10 @@ public class FactureService {
 	// ==================== FACTURES ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getAllFactures(Boolean factureClient, Pageable pageable) {
+	public PagedResponse<Facture> getAllFactures(String keyword, Boolean factureClient, Pageable pageable) {
+		if (keyword != null && !keyword.isBlank()) {
+			return PagedResponse.of(factureRepository.searchByKeyword(keyword.trim(), factureClient, pageable).map(this::toDtoWithItems));
+		}
 		if (factureClient != null) {
 			return PagedResponse.of(factureRepository.findByFactureClient(factureClient, pageable).map(this::toDtoWithItems));
 		}

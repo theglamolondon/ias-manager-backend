@@ -30,6 +30,7 @@ public class FactureController {
 
 	@GetMapping
 	public ResponseEntity<PagedResponse<Facture>> getAllFactures(
+			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) Boolean factureClient,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
@@ -37,7 +38,7 @@ public class FactureController {
 			@RequestParam(defaultValue = "asc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getAllFactures(factureClient, pageable));
+		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, pageable));
 	}
 
 	@GetMapping("/clients")

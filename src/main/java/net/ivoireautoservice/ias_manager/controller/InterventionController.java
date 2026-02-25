@@ -22,13 +22,14 @@ public class InterventionController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<Intervention>> getAllInterventions(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "desc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(interventionService.getAllInterventions(pageable));
+        return ResponseEntity.ok(interventionService.getAllInterventions(keyword, pageable));
     }
 
     @GetMapping("/vehicule/{vehiculeId}")

@@ -31,13 +31,14 @@ public class LivraisonController {
 
     @GetMapping("/clients")
     public ResponseEntity<PagedResponse<LivraisonClient>> getAllLivraisonsClient(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(livraisonService.getAllLivraisonsClient(pageable));
+        return ResponseEntity.ok(livraisonService.getAllLivraisonsClient(keyword, pageable));
     }
 
     @GetMapping("/clients/{id}")
@@ -55,13 +56,14 @@ public class LivraisonController {
 
     @GetMapping("/fournisseurs")
     public ResponseEntity<PagedResponse<LivraisonFournisseur>> getAllLivraisonsFournisseur(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(livraisonService.getAllLivraisonsFournisseur(pageable));
+        return ResponseEntity.ok(livraisonService.getAllLivraisonsFournisseur(keyword, pageable));
     }
 
     @GetMapping("/fournisseurs/{id}")

@@ -43,10 +43,11 @@ public class MissionService {
 	// ==================== MISSIONS ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Mission> getAllMissions(Pageable pageable) {
-		Page<Mission> page = missionRepository.findAll(pageable)
-				.map(missionMapper::toDto);
-		return PagedResponse.of(page);
+	public PagedResponse<Mission> getAllMissions(String keyword, Pageable pageable) {
+		Page<MissionEntity> page = (keyword != null && !keyword.isBlank())
+				? missionRepository.searchByKeyword(keyword.trim(), pageable)
+				: missionRepository.findAll(pageable);
+		return PagedResponse.of(page.map(missionMapper::toDto));
 	}
 
 	@Transactional(readOnly = true)

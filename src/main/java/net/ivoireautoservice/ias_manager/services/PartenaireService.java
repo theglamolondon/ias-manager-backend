@@ -29,8 +29,11 @@ public class PartenaireService {
     // ==================== PARTENAIRES ====================
 
     @Transactional(readOnly = true)
-    public PagedResponse<Partenaire> getAllPartenaires(Pageable pageable) {
-        return PagedResponse.of(partenaireRepository.findAll(pageable).map(partenaireMapper::toDto));
+    public PagedResponse<Partenaire> getAllPartenaires(String keyword, Pageable pageable) {
+        var page = (keyword != null && !keyword.isBlank())
+                ? partenaireRepository.searchByKeyword(keyword.trim(), pageable)
+                : partenaireRepository.findAll(pageable);
+        return PagedResponse.of(page.map(partenaireMapper::toDto));
     }
 
     @Transactional(readOnly = true)

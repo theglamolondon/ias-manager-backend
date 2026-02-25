@@ -18,6 +18,7 @@ import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.VehiculeRepository;
 import java.time.LocalDate;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,9 +34,11 @@ public class InterventionService {
     private final InterventionMapper interventionMapper;
 
     @Transactional(readOnly = true)
-    public PagedResponse<Intervention> getAllInterventions(Pageable pageable) {
-        return PagedResponse.of(interventionRepository.findAll(pageable)
-                .map(interventionMapper::toDto));
+    public PagedResponse<Intervention> getAllInterventions(String keyword, Pageable pageable) {
+        Page<InterventionEntity> page = (keyword != null && !keyword.isBlank())
+                ? interventionRepository.searchByKeyword(keyword.trim(), pageable)
+                : interventionRepository.findAll(pageable);
+        return PagedResponse.of(page.map(interventionMapper::toDto));
     }
 
     @Transactional(readOnly = true)

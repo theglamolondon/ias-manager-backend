@@ -29,13 +29,14 @@ public class VehiculeController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<Vehicule>> getAllVehicules(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(vehiculeService.getAllVehicules(pageable));
+        return ResponseEntity.ok(vehiculeService.getAllVehicules(keyword, pageable));
     }
 
     @GetMapping("/{vehiculeId}")

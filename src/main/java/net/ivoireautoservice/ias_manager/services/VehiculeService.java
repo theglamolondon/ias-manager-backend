@@ -51,9 +51,11 @@ public class VehiculeService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Vehicule> getAllVehicules(Pageable pageable) {
-        Page<Vehicule> dtoPage = vehiculeRepository.findAll(pageable).map(vehiculeMapper::toDto);
-        return PagedResponse.of(dtoPage);
+    public PagedResponse<Vehicule> getAllVehicules(String keyword, Pageable pageable) {
+        Page<VehiculeEntity> page = (keyword != null && !keyword.isBlank())
+                ? vehiculeRepository.searchByKeyword(keyword.trim(), pageable)
+                : vehiculeRepository.findAll(pageable);
+        return PagedResponse.of(page.map(vehiculeMapper::toDto));
     }
 
     @Transactional(readOnly = true)

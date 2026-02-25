@@ -41,8 +41,11 @@ public class LivraisonService {
     // ==================== LIVRAISONS CLIENT ====================
 
     @Transactional(readOnly = true)
-    public PagedResponse<LivraisonClient> getAllLivraisonsClient(Pageable pageable) {
-        return PagedResponse.of(livraisonClientRepository.findAll(pageable).map(livraisonClientMapper::toDto));
+    public PagedResponse<LivraisonClient> getAllLivraisonsClient(String keyword, Pageable pageable) {
+        var page = (keyword != null && !keyword.isBlank())
+                ? livraisonClientRepository.searchByKeyword(keyword.trim(), pageable)
+                : livraisonClientRepository.findAll(pageable);
+        return PagedResponse.of(page.map(livraisonClientMapper::toDto));
     }
 
     @Transactional(readOnly = true)
@@ -162,8 +165,11 @@ public class LivraisonService {
     // ==================== LIVRAISONS FOURNISSEUR ====================
 
     @Transactional(readOnly = true)
-    public PagedResponse<LivraisonFournisseur> getAllLivraisonsFournisseur(Pageable pageable) {
-        return PagedResponse.of(livraisonFournisseurRepository.findAll(pageable).map(livraisonFournisseurMapper::toDto));
+    public PagedResponse<LivraisonFournisseur> getAllLivraisonsFournisseur(String keyword, Pageable pageable) {
+        var page = (keyword != null && !keyword.isBlank())
+                ? livraisonFournisseurRepository.searchByKeyword(keyword.trim(), pageable)
+                : livraisonFournisseurRepository.findAll(pageable);
+        return PagedResponse.of(page.map(livraisonFournisseurMapper::toDto));
     }
 
     @Transactional(readOnly = true)

@@ -51,9 +51,11 @@ public class CompteService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Compte> getAllComptes(Pageable pageable) {
-        return PagedResponse.of(compteRepository.findAll(pageable)
-                .map(compteMapper::toDto));
+    public PagedResponse<Compte> getAllComptes(String keyword, Pageable pageable) {
+        var page = (keyword != null && !keyword.isBlank())
+                ? compteRepository.searchByKeyword(keyword.trim(), pageable)
+                : compteRepository.findAll(pageable);
+        return PagedResponse.of(page.map(compteMapper::toDto));
     }
 
     @Transactional(readOnly = true)

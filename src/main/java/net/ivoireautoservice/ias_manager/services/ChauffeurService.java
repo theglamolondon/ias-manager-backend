@@ -12,6 +12,7 @@ import net.ivoireautoservice.ias_manager.repository.ChauffeurRepository;
 import net.ivoireautoservice.ias_manager.repository.EmployeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,9 +34,11 @@ public class ChauffeurService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Chauffeur> getAllChauffeurs(Pageable pageable) {
-        return PagedResponse.of(chauffeurRepository.findAll(pageable)
-                .map(chauffeurMapper::toDto));
+    public PagedResponse<Chauffeur> getAllChauffeurs(String keyword, Pageable pageable) {
+        Page<ChauffeurEntity> page = (keyword != null && !keyword.isBlank())
+                ? chauffeurRepository.searchByKeyword(keyword.trim(), pageable)
+                : chauffeurRepository.findAll(pageable);
+        return PagedResponse.of(page.map(chauffeurMapper::toDto));
     }
 
     @Transactional(readOnly = true)

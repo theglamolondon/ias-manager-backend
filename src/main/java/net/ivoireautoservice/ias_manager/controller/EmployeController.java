@@ -24,13 +24,14 @@ public class EmployeController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<Employe>> getAllEmployes(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(employeService.getAllEmployes(pageable));
+        return ResponseEntity.ok(employeService.getAllEmployes(keyword, pageable));
     }
 
     @GetMapping("/{id}")

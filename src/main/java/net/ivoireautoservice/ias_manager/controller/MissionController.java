@@ -27,13 +27,14 @@ public class MissionController {
 
 	@GetMapping
 	public ResponseEntity<PagedResponse<Mission>> getAllMissions(
+			@RequestParam(required = false) String keyword,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "id") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(missionService.getAllMissions(pageable));
+		return ResponseEntity.ok(missionService.getAllMissions(keyword, pageable));
 	}
 
 	@GetMapping("/{id}")

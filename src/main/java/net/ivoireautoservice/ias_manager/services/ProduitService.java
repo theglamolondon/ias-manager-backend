@@ -12,6 +12,7 @@ import net.ivoireautoservice.ias_manager.entity.FamilleProduitEntity;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
 import net.ivoireautoservice.ias_manager.mapper.EntreeProduitMapper;
 import net.ivoireautoservice.ias_manager.mapper.LivraisonFournisseurMapper;
 import net.ivoireautoservice.ias_manager.mapper.ProduitMapper;
@@ -39,8 +40,11 @@ public class ProduitService {
     private final LivraisonFournisseurMapper livraisonFournisseurMapper;
 
     @Transactional(readOnly = true)
-    public PagedResponse<Produit> getAllProduits(Pageable pageable) {
-        return PagedResponse.of(produitRepository.findAll(pageable).map(produitMapper::toDto));
+    public PagedResponse<Produit> getAllProduits(String keyword, Pageable pageable) {
+        Page<ProduitEntity> page = (keyword != null && !keyword.isBlank())
+                ? produitRepository.searchByKeyword(keyword.trim(), pageable)
+                : produitRepository.findAll(pageable);
+        return PagedResponse.of(page.map(produitMapper::toDto));
     }
 
     @Transactional(readOnly = true)
