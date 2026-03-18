@@ -9,17 +9,9 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = {MediaMapper.class})
+@Mapper(componentModel = "spring", uses = {MediaMapper.class, MarqueMapper.class, TypeVehiculeMapper.class, TypeCarburantMapper.class, TypeAssuranceMapper.class, AssuranceMapper.class})
 public interface VehiculeMapper {
 
-    @Mapping(source = "type.id", target = "typeId")
-    @Mapping(source = "type.libelle", target = "typeLibelle")
-    @Mapping(source = "type.categorie.id", target = "categorieId")
-    @Mapping(source = "type.categorie.libelle", target = "categorieLibelle")
-    @Mapping(source = "marque.id", target = "marqueId")
-    @Mapping(source = "marque.libelle", target = "marqueLibelle")
-    @Mapping(source = "typeCarburant.id", target = "typeCarburantId")
-    @Mapping(source = "typeCarburant.libelle", target = "typeCarburantLibelle")
     Vehicule toDto(VehiculeEntity entity);
 
     List<Vehicule> toDtoList(List<VehiculeEntity> entities);
@@ -27,7 +19,9 @@ public interface VehiculeMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "type", ignore = true)
     @Mapping(target = "marque", ignore = true)
-    @Mapping(target = "typeCarburant", ignore = true)
+    @Mapping(target = "energie", ignore = true)
+    @Mapping(target = "typeAssurance", ignore = true)
+    @Mapping(target = "assurance", ignore = true)
     @Mapping(target = "statut", ignore = true)
     @Mapping(target = "photoAvant", ignore = true)
     @Mapping(target = "photoArriere", ignore = true)
@@ -36,9 +30,12 @@ public interface VehiculeMapper {
     VehiculeEntity toEntity(VehiculeRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "numChassis", ignore = true)
     @Mapping(target = "type", ignore = true)
     @Mapping(target = "marque", ignore = true)
-    @Mapping(target = "typeCarburant", ignore = true)
+    @Mapping(target = "energie", ignore = true)
+    @Mapping(target = "typeAssurance", ignore = true)
+    @Mapping(target = "assurance", ignore = true)
     @Mapping(target = "photoAvant", ignore = true)
     @Mapping(target = "photoArriere", ignore = true)
     @Mapping(target = "photoCoteDroit", ignore = true)

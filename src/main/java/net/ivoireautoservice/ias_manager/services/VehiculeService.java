@@ -6,8 +6,10 @@ import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.core.Vehicule;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
+import net.ivoireautoservice.ias_manager.entity.AssuranceEntity;
 import net.ivoireautoservice.ias_manager.entity.InterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.MediaEntity;
+import net.ivoireautoservice.ias_manager.entity.TypeAssuranceEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
@@ -17,7 +19,9 @@ import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.InterventionMapper;
 import net.ivoireautoservice.ias_manager.mapper.VehiculeMapper;
 import net.ivoireautoservice.ias_manager.repository.InterventionRepository;
+import net.ivoireautoservice.ias_manager.repository.AssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
+import net.ivoireautoservice.ias_manager.repository.TypeAssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeVehiculeRepository;
@@ -37,6 +41,8 @@ public class VehiculeService {
     private final VehiculeRepository vehiculeRepository;
     private final TypeVehiculeRepository typeVehiculeRepository;
     private final TypeCarburantRepository typeCarburantRepository;
+    private final TypeAssuranceRepository typeAssuranceRepository;
+    private final AssuranceRepository assuranceRepository;
     private final TypeInterventionRepository typeInterventionRepository;
     private final InterventionRepository interventionRepository;
     private final MediaRepository mediaRepository;
@@ -59,9 +65,9 @@ public class VehiculeService {
     }
 
     @Transactional(readOnly = true)
-    public Vehicule getVehiculeById(Long id) {
-        VehiculeEntity entity = vehiculeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Véhicule", id));
+    public Vehicule getVehiculeByNumChassis(String numChassis) {
+        VehiculeEntity entity = vehiculeRepository.findByNumChassis(numChassis)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule avec numéro de chassis " + numChassis + " non trouvé"));
         return vehiculeMapper.toDto(entity);
     }
 
@@ -96,7 +102,9 @@ public class VehiculeService {
         entity.setType(type);
         entity.setStatut(VehiculeStatusEnum.DISPONIBLE);
         resolveMarque(request, entity);
-        resolveTypeCarburant(request, entity);
+        resolveEnergie(request, entity);
+        resolveTypeAssurance(request, entity);
+        resolveAssurance(request, entity);
         resolvePhotos(request, entity);
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
@@ -114,7 +122,9 @@ public class VehiculeService {
         vehiculeMapper.updateEntity(request, entity);
         entity.setType(type);
         resolveMarque(request, entity);
-        resolveTypeCarburant(request, entity);
+        resolveEnergie(request, entity);
+        resolveTypeAssurance(request, entity);
+        resolveAssurance(request, entity);
         resolvePhotos(request, entity);
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
@@ -200,13 +210,33 @@ public class VehiculeService {
         }
     }
 
-    private void resolveTypeCarburant(VehiculeRequest request, VehiculeEntity entity) {
-        if (request.getTypeCarburantId() != null) {
-            TypeCarburantEntity typeCarburant = typeCarburantRepository.findById(request.getTypeCarburantId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Type de carburant", request.getTypeCarburantId()));
-            entity.setTypeCarburant(typeCarburant);
+    private void resolveEnergie(VehiculeRequest request, VehiculeEntity entity) {
+        if (request.getEnergieId() != null) {
+            TypeCarburantEntity energie = typeCarburantRepository.findById(request.getEnergieId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Énergie", request.getEnergieId()));
+            entity.setEnergie(energie);
         } else {
-            entity.setTypeCarburant(null);
+            entity.setEnergie(null);
+        }
+    }
+
+    private void resolveTypeAssurance(VehiculeRequest request, VehiculeEntity entity) {
+        if (request.getTypeAssuranceId() != null) {
+            TypeAssuranceEntity typeAssurance = typeAssuranceRepository.findById(request.getTypeAssuranceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Type d'assurance", request.getTypeAssuranceId()));
+            entity.setTypeAssurance(typeAssurance);
+        } else {
+            entity.setTypeAssurance(null);
+        }
+    }
+
+    private void resolveAssurance(VehiculeRequest request, VehiculeEntity entity) {
+        if (request.getAssuranceId() != null) {
+            AssuranceEntity assurance = assuranceRepository.findById(request.getAssuranceId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Assurance", request.getAssuranceId()));
+            entity.setAssurance(assurance);
+        } else {
+            entity.setAssurance(null);
         }
     }
 

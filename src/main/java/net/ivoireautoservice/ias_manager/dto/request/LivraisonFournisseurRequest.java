@@ -1,5 +1,6 @@
 package net.ivoireautoservice.ias_manager.dto.request;
 
+import jakarta.validation.Valid;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -17,5 +18,6 @@ public class LivraisonFournisseurRequest {
 
 	private Long factureId;
 
+	@Valid
 	private List<EntreeProduitRequest> items;
 }

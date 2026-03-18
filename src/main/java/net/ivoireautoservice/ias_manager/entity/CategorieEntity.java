@@ -22,6 +22,10 @@ public class CategorieEntity extends AuditableEntity {
 	@Column(nullable = false)
 	private String libelle;
 
+	private Long prixMinCourteDuree;
+
+	private Long prixMinLongueDuree;
+
 	@OneToMany(mappedBy = "categorie", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
 	private List<TypeVehiculeEntity> typeVehicules;
 }

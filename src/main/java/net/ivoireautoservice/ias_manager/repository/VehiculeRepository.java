@@ -14,6 +14,8 @@ import java.util.Optional;
 
 public interface VehiculeRepository extends JpaRepository<VehiculeEntity, Long> {
 
+    Optional<VehiculeEntity> findByNumChassis(String numChassis);
+
     Optional<VehiculeEntity> findByImmatriculation(String immatriculation);
 
     List<VehiculeEntity> findByStatut(VehiculeStatusEnum statut);
@@ -31,8 +33,8 @@ public interface VehiculeRepository extends JpaRepository<VehiculeEntity, Long> 
     @Query("SELECT v.statut, COUNT(v) FROM VehiculeEntity v GROUP BY v.statut")
     List<Object[]> countGroupByStatut();
 
-    @Query("SELECT tc.libelle, COUNT(v) FROM VehiculeEntity v JOIN v.typeCarburant tc GROUP BY tc.libelle")
-    List<Object[]> countGroupByTypeCarburant();
+    @Query("SELECT e.libelle, COUNT(v) FROM VehiculeEntity v JOIN v.energie e GROUP BY e.libelle")
+    List<Object[]> countGroupByEnergie();
 
     @Query("SELECT v.statut, COUNT(v) FROM VehiculeEntity v WHERE v.createdAt BETWEEN :debut AND :fin GROUP BY v.statut")
     List<Object[]> countGroupByStatutBetween(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);

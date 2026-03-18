@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.TypeMissionEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import java.util.List;
 public class Mission {
 	private Long id;
 	private Long reference;
+	private TypeMissionEnum typeMission;
 	private String codeMission;
 	private LocalDateTime dhmsDebutPrevi;
 	private LocalDateTime dhmsFinPrevi;

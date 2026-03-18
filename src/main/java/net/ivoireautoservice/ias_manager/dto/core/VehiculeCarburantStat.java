@@ -7,6 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class VehiculeCarburantStat {
-	private String typeCarburant;
+	private String energie;
 	private Long nombre;
 }

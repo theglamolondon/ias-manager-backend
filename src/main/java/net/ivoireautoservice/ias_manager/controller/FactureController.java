@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,8 +58,8 @@ public class FactureController {
 	public ResponseEntity<PagedResponse<Facture>> getFacturesFournisseurs(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
-			@RequestParam(defaultValue = "id") String tri,
-			@RequestParam(defaultValue = "asc") String ordre) {
+			@RequestParam(defaultValue = "createdAt") String tri,
+			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
 		return ResponseEntity.ok(factureService.getFacturesFournisseurs(pageable));
@@ -104,6 +106,15 @@ public class FactureController {
 	public ResponseEntity<Void> deleteFacture(@PathVariable Long id) {
 		factureService.deleteFacture(id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@GetMapping("/{id}/pdf")
+	public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+		byte[] pdf = factureService.generatePdf(id);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_PDF);
+		headers.setContentDispositionFormData("inline", "facture-" + id + ".pdf");
+		return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
 	}
 
 	@PatchMapping("/{id}/statut")

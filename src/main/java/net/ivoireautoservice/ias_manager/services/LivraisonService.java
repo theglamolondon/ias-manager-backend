@@ -19,8 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,9 @@ public class LivraisonService {
     private final SortieProduitMapper sortieProduitMapper;
     private final LivraisonFournisseurMapper livraisonFournisseurMapper;
     private final EntreeProduitMapper entreeProduitMapper;
+    private final PrintService printService;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // ==================== LIVRAISONS CLIENT ====================
 
@@ -283,6 +289,55 @@ public class LivraisonService {
         entreeProduitRepository.deleteById(entreeId);
     }
 
+    // ==================== PDF ====================
+
+    @Transactional(readOnly = true)
+    public byte[] generateBonLivraisonClientPdf(Long id) {
+        LivraisonClientEntity livraison = livraisonClientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Livraison client", id));
+
+        FactureEntity facture = livraison.getFacture();
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(facture.getId());
+
+        Map<String, Object> data = buildBonLivraisonData(livraison, facture, lignes);
+        data.put("numeroBl", "BLC-" + livraison.getId());
+
+        return printService.generatePdf("pdf/BonDeLivraison", data);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generateBonLivraisonFournisseurPdf(Long id) {
+        LivraisonFournisseurEntity livraison = livraisonFournisseurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Livraison fournisseur", id));
+
+        FactureEntity facture = livraison.getFacture();
+        if (facture == null) {
+            throw new BadRequestException("Cette livraison fournisseur n'est pas liée à une facture");
+        }
+
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(facture.getId());
+
+        Map<String, Object> data = buildBonLivraisonData(livraison, facture, lignes);
+        data.put("numeroBl", livraison.getNumero() != null ? livraison.getNumero() : "BLF-" + livraison.getId());
+
+        return printService.generatePdf("pdf/BonDeLivraison", data);
+    }
+
+    private Map<String, Object> buildBonLivraisonData(BaseLivraisonEntity livraison, FactureEntity facture, List<LigneFactureEntity> lignes) {
+        Map<String, Object> data = new HashMap<>();
+
+        data.put("dateLivraison", livraison.getDhmsLivraison() != null
+                ? livraison.getDhmsLivraison().format(DATE_FORMATTER)
+                : "");
+        data.put("refFacture", facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma());
+        data.put("partenaire", facture.getPartenaire());
+        data.put("lignes", lignes);
+        data.put("observations", "");
+        data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+
+        return data;
+    }
+
     // ==================== HELPERS ====================
 
     private List<EntreeProduitEntity> saveEntreesFromFacture(LivraisonFournisseurEntity livraison, FactureEntity facture) {
@@ -312,6 +367,9 @@ public class LivraisonService {
         if (items == null || items.isEmpty()) return entrees;
 
         for (EntreeProduitRequest item : items) {
+            if (item.getProduitId() == null) {
+                throw new BadRequestException("Le produitId est obligatoire pour chaque ligne d'entrée");
+            }
             ProduitEntity produit = produitRepository.findById(item.getProduitId())
                     .orElseThrow(() -> new ResourceNotFoundException("Produit", item.getProduitId()));
 

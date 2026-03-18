@@ -68,9 +68,9 @@ public class StatistiqueService {
 	}
 
 	private List<VehiculeCarburantStat> getVehiculesParCarburant() {
-		return vehiculeRepository.countGroupByTypeCarburant().stream()
+		return vehiculeRepository.countGroupByEnergie().stream()
 				.map(r -> VehiculeCarburantStat.builder()
-						.typeCarburant((String) r[0])
+						.energie((String) r[0])
 						.nombre(((Number) r[1]).longValue())
 						.build())
 				.collect(Collectors.toList());
@@ -82,8 +82,8 @@ public class StatistiqueService {
 				.stream()
 				.filter(r -> r[0] != null && r[1] != null)
 				.collect(Collectors.toMap(
-						r -> ((Number) r[0]).intValue(),
-						r -> ((Number) r[1]).longValue()
+					r -> ((Number) r[0]).intValue(),
+					r -> ((Number) r[1]).longValue()
 				));
 
 		Map<Integer, BigDecimal> missionsMap = missionRepository

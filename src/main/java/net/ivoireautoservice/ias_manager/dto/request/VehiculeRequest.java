@@ -17,22 +17,20 @@ public class VehiculeRequest {
 	private String immatriculation;
 
 	private LocalDate dateImmatriculation;
-	private String numChassis;
+//	private String numChassis;
 	private String couleur;
 	private LocalDate dateAchat;
 	private Long coutAchat;
 	private String carteGrise;
 	private String typeCommercial;
 	private Integer nombrePlaces;
-	private Long energie;
-	private Long puissance;
+	private String puissanceFiscale;
 	private Long kilometrage;
 	private LocalDate finValiditeVisite;
 	private LocalDate finValiditeAssurance;
 	private LocalDate dateMiseCirculation;
 	private LocalDate dateFinGarantie;
 	private String concessionnaire;
-	private Boolean isReforme;
 
 	@Builder.Default
 	private VehiculeStatusEnum statut = VehiculeStatusEnum.DISPONIBLE;
@@ -42,7 +40,9 @@ public class VehiculeRequest {
 	@NotNull(message = "Le type de véhicule est obligatoire")
 	private Long typeId;
 
-	private Long typeCarburantId;
+	private Long energieId;
+	private Long typeAssuranceId;
+	private Long assuranceId;
 
 	private String photoAvantId;
 	private String photoArriereId;

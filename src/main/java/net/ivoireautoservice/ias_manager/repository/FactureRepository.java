@@ -43,7 +43,8 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             "WHERE (f.factureClient = :factureClient OR :factureClient IS NULL) " +
             "AND (LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "ORDER BY f.createdAt DESC")
     Page<FactureEntity> searchByKeyword(
             @Param("keyword") String keyword,
             @Param("factureClient") Boolean factureClient,

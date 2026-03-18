@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
-@EqualsAndHashCode(callSuper = true, exclude = {"type", "marque", "typeCarburant", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
+@ToString(exclude = {"type", "marque", "energie", "typeAssurance", "assurance", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
+@EqualsAndHashCode(callSuper = true, exclude = {"type", "marque", "energie", "typeAssurance", "assurance", "photoAvant", "photoArriere", "photoCoteDroit", "photoCoteGauche"})
 public class VehiculeEntity extends AuditableEntity {
 
 	@Id
@@ -24,7 +24,7 @@ public class VehiculeEntity extends AuditableEntity {
 	@Column(nullable = false, unique = true)
 	private String immatriculation;
 	private LocalDate dateImmatriculation;
-	@Column(name = "num_chassis")
+	@Column(name = "num_chassis", unique = true, updatable = false)
 	private String numChassis;
 	private String couleur;
 
@@ -33,15 +33,13 @@ public class VehiculeEntity extends AuditableEntity {
 	private String carteGrise;
 	private String typeCommercial;
 	private Integer nombrePlaces;
-	private Long energie;
-	private Long puissance;
+	private String puissanceFiscale;
 	private Long kilometrage;
 	private LocalDate finValiditeVisite;
 	private LocalDate finValiditeAssurance;
 	private LocalDate dateMiseCirculation;
 	private LocalDate dateFinGarantie;
 	private String concessionnaire;
-	private Boolean isReforme;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
@@ -57,8 +55,16 @@ public class VehiculeEntity extends AuditableEntity {
 	private MarqueEntity marque;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "type_carburant_id")
-	private TypeCarburantEntity typeCarburant;
+	@JoinColumn(name = "energie_id")
+	private TypeCarburantEntity energie;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "type_assurance_id")
+	private TypeAssuranceEntity typeAssurance;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "assurance_id")
+	private AssuranceEntity assurance;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "photo_avant_id")

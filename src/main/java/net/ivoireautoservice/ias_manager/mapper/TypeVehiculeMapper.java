@@ -9,11 +9,9 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {CategorieMapper.class})
 public interface TypeVehiculeMapper {
 
-    @Mapping(source = "categorie.id", target = "categorieId")
-    @Mapping(source = "categorie.libelle", target = "categorieLibelle")
     TypeVehicule toDto(TypeVehiculeEntity entity);
 
     List<TypeVehicule> toDtoList(List<TypeVehiculeEntity> entities);

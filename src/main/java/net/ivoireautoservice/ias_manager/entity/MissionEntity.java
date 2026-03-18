@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import net.ivoireautoservice.ias_manager.enums.TypeMissionEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +23,10 @@ public class MissionEntity extends AuditableEntity {
 	private Long id;
 
 	private Long reference;
+
+	@Enumerated(EnumType.ORDINAL)
+	@Column(nullable = false)
+	private TypeMissionEnum typeMission;
 
 	private String codeMission;
 

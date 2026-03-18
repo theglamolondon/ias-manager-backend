@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.TypeMissionEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -12,6 +13,9 @@ import java.time.LocalDateTime;
 @Builder
 public class MissionRequest {
 	private Long reference;
+
+	@NotNull(message = "Le type de mission est obligatoire")
+	private TypeMissionEnum typeMission;
 	private String codeMission;
 	private LocalDateTime dhmsDebutPrevi;
 	private LocalDateTime dhmsFinPrevi;

@@ -39,9 +39,9 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.getAllVehicules(keyword, pageable));
     }
 
-    @GetMapping("/{vehiculeId}")
-    public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long vehiculeId) {
-        return ResponseEntity.ok(vehiculeService.getVehiculeById(vehiculeId));
+    @GetMapping("/{numChassis}")
+    public ResponseEntity<Vehicule> getVehiculeByNumChassis(@PathVariable String numChassis) {
+        return ResponseEntity.ok(vehiculeService.getVehiculeByNumChassis(numChassis));
     }
 
     @GetMapping("/immatriculation/{immatriculation}")

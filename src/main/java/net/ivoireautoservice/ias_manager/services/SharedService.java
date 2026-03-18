@@ -1,43 +1,55 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.dto.core.Assurance;
 import net.ivoireautoservice.ias_manager.dto.core.Categorie;
 import net.ivoireautoservice.ias_manager.dto.core.FamilleProduit;
 import net.ivoireautoservice.ias_manager.dto.core.Marque;
 import net.ivoireautoservice.ias_manager.dto.core.Service;
+import net.ivoireautoservice.ias_manager.dto.core.TypeAssurance;
 import net.ivoireautoservice.ias_manager.dto.core.TypeCarburant;
 import net.ivoireautoservice.ias_manager.dto.core.TypeDepense;
 import net.ivoireautoservice.ias_manager.dto.core.TypeIntervention;
 import net.ivoireautoservice.ias_manager.dto.core.TypeVehicule;
+import net.ivoireautoservice.ias_manager.dto.request.AssuranceRequest;
 import net.ivoireautoservice.ias_manager.dto.request.CategorieRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FamilleProduitRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MarqueRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ServiceRequest;
+import net.ivoireautoservice.ias_manager.dto.request.TypeAssuranceRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeCarburantRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeDepenseRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeInterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeVehiculeRequest;
+import net.ivoireautoservice.ias_manager.entity.AssuranceEntity;
 import net.ivoireautoservice.ias_manager.entity.CategorieEntity;
 import net.ivoireautoservice.ias_manager.entity.FamilleProduitEntity;
 import net.ivoireautoservice.ias_manager.entity.MarqueEntity;
+import net.ivoireautoservice.ias_manager.entity.MediaEntity;
 import net.ivoireautoservice.ias_manager.entity.ServiceEntity;
+import net.ivoireautoservice.ias_manager.entity.TypeAssuranceEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeDepenseEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
+import net.ivoireautoservice.ias_manager.mapper.AssuranceMapper;
 import net.ivoireautoservice.ias_manager.mapper.CategorieMapper;
 import net.ivoireautoservice.ias_manager.mapper.FamilleProduitMapper;
 import net.ivoireautoservice.ias_manager.mapper.MarqueMapper;
 import net.ivoireautoservice.ias_manager.mapper.ServiceMapper;
+import net.ivoireautoservice.ias_manager.mapper.TypeAssuranceMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeCarburantMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeDepenseMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeInterventionMapper;
 import net.ivoireautoservice.ias_manager.mapper.TypeVehiculeMapper;
+import net.ivoireautoservice.ias_manager.repository.AssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.CategoryRepository;
 import net.ivoireautoservice.ias_manager.repository.FamilleProduitRepository;
 import net.ivoireautoservice.ias_manager.repository.MarqueRepository;
+import net.ivoireautoservice.ias_manager.repository.MediaRepository;
 import net.ivoireautoservice.ias_manager.repository.ServiceRepository;
+import net.ivoireautoservice.ias_manager.repository.TypeAssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeDepenseRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
@@ -58,6 +70,9 @@ public class SharedService {
     private final FamilleProduitRepository familleProduitRepository;
     private final TypeDepenseRepository typeDepenseRepository;
     private final TypeCarburantRepository typeCarburantRepository;
+    private final TypeAssuranceRepository typeAssuranceRepository;
+    private final AssuranceRepository assuranceRepository;
+    private final MediaRepository mediaRepository;
     private final CategorieMapper categorieMapper;
     private final TypeVehiculeMapper typeVehiculeMapper;
     private final MarqueMapper marqueMapper;
@@ -66,6 +81,8 @@ public class SharedService {
     private final FamilleProduitMapper familleProduitMapper;
     private final TypeDepenseMapper typeDepenseMapper;
     private final TypeCarburantMapper typeCarburantMapper;
+    private final TypeAssuranceMapper typeAssuranceMapper;
+    private final AssuranceMapper assuranceMapper;
 
     // ==================== CATEGORIES ====================
 
@@ -325,6 +342,37 @@ public class SharedService {
         return typeCarburantMapper.toDto(saved);
     }
 
+    // ==================== TYPES ASSURANCE ====================
+
+    @Transactional(readOnly = true)
+    public List<TypeAssurance> getAllTypesAssurance() {
+        return typeAssuranceMapper.toDtoList(typeAssuranceRepository.findAll());
+    }
+
+    @Transactional(readOnly = true)
+    public TypeAssurance getTypeAssuranceById(Long id) {
+        TypeAssuranceEntity entity = typeAssuranceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Type d'assurance", id));
+        return typeAssuranceMapper.toDto(entity);
+    }
+
+    @Transactional
+    public TypeAssurance createTypeAssurance(TypeAssuranceRequest request) {
+        TypeAssuranceEntity entity = typeAssuranceMapper.toEntity(request);
+        if(request.getId() != null) entity.setId(request.getId());
+        TypeAssuranceEntity saved = typeAssuranceRepository.save(entity);
+        return typeAssuranceMapper.toDto(saved);
+    }
+
+    @Transactional
+    public TypeAssurance updateTypeAssurance(Long id, TypeAssuranceRequest request) {
+        TypeAssuranceEntity entity = typeAssuranceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Type d'assurance", id));
+        typeAssuranceMapper.updateEntity(request, entity);
+        TypeAssuranceEntity saved = typeAssuranceRepository.save(entity);
+        return typeAssuranceMapper.toDto(saved);
+    }
+
     // ==================== MARQUES ====================
 
     @Transactional(readOnly = true)
@@ -346,5 +394,56 @@ public class SharedService {
                 .orElseGet(() -> marqueRepository.save(
                         MarqueEntity.builder().libelle(libelle).build()
                 ));
+    }
+
+    // ==================== ASSURANCES ====================
+
+    @Transactional(readOnly = true)
+    public List<Assurance> getAllAssurances() {
+        return assuranceMapper.toDtoList(assuranceRepository.findAll());
+    }
+
+    @Transactional(readOnly = true)
+    public Assurance getAssuranceById(Long id) {
+        AssuranceEntity entity = assuranceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Assurance", id));
+        return assuranceMapper.toDto(entity);
+    }
+
+    @Transactional
+    public Assurance createAssurance(AssuranceRequest request) {
+        AssuranceEntity entity = assuranceMapper.toEntity(request);
+        if (request.getId() != null) entity.setId(request.getId());
+        resolveLogo(request, entity);
+        AssuranceEntity saved = assuranceRepository.save(entity);
+        return assuranceMapper.toDto(saved);
+    }
+
+    @Transactional
+    public Assurance updateAssurance(Long id, AssuranceRequest request) {
+        AssuranceEntity entity = assuranceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Assurance", id));
+        assuranceMapper.updateEntity(request, entity);
+        resolveLogo(request, entity);
+        AssuranceEntity saved = assuranceRepository.save(entity);
+        return assuranceMapper.toDto(saved);
+    }
+
+    @Transactional
+    public void deleteAssurance(Long id) {
+        if (!assuranceRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Assurance", id);
+        }
+        assuranceRepository.deleteById(id);
+    }
+
+    private void resolveLogo(AssuranceRequest request, AssuranceEntity entity) {
+        if (request.getLogoId() != null && !request.getLogoId().isBlank()) {
+            MediaEntity logo = mediaRepository.findById(request.getLogoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Média avec l'id " + request.getLogoId() + " non trouvé"));
+            entity.setLogo(logo);
+        } else {
+            entity.setLogo(null);
+        }
     }
 }

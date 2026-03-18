@@ -22,7 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ public class FactureService {
 	private final LivraisonFournisseurMapper livraisonFournisseurMapper;
 	private final SortieProduitMapper sortieProduitMapper;
 	private final EntreeProduitMapper entreeProduitMapper;
+	private final PrintService printService;
 
 	// ==================== FACTURES ====================
 
@@ -234,6 +237,24 @@ public class FactureService {
 			throw new BadRequestException(
 					String.format("Transition de statut invalide : %s → %s", actuel, nouveau));
 		}
+	}
+
+	// ==================== PDF ====================
+
+	@Transactional(readOnly = true)
+	public byte[] generatePdf(Long numero) {
+		FactureEntity entity = factureRepository.findById(numero)
+				.orElseThrow(() -> new ResourceNotFoundException("Facture avec numero " + numero + " non trouvee"));
+
+		Facture facture = toDtoWithItems(entity);
+		PartenaireEntity partenaire = entity.getPartenaire();
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("facture", facture);
+		data.put("partenaire", partenaire);
+		data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+
+		return printService.generatePdf("pdf/factureProforma", data);
 	}
 
 	// ==================== HELPERS ====================

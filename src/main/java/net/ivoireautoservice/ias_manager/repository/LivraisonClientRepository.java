@@ -16,7 +16,8 @@ public interface LivraisonClientRepository extends JpaRepository<LivraisonClient
 
     @Query("SELECT l FROM LivraisonClientEntity l LEFT JOIN l.facture f " +
             "WHERE LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%'))"+
+            "ORDER BY l.createdAt DESC")
     Page<LivraisonClientEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     long countByCreatedAtBetween(LocalDateTime debut, LocalDateTime fin);

@@ -6,8 +6,9 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TypeVehicule {
+@ToString
+public class Assurance {
 	private Long id;
 	private String libelle;
-	private Categorie categorie;
+	private Media logo;
 }

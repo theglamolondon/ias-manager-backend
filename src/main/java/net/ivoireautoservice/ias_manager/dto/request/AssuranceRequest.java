@@ -7,11 +7,12 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class CategorieRequest {
+public class AssuranceRequest {
+
+	private Long id;
 
 	@NotBlank(message = "Le libellé est obligatoire")
 	private String libelle;
 
-	private Long prixMinCourteDuree;
-	private Long prixMinLongueDuree;
+	private String logoId;
 }

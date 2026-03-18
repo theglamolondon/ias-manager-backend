@@ -3,9 +3,9 @@ package net.ivoireautoservice.ias_manager.dto.core;
 import lombok.*;
 
 @Data @AllArgsConstructor @NoArgsConstructor @Builder @ToString
-public class Categorie {
+public class TypeAssurance {
 	private Long id;
 	private String libelle;
-	private Long prixMinCourteDuree;
-	private Long prixMinLongueDuree;
+	private String contact1;
+	private String contact2;
 }
