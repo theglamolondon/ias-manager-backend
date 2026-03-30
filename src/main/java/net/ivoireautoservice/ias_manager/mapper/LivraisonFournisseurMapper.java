@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.mapper;
 
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
 import org.mapstruct.Mapper;
@@ -16,6 +17,10 @@ public interface LivraisonFournisseurMapper {
     @Mapping(source = "facture.numProforma", target = "factureNumProforma")
     @Mapping(target = "entrees", ignore = true)
     LivraisonFournisseur toDto(LivraisonFournisseurEntity entity);
+
+    @Mapping(source = "facture.id", target = "factureId")
+    @Mapping(source = "facture.numProforma", target = "factureNumProforma")
+    LivraisonFournisseurSummary toSummary(LivraisonFournisseurEntity entity);
 
     List<LivraisonFournisseur> toDtoList(List<LivraisonFournisseurEntity> entities);
 

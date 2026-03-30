@@ -5,7 +5,6 @@ import lombok.*;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -15,9 +14,7 @@ import java.util.List;
 public class FactureRequest {
 
 	private String numProforma;
-	private LocalDateTime dhmsCreationPiece;
 	private String numFacture;
-	private LocalDateTime dhmsFacture;
 	private Long montantHt;
 	private Float tva;
 	private Long montantTtc;

@@ -19,12 +19,12 @@ public interface InterventionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "typeIntervention", ignore = true)
     @Mapping(target = "vehicule", ignore = true)
-    @Mapping(target = "fournisseur", ignore = true)
+    @Mapping(target = "garage", ignore = true)
     InterventionEntity toEntity(InterventionRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "typeIntervention", ignore = true)
     @Mapping(target = "vehicule", ignore = true)
-    @Mapping(target = "fournisseur", ignore = true)
+    @Mapping(target = "garage", ignore = true)
     void updateEntity(InterventionRequest request, @MappingTarget InterventionEntity entity);
 }

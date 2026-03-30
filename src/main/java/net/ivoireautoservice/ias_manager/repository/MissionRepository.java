@@ -30,11 +30,18 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
 
     long countByCreatedAtBetween(LocalDateTime debut, LocalDateTime fin);
 
-    long countByIsConfirmerTrueAndCreatedAtBetween(LocalDateTime debut, LocalDateTime fin);
-
     @Query("SELECT COUNT(m) FROM MissionEntity m WHERE m.dhmsDebutReel IS NOT NULL AND m.dhmsFinReel IS NULL AND m.createdAt BETWEEN :debut AND :fin")
     long countEnCours(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 
-    @Query("SELECT COALESCE(SUM(m.montantTotalHT), 0) FROM MissionEntity m WHERE m.isConfirmer = true AND m.createdAt BETWEEN :debut AND :fin")
-    BigDecimal sumMontantConfirmees(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+    @Query("SELECT COUNT(m) FROM MissionEntity m WHERE YEAR(m.createdAt) = :year")
+    long countByYear(@Param("year") int year);
+
+    List<MissionEntity> findByVehiculeIdOrderByDhmsDebutPreviDesc(Long vehiculeId);
+
+    @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), COUNT(DISTINCT m.vehicule.id) " +
+            "FROM MissionEntity m " +
+            "WHERE YEAR(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)) = :annee " +
+            "GROUP BY MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)) " +
+            "ORDER BY MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi))")
+    List<Object[]> vehiculesUtilisesMensuel(@Param("annee") int annee);
 }

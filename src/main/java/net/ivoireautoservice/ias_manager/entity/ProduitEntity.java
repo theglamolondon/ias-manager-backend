@@ -10,8 +10,8 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = "famille")
-@EqualsAndHashCode(callSuper = true, exclude = "famille")
+@ToString(exclude = {"famille", "image"})
+@EqualsAndHashCode(callSuper = true, exclude = {"famille", "image"})
 public class ProduitEntity extends AuditableEntity {
 
 	@Id
@@ -31,4 +31,8 @@ public class ProduitEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "famille_id", referencedColumnName = "id")
 	private FamilleProduitEntity famille;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "image_id")
+	private MediaEntity image;
 }

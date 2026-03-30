@@ -15,4 +15,7 @@ public class DepenseMissionRequest {
 
 	@NotNull(message = "Le type de dépense est obligatoire")
 	private Long typeDepenseId;
+
+	@NotNull(message = "Le compte à débiter est obligatoire")
+	private Long compteId;
 }

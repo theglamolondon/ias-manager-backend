@@ -21,11 +21,12 @@ public class CompteRequest {
 
 	private String description;
 
-	@NotNull(message = "La balance est obligatoire")
 	private Long balance;
 
 	@NotNull(message = "Le champ canAppro est obligatoire")
 	private Boolean canAppro;
+
+	private Boolean canBeNegative;
 
 	private Long managerId;
 

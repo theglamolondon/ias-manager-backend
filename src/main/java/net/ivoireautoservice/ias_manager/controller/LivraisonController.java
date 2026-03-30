@@ -2,10 +2,12 @@ package net.ivoireautoservice.ias_manager.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import net.ivoireautoservice.ias_manager.dto.core.*;
-import net.ivoireautoservice.ias_manager.dto.request.EntreeProduitRequest;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonClient;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonClientSummary;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
+import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
-import net.ivoireautoservice.ias_manager.dto.request.SortieProduitRequest;
 import net.ivoireautoservice.ias_manager.services.LivraisonService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,7 +34,7 @@ public class LivraisonController {
     }
 
     @GetMapping("/clients")
-    public ResponseEntity<PagedResponse<LivraisonClient>> getAllLivraisonsClient(
+    public ResponseEntity<PagedResponse<LivraisonClientSummary>> getAllLivraisonsClient(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
@@ -66,12 +68,12 @@ public class LivraisonController {
     // ==================== LIVRAISONS FOURNISSEUR ====================
 
     @GetMapping("/fournisseurs")
-    public ResponseEntity<PagedResponse<LivraisonFournisseur>> getAllLivraisonsFournisseur(
+    public ResponseEntity<PagedResponse<LivraisonFournisseurSummary>> getAllLivraisonsFournisseur(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
-            @RequestParam(defaultValue = "id") String tri,
-            @RequestParam(defaultValue = "asc") String ordre) {
+            @RequestParam(defaultValue = "createdAt") String tri,
+            @RequestParam(defaultValue = "desc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
         return ResponseEntity.ok(livraisonService.getAllLivraisonsFournisseur(keyword, pageable));
@@ -94,18 +96,6 @@ public class LivraisonController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/fournisseurs/{id}")
-    public ResponseEntity<LivraisonFournisseur> updateLivraisonFournisseur(
-            @PathVariable Long id,
-            @Valid @RequestBody LivraisonFournisseurRequest request) {
-        return ResponseEntity.ok(livraisonService.updateLivraisonFournisseur(id, request));
-    }
-
-    @DeleteMapping("/fournisseurs/{id}")
-    public ResponseEntity<Void> deleteLivraisonFournisseur(@PathVariable Long id) {
-        livraisonService.deleteLivraisonFournisseur(id);
-        return ResponseEntity.noContent().build();
-    }
 
     @GetMapping("/fournisseurs/{id}/pdf")
     public ResponseEntity<byte[]> generateBonLivraisonFournisseurPdf(@PathVariable Long id) {

@@ -13,4 +13,5 @@ public class CompteUtilisateur {
 	private String utilisateurPrenom;
 	private String utilisateurEmail;
 	private Boolean canAppro;
+	private Boolean canSettle;
 }

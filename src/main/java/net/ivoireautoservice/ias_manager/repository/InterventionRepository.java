@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 public interface InterventionRepository extends JpaRepository<InterventionEntity, Long> {
     Page<InterventionEntity> findByVehiculeId(Long vehiculeId, Pageable pageable);
 
+    java.util.List<InterventionEntity> findByVehiculeIdOrderByDhmsDebutDesc(Long vehiculeId);
+
     @Query("SELECT i FROM InterventionEntity i JOIN i.vehicule v " +
             "WHERE LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<InterventionEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
@@ -26,4 +28,9 @@ public interface InterventionRepository extends JpaRepository<InterventionEntity
 
     @Query("SELECT COALESCE(SUM(i.cout), 0) FROM InterventionEntity i WHERE i.createdAt BETWEEN :debut AND :fin")
     long sumCout(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT MONTH(i.createdAt), COALESCE(SUM(i.cout), 0) FROM InterventionEntity i " +
+            "WHERE YEAR(i.createdAt) = :annee " +
+            "GROUP BY MONTH(i.createdAt) ORDER BY MONTH(i.createdAt)")
+    java.util.List<Object[]> coutMensuel(@Param("annee") int annee);
 }

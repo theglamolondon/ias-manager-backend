@@ -9,11 +9,9 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = PartenaireMapper.class)
 public interface FactureMapper {
 
-    @Mapping(source = "partenaire.id", target = "partenaireId")
-    @Mapping(source = "partenaire.raisonSociale", target = "partenaireRaisonSociale")
     @Mapping(target = "items", ignore = true)
     @Mapping(target = "livraison", ignore = true)
     Facture toDto(FactureEntity entity);
@@ -23,10 +21,14 @@ public interface FactureMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "partenaire", ignore = true)
     @Mapping(target = "statut", ignore = true)
+    @Mapping(target = "nature", ignore = true)
+    @Mapping(target = "type", ignore = true)
     FactureEntity toEntity(FactureRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "partenaire", ignore = true)
     @Mapping(target = "statut", ignore = true)
+    @Mapping(target = "nature", ignore = true)
+    @Mapping(target = "type", ignore = true)
     void updateEntity(FactureRequest request, @MappingTarget FactureEntity entity);
 }

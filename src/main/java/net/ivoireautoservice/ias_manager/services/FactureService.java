@@ -1,18 +1,24 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.config.MoneyUtils;
 import net.ivoireautoservice.ias_manager.dto.core.Facture;
 import net.ivoireautoservice.ias_manager.dto.core.LigneFacture;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonClient;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
+import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.entity.FactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneFactureEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
+import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
+import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
+import net.ivoireautoservice.ias_manager.enums.TypePartenaireEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.*;
@@ -44,7 +50,9 @@ public class FactureService {
 	private final LivraisonFournisseurMapper livraisonFournisseurMapper;
 	private final SortieProduitMapper sortieProduitMapper;
 	private final EntreeProduitMapper entreeProduitMapper;
+	private final CompteService compteService;
 	private final PrintService printService;
+	private final MoneyUtils moneyUtils;
 
 	// ==================== FACTURES ====================
 
@@ -61,12 +69,12 @@ public class FactureService {
 
 	@Transactional(readOnly = true)
 	public PagedResponse<Facture> getFacturesClients(Pageable pageable) {
-		return PagedResponse.of(factureRepository.findByPartenaireIsClientTrue(pageable).map(this::toDtoWithItems));
+		return PagedResponse.of(factureRepository.findByFactureClient(true, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
 	public PagedResponse<Facture> getFacturesFournisseurs(Pageable pageable) {
-		return PagedResponse.of(factureRepository.findByPartenaireIsFournisseurTrue(pageable).map(this::toDtoWithItems));
+		return PagedResponse.of(factureRepository.findByFactureClient(false, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
@@ -101,9 +109,36 @@ public class FactureService {
 
 	@Transactional
 	public Facture createFacture(FactureRequest request) {
+		return createFacture(request, FactureTypeEnum.PRODUIT);
+	}
+
+	@Transactional
+	public Facture createFacture(FactureRequest request, FactureTypeEnum type) {
 		FactureEntity entity = factureMapper.toEntity(request);
 		entity.setStatut(FactureStatusEnum.PROFORMA);
+		entity.setType(type);
 		resolveRelations(request, entity);
+
+		// Forcer factureClient selon le contexte (pas selon le type du partenaire)
+		// Le champ factureClient du request est la source de vérité
+		entity.setFactureClient(Boolean.TRUE.equals(request.getFactureClient()));
+
+		// Déterminer la nature selon le type du partenaire
+		if (entity.getPartenaire() != null && entity.getPartenaire().getType() == TypePartenaireEnum.PARTICULIER) {
+			entity.setNature(FactureNatureEnum.RECU);
+		} else {
+			entity.setNature(FactureNatureEnum.FACTURE);
+		}
+		if(request.getFactureClient() != null && Boolean.FALSE.equals(request.getFactureClient())) {
+			entity.setNature(FactureNatureEnum.FACTURE);
+		}
+
+		// Déterminer le type : PRODUIT si au moins une ligne a un produit associé, sinon AUTRE
+		if (type != FactureTypeEnum.MISSION) {
+			boolean hasProduit = request.getItems() != null && request.getItems().stream()
+					.anyMatch(item -> item.getProduitId() != null);
+			entity.setType(hasProduit ? FactureTypeEnum.PRODUIT : FactureTypeEnum.AUTRE);
+		}
 
 		FactureEntity saved = factureRepository.save(entity);
 
@@ -119,6 +154,13 @@ public class FactureService {
 	public Facture updateFacture(Long id, FactureRequest request) {
 		FactureEntity entity = factureRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Facture", id));
+
+		if (entity.getStatut() == FactureStatusEnum.ANNULEE) {
+			throw new BadRequestException("Impossible de modifier une facture annulée");
+		}
+		if (entity.getStatut() == FactureStatusEnum.PAYEE) {
+			throw new BadRequestException("Impossible de modifier une facture payée");
+		}
 
 		factureMapper.updateEntity(request, entity);
 		resolveRelations(request, entity);
@@ -213,23 +255,57 @@ public class FactureService {
 	// ==================== CHANGEMENT DE STATUT ====================
 
 	@Transactional
-	public Facture changerStatut(Long id, FactureStatusEnum nouveauStatut) {
+	public Facture changerStatut(Long id, FactureStatusEnum nouveauStatut, Long compteId) {
 		FactureEntity entity = factureRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Facture", id));
 
 		FactureStatusEnum statutActuel = entity.getStatut();
 		validerTransition(statutActuel, nouveauStatut);
 
+		// Si annulation d'une facture fournisseur, vérifier qu'aucune livraison n'est liée
+		if (nouveauStatut == FactureStatusEnum.ANNULEE && Boolean.FALSE.equals(entity.getFactureClient())) {
+			livraisonFournisseurRepository.findByFactureId(id).ifPresent(l -> {
+				throw new BadRequestException("Impossible d'annuler cette facture : une livraison fournisseur y est liée (N°" + l.getNumero() + ")");
+			});
+		}
+
+		// Si passage à PAYEE, le compteId est obligatoire
+		if (nouveauStatut == FactureStatusEnum.PAYEE) {
+			if (compteId == null) {
+				throw new BadRequestException("Le compte est obligatoire pour marquer une facture comme payée");
+			}
+			enregistrerMouvementCompte(entity, compteId);
+		}
+
 		entity.setStatut(nouveauStatut);
 		FactureEntity saved = factureRepository.save(entity);
 		return toDtoWithItems(saved);
+	}
+
+	private void enregistrerMouvementCompte(FactureEntity facture, Long compteId) {
+		boolean isClient = Boolean.TRUE.equals(facture.getFactureClient());
+		String numRef = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
+
+		CompteLigneType type = isClient ? CompteLigneType.APPROVISIONNEMENT : CompteLigneType.DEPENSE;
+		String objet = isClient
+				? "ENCAISSEMENT FACTURE N°" + numRef
+				: "PAIEMENT FACTURE N°" + numRef;
+
+		LigneCompteRequest ligneRequest = LigneCompteRequest.builder()
+				.type(type)
+				.objet(objet)
+				.montant(facture.getMontantTtc())
+				.observation("Facture " + numRef + " — " + (facture.getObjet() != null ? facture.getObjet() : ""))
+				.build();
+
+		compteService.createLigne(compteId, ligneRequest);
 	}
 
 	private void validerTransition(FactureStatusEnum actuel, FactureStatusEnum nouveau) {
 		boolean valide = switch (actuel) {
 			case BROUILLON -> nouveau == FactureStatusEnum.PROFORMA || nouveau == FactureStatusEnum.ANNULEE;
 			case PROFORMA -> nouveau == FactureStatusEnum.FACTUREE || nouveau == FactureStatusEnum.PAYEE || nouveau == FactureStatusEnum.ANNULEE;
-			case FACTUREE -> nouveau == FactureStatusEnum.PAYEE;
+			case FACTUREE -> nouveau == FactureStatusEnum.PAYEE || nouveau == FactureStatusEnum.ANNULEE;
 			case PAYEE, ANNULEE -> false;
 		};
 
@@ -252,9 +328,13 @@ public class FactureService {
 		Map<String, Object> data = new HashMap<>();
 		data.put("facture", facture);
 		data.put("partenaire", partenaire);
+		data.put("montantEnLettres", moneyUtils.montantEnLettre(facture.getMontantTtc()));
 		data.put("logoUrl", "classpath:/static/img/logo-ias.png");
 
-		return printService.generatePdf("pdf/factureProforma", data);
+		String template = entity.getType() == FactureTypeEnum.MISSION
+				? "pdf/factureLocation"
+				: "pdf/factureProforma";
+		return printService.generatePdf(template, data);
 	}
 
 	// ==================== HELPERS ====================

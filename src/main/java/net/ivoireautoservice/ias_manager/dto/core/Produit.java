@@ -11,4 +11,5 @@ public class Produit {
 	private Long stock;
 	private Long familleId;
 	private String familleLibelle;
+	private Media image;
 }

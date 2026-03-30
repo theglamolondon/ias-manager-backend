@@ -13,6 +13,4 @@ public class AssuranceRequest {
 
 	@NotBlank(message = "Le libellé est obligatoire")
 	private String libelle;
-
-	private String logoId;
 }

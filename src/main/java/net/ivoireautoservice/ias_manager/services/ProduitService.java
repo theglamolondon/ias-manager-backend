@@ -24,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -35,6 +37,7 @@ public class ProduitService {
     private final FamilleProduitRepository familleProduitRepository;
     private final LivraisonFournisseurRepository livraisonFournisseurRepository;
     private final EntreeProduitRepository entreeProduitRepository;
+    private final MediaService mediaService;
     private final ProduitMapper produitMapper;
     private final EntreeProduitMapper entreeProduitMapper;
     private final LivraisonFournisseurMapper livraisonFournisseurMapper;
@@ -70,19 +73,23 @@ public class ProduitService {
     }
 
     @Transactional
-    public Produit createProduit(ProduitRequest request) {
+    public Produit createProduit(ProduitRequest request, MultipartFile image) {
         FamilleProduitEntity famille = familleProduitRepository.findById(request.getFamilleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Famille de produit", request.getFamilleId()));
 
         ProduitEntity entity = produitMapper.toEntity(request);
         entity.setFamille(famille);
 
+        if (image != null && !image.isEmpty()) {
+            entity.setImage(mediaService.getMediaEntity(mediaService.uploadMedia(image).getId()));
+        }
+
         ProduitEntity saved = produitRepository.save(entity);
         return produitMapper.toDto(saved);
     }
 
     @Transactional
-    public Produit updateProduit(Long id, ProduitRequest request) {
+    public Produit updateProduit(Long id, ProduitRequest request, MultipartFile image) {
         ProduitEntity entity = produitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Produit", id));
 
@@ -91,6 +98,10 @@ public class ProduitService {
 
         produitMapper.updateEntity(request, entity);
         entity.setFamille(famille);
+
+        if (image != null && !image.isEmpty()) {
+            entity.setImage(mediaService.getMediaEntity(mediaService.uploadMedia(image).getId()));
+        }
 
         ProduitEntity saved = produitRepository.save(entity);
         return produitMapper.toDto(saved);

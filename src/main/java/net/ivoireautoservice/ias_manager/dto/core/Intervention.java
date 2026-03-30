@@ -19,5 +19,5 @@ public class Intervention {
 	private InterventionStatut statut;
 	private TypeIntervention typeIntervention;
 	private Vehicule vehicule;
-	private Partenaire fournisseur;
+	private Partenaire garage;
 }

@@ -8,12 +8,15 @@ import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.CompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
 import net.ivoireautoservice.ias_manager.services.CompteService;
+import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/comptes")
@@ -35,6 +38,12 @@ public class CompteController {
         return ResponseEntity.ok(compteService.getAllComptes(keyword, pageable));
     }
 
+    @GetMapping("/mes-comptes")
+    public ResponseEntity<List<Compte>> getMesComptes(
+            @RequestParam boolean factureClient) {
+        return ResponseEntity.ok(compteService.getMesComptes(factureClient));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Compte> getCompteById(@PathVariable Long id) {
         return ResponseEntity.ok(compteService.getCompteById(id));
@@ -45,19 +54,21 @@ public class CompteController {
         return ResponseEntity.ok(compteService.getCompteByNumero(numero));
     }
 
-    @PostMapping
-    public ResponseEntity<Compte> createCompte(@Valid @RequestBody CompteRequest request) {
-        Compte created = compteService.createCompte(request);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Compte> createCompte(
+            @RequestPart("request") @Valid CompteRequest request,
+            @RequestPart(name = "logo", required = false) MultipartFile logo) {
+        Compte created = compteService.createCompte(request, logo);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Compte> updateCompte(
             @PathVariable Long id,
-            @Valid @RequestBody CompteRequest request) {
-        return ResponseEntity.ok(compteService.updateCompte(id, request));
+            @RequestPart("request") @Valid CompteRequest request,
+            @RequestPart(name = "logo", required = false) MultipartFile logo) {
+        return ResponseEntity.ok(compteService.updateCompte(id, request, logo));
     }
-
 
     @GetMapping("/{compteId}/lignes")
     public ResponseEntity<PagedResponse<LigneCompte>> getLignesByCompte(
@@ -76,6 +87,12 @@ public class CompteController {
             @PathVariable Long compteId,
             @Valid @RequestBody LigneCompteRequest request) {
         LigneCompte created = compteService.createLigne(compteId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping("/{compteId}/solder")
+    public ResponseEntity<LigneCompte> solderCompte(@PathVariable Long compteId) {
+        LigneCompte created = compteService.solderCompte(compteId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

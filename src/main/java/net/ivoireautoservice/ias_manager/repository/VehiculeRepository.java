@@ -40,4 +40,18 @@ public interface VehiculeRepository extends JpaRepository<VehiculeEntity, Long> 
     List<Object[]> countGroupByStatutBetween(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 
     long countByCreatedAtBetween(LocalDateTime debut, LocalDateTime fin);
+
+    @Query("SELECT v FROM VehiculeEntity v LEFT JOIN v.marque m LEFT JOIN v.type t LEFT JOIN v.assurance a " +
+            "WHERE (:keyword IS NULL OR LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(m.libelle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(t.libelle) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:statut IS NULL OR v.statut = :statut) " +
+            "AND (:typeId IS NULL OR t.id = :typeId) " +
+            "AND (:assuranceId IS NULL OR a.id = :assuranceId)")
+    Page<VehiculeEntity> searchWithFilters(
+            @Param("keyword") String keyword,
+            @Param("statut") VehiculeStatusEnum statut,
+            @Param("typeId") Long typeId,
+            @Param("assuranceId") Long assuranceId,
+            Pageable pageable);
 }

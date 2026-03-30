@@ -12,8 +12,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/produits")
@@ -56,17 +58,20 @@ public class ProduitController {
         return ResponseEntity.ok(produitService.getProduitsByFamille(familleId, pageable));
     }
 
-    @PostMapping
-    public ResponseEntity<Produit> createProduit(@Valid @RequestBody ProduitRequest request) {
-        Produit created = produitService.createProduit(request);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Produit> createProduit(
+            @Valid @ModelAttribute ProduitRequest request,
+            @RequestParam(required = false) MultipartFile image) {
+        Produit created = produitService.createProduit(request, image);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Produit> updateProduit(
             @PathVariable Long id,
-            @Valid @RequestBody ProduitRequest request) {
-        return ResponseEntity.ok(produitService.updateProduit(id, request));
+            @Valid @ModelAttribute ProduitRequest request,
+            @RequestParam(required = false) MultipartFile image) {
+        return ResponseEntity.ok(produitService.updateProduit(id, request, image));
     }
 
     @DeleteMapping("/{id}")

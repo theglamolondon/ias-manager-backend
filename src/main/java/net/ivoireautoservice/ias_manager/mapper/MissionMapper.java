@@ -19,12 +19,14 @@ public interface MissionMapper {
 	List<Mission> toDtoList(List<MissionEntity> entities);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "codeMission", ignore = true)
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
 	@Mapping(target = "client", ignore = true)
 	MissionEntity toEntity(MissionRequest request);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "codeMission", ignore = true)
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
 	@Mapping(target = "client", ignore = true)

@@ -12,4 +12,6 @@ public interface LigneFactureRepository extends JpaRepository<LigneFactureEntity
     Page<LigneFactureEntity> findByFactureId(Long factureId, Pageable pageable);
 
     List<LigneFactureEntity> findByFactureId(Long factureId);
+
+    List<LigneFactureEntity> findByExtraRefIn(List<String> extraRefs);
 }

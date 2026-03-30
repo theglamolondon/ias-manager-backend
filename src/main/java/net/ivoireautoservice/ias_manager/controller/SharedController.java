@@ -12,7 +12,6 @@ import net.ivoireautoservice.ias_manager.dto.core.TypeCarburant;
 import net.ivoireautoservice.ias_manager.dto.core.TypeDepense;
 import net.ivoireautoservice.ias_manager.dto.core.TypeIntervention;
 import net.ivoireautoservice.ias_manager.dto.core.TypeVehicule;
-import net.ivoireautoservice.ias_manager.dto.request.AssuranceRequest;
 import net.ivoireautoservice.ias_manager.dto.request.CategorieRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FamilleProduitRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MarqueRequest;
@@ -24,8 +23,10 @@ import net.ivoireautoservice.ias_manager.dto.request.TypeInterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.TypeVehiculeRequest;
 import net.ivoireautoservice.ias_manager.services.SharedService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -285,17 +286,20 @@ public class SharedController {
         return ResponseEntity.ok(sharedService.getAssuranceById(id));
     }
 
-    @PostMapping("/assurances")
-    public ResponseEntity<Assurance> createAssurance(@Valid @RequestBody AssuranceRequest request) {
-        Assurance created = sharedService.createAssurance(request);
+    @PostMapping(value = "/assurances", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Assurance> createAssurance(
+            @RequestParam String libelle,
+            @RequestParam(required = false) MultipartFile logo) {
+        Assurance created = sharedService.createAssurance(libelle, logo);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/assurances/{id}")
+    @PutMapping(value = "/assurances/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Assurance> updateAssurance(
             @PathVariable Long id,
-            @Valid @RequestBody AssuranceRequest request) {
-        return ResponseEntity.ok(sharedService.updateAssurance(id, request));
+            @RequestParam String libelle,
+            @RequestParam(required = false) MultipartFile logo) {
+        return ResponseEntity.ok(sharedService.updateAssurance(id, libelle, logo));
     }
 
     @DeleteMapping("/assurances/{id}")

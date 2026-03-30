@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
+import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
+import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "FACTURES")
@@ -24,11 +25,7 @@ public class FactureEntity extends AuditableEntity {
 
 	private String numProforma;
 
-	private LocalDateTime dhmsCreationPiece;
-
 	private String numFacture;
-
-	private LocalDateTime dhmsFacture;
 
 	private Long montantHt;
 
@@ -46,6 +43,12 @@ public class FactureEntity extends AuditableEntity {
 
 	@Enumerated(EnumType.ORDINAL)
 	private FactureStatusEnum statut;
+
+	@Enumerated(EnumType.STRING)
+	private FactureNatureEnum nature;
+
+	@Enumerated(EnumType.STRING)
+	private FactureTypeEnum type;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "partenaire_id", referencedColumnName = "id")

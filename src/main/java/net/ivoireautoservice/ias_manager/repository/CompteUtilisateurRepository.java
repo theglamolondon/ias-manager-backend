@@ -13,4 +13,8 @@ public interface CompteUtilisateurRepository extends JpaRepository<CompteUtilisa
 	Optional<CompteUtilisateurEntity> findByCompteIdAndUtilisateurId(Long compteId, Long utilisateurId);
 
 	void deleteByCompteId(Long compteId);
+
+	List<CompteUtilisateurEntity> findByUtilisateurId(Long utilisateurId);
+
+	List<CompteUtilisateurEntity> findByUtilisateurIdAndCanApproTrueAndCompteCanApproTrue(Long utilisateurId);
 }

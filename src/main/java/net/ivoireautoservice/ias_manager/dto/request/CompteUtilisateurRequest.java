@@ -13,4 +13,6 @@ public class CompteUtilisateurRequest {
 	private Long utilisateurId;
 
 	private Boolean canAppro;
+
+	private Boolean canSettle;
 }

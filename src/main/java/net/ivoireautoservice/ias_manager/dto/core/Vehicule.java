@@ -17,6 +17,7 @@ public class Vehicule {
 	private String couleur;
 	private LocalDate dateAchat;
 	private Long coutAchat;
+	private Long coutAssurance;
 	private String carteGrise;
 	private String typeCommercial;
 	private Integer nombrePlaces;

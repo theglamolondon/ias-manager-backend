@@ -25,13 +25,10 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getDashboard(annee));
 	}
 
+
 	@GetMapping("/vehicules")
-	public ResponseEntity<VehiculeStats> getVehiculeStats(
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
-			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-		if (dateDebut == null) dateDebut = LocalDate.of(LocalDate.now().getYear(), 1, 1);
-		if (dateFin == null) dateFin = LocalDate.of(LocalDate.now().getYear(), 12, 31);
-		return ResponseEntity.ok(statistiqueService.getVehiculeStats(dateDebut, dateFin));
+	public ResponseEntity<VehiculeStats> getVehiculeStats() {
+		return ResponseEntity.ok(statistiqueService.getVehiculeStats());
 	}
 
 	@GetMapping("/missions")
@@ -85,6 +82,15 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getCompteStats());
 	}
 
+	@GetMapping("/rapport-financier")
+	public ResponseEntity<RapportFinancier> getRapportFinancier(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
+		java.time.LocalDateTime debut = dateDebut != null ? dateDebut.atStartOfDay() : null;
+		java.time.LocalDateTime fin = dateFin != null ? dateFin.plusDays(1).atStartOfDay() : null;
+		return ResponseEntity.ok(statistiqueService.getRapportFinancier(debut, fin));
+	}
+
 	@GetMapping("/factures/fournisseurs")
 	public ResponseEntity<FactureStats> getFactureFournisseurStats(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
@@ -101,5 +107,14 @@ public class StatistiqueController {
 		if (dateDebut == null) dateDebut = LocalDate.of(LocalDate.now().getYear(), 1, 1);
 		if (dateFin == null) dateFin = LocalDate.of(LocalDate.now().getYear(), 12, 31);
 		return ResponseEntity.ok(statistiqueService.getFactureStats(true, dateDebut, dateFin));
+	}
+
+	@GetMapping("/recap-mensuel")
+	public ResponseEntity<RecapitulatifMensuel> getRecapitulatifMensuel(
+			@RequestParam(required = false) Integer annee) {
+		if (annee == null) {
+			annee = LocalDate.now().getYear();
+		}
+		return ResponseEntity.ok(statistiqueService.getRecapitulatifMensuel(annee));
 	}
 }

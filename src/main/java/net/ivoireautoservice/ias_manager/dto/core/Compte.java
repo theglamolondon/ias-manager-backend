@@ -15,6 +15,8 @@ public class Compte {
 	private String description;
 	private Long balance;
 	private Boolean canAppro;
+	private Boolean canBeNegative;
+	private Media logo;
 	private UtilisateurDto manager;
 	private List<CompteUtilisateur> utilisateurs;
 }

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "TYPES_VEHICULE")
 @Data
@@ -20,6 +22,10 @@ public class TypeVehiculeEntity extends AuditableEntity {
 
 	@Column(nullable = false)
 	private String libelle;
+
+	private BigDecimal prixJournalier;
+
+	private BigDecimal prixMensuel;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "categorie_id", referencedColumnName = "id", nullable = false)

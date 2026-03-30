@@ -2,13 +2,13 @@ package net.ivoireautoservice.ias_manager.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import net.ivoireautoservice.ias_manager.dto.core.DepenseMission;
-import net.ivoireautoservice.ias_manager.dto.core.Media;
-import net.ivoireautoservice.ias_manager.dto.core.Mission;
-import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
+import net.ivoireautoservice.ias_manager.dto.core.*;
+import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
+import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.services.MissionService;
+import java.time.LocalDateTime;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -53,6 +53,40 @@ public class MissionController {
 			@PathVariable Long id,
 			@Valid @RequestBody MissionRequest request) {
 		return ResponseEntity.ok(missionService.updateMission(id, request));
+	}
+
+	@PatchMapping("/{id}/demarrer")
+	public ResponseEntity<Mission> demarrerMission(
+			@PathVariable Long id,
+			@RequestParam LocalDateTime date) {
+		return ResponseEntity.ok(missionService.demarrerMission(id, date));
+	}
+
+	@PatchMapping("/{id}/terminer")
+	public ResponseEntity<Mission> terminerMission(
+			@PathVariable Long id,
+			@RequestParam LocalDateTime date) {
+		return ResponseEntity.ok(missionService.terminerMission(id, date));
+	}
+
+	// ==================== CHANGEMENT DE VEHICULE ====================
+
+	@PatchMapping("/changer-vehicule")
+	public ResponseEntity<Mission> changerVehicule(
+			@Valid @RequestBody ChangerVehiculeMissionRequest request) {
+		Mission nouvelleMission = missionService.changerVehicule(request);
+		return ResponseEntity.status(HttpStatus.CREATED).body(nouvelleMission);
+	}
+
+	// ==================== SIMULATION ====================
+
+	@GetMapping("/simulation")
+	public ResponseEntity<SimulationTarif> simulerTarif(
+			@RequestParam Long vehiculeId,
+			@RequestParam TypeTarificationEnum typeTarification,
+			@RequestParam LocalDateTime debut,
+			@RequestParam LocalDateTime fin) {
+		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin));
 	}
 
 	// ==================== DEPENSES ====================

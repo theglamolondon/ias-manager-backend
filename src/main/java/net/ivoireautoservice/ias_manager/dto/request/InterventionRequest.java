@@ -23,5 +23,5 @@ public class InterventionRequest {
 	@NotNull(message = "Le véhicule est obligatoire")
 	private Long vehiculeId;
 
-	private Long fournisseurId;
+	private Long garageId;
 }

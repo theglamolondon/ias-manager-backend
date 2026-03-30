@@ -9,7 +9,7 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = {UtilisateurMapper.class, CompteUtilisateurMapper.class})
+@Mapper(componentModel = "spring", uses = {UtilisateurMapper.class, CompteUtilisateurMapper.class, MediaMapper.class})
 public interface CompteMapper {
 
     Compte toDto(CompteEntity entity);
@@ -19,10 +19,15 @@ public interface CompteMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "manager", ignore = true)
     @Mapping(target = "utilisateurs", ignore = true)
+    @Mapping(target = "logo", ignore = true)
     CompteEntity toEntity(CompteRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "balance", ignore = true)
     @Mapping(target = "manager", ignore = true)
     @Mapping(target = "utilisateurs", ignore = true)
+    @Mapping(target = "logo", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     void updateEntity(CompteRequest request, @MappingTarget CompteEntity entity);
 }

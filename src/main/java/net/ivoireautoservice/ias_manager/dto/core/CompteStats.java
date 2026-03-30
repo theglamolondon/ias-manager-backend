@@ -11,4 +11,6 @@ public class CompteStats {
 	private long balanceTotale;
 	private long totalSoldesPositifs;
 	private long totalSoldesNegatifs;
+	private long facturesImpayeesNombre;
+	private long facturesImpayeesMontant;
 }

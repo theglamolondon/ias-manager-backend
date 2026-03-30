@@ -15,4 +15,5 @@ public class LigneFactureRequest {
 	private String designation;
 	private Long montantHt;
 	private Long produitId;
+	private String extraRef;
 }

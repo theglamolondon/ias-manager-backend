@@ -1,14 +1,22 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.dto.core.DepenseMission;
 import net.ivoireautoservice.ias_manager.dto.core.Intervention;
+import net.ivoireautoservice.ias_manager.dto.core.InterventionHistorique;
+import net.ivoireautoservice.ias_manager.dto.core.MissionHistorique;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.core.Vehicule;
+import net.ivoireautoservice.ias_manager.dto.core.VehiculeHistorique;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.entity.AssuranceEntity;
+import net.ivoireautoservice.ias_manager.entity.DepenseMissionEntity;
+import net.ivoireautoservice.ias_manager.entity.DocumentVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.InterventionEntity;
+import net.ivoireautoservice.ias_manager.entity.LigneFactureEntity;
 import net.ivoireautoservice.ias_manager.entity.MediaEntity;
+import net.ivoireautoservice.ias_manager.entity.MissionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeAssuranceEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
@@ -16,11 +24,18 @@ import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
+import net.ivoireautoservice.ias_manager.dto.core.DocumentVehicule;
+import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
+import net.ivoireautoservice.ias_manager.mapper.DocumentVehiculeMapper;
 import net.ivoireautoservice.ias_manager.mapper.InterventionMapper;
 import net.ivoireautoservice.ias_manager.mapper.VehiculeMapper;
+import net.ivoireautoservice.ias_manager.repository.DepenseMissionRepository;
+import net.ivoireautoservice.ias_manager.repository.DocumentVehiculeRepository;
 import net.ivoireautoservice.ias_manager.repository.InterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.AssuranceRepository;
+import net.ivoireautoservice.ias_manager.repository.LigneFactureRepository;
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
+import net.ivoireautoservice.ias_manager.repository.MissionRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeAssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
@@ -33,6 +48,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -45,11 +61,17 @@ public class VehiculeService {
     private final AssuranceRepository assuranceRepository;
     private final TypeInterventionRepository typeInterventionRepository;
     private final InterventionRepository interventionRepository;
+    private final MissionRepository missionRepository;
+    private final DepenseMissionRepository depenseMissionRepository;
+    private final LigneFactureRepository ligneFactureRepository;
+    private final DocumentVehiculeRepository documentVehiculeRepository;
     private final MediaRepository mediaRepository;
     private final MediaService mediaService;
     private final SharedService sharedService;
     private final VehiculeMapper vehiculeMapper;
     private final InterventionMapper interventionMapper;
+    private final DepenseMissionMapper depenseMissionMapper;
+    private final DocumentVehiculeMapper documentVehiculeMapper;
 
     @Transactional(readOnly = true)
     public List<Vehicule> getAllVehicules() {
@@ -57,10 +79,10 @@ public class VehiculeService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Vehicule> getAllVehicules(String keyword, Pageable pageable) {
-        Page<VehiculeEntity> page = (keyword != null && !keyword.isBlank())
-                ? vehiculeRepository.searchByKeyword(keyword.trim(), pageable)
-                : vehiculeRepository.findAll(pageable);
+    public PagedResponse<Vehicule> getAllVehicules(String keyword, VehiculeStatusEnum statut, Long typeId, Long assuranceId, Pageable pageable) {
+        Page<VehiculeEntity> page = vehiculeRepository.searchWithFilters(
+                keyword != null && !keyword.isBlank() ? keyword.trim() : null,
+                statut, typeId, assuranceId, pageable);
         return PagedResponse.of(page.map(vehiculeMapper::toDto));
     }
 
@@ -200,6 +222,175 @@ public class VehiculeService {
 
         VehiculeEntity saved = vehiculeRepository.save(entity);
         return vehiculeMapper.toDto(saved);
+    }
+
+    // ==================== DOCUMENTS ====================
+
+    @Transactional(readOnly = true)
+    public List<DocumentVehicule> getDocuments(Long vehiculeId) {
+        if (!vehiculeRepository.existsById(vehiculeId)) {
+            throw new ResourceNotFoundException("Véhicule", vehiculeId);
+        }
+        return documentVehiculeMapper.toDtoList(
+                documentVehiculeRepository.findByVehiculeIdOrderByCreatedAtDesc(vehiculeId));
+    }
+
+    @Transactional
+    public DocumentVehicule addDocument(Long vehiculeId, String label, MultipartFile file) {
+        VehiculeEntity vehicule = vehiculeRepository.findById(vehiculeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule", vehiculeId));
+
+        MediaEntity media = mediaService.getMediaEntity(mediaService.uploadDocument(file).getId());
+
+        DocumentVehiculeEntity document = DocumentVehiculeEntity.builder()
+                .label(label)
+                .vehicule(vehicule)
+                .media(media)
+                .build();
+
+        return documentVehiculeMapper.toDto(documentVehiculeRepository.save(document));
+    }
+
+    @Transactional
+    public void deleteDocument(Long vehiculeId, Long documentId) {
+        DocumentVehiculeEntity document = documentVehiculeRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", documentId));
+
+        if (!document.getVehicule().getId().equals(vehiculeId)) {
+            throw new ResourceNotFoundException("Document " + documentId + " n'appartient pas au véhicule " + vehiculeId);
+        }
+
+        String mediaId = document.getMedia().getId();
+        documentVehiculeRepository.delete(document);
+        mediaService.deleteMedia(mediaId);
+    }
+
+    // ==================== HISTORIQUE ====================
+
+    @Transactional(readOnly = true)
+    public VehiculeHistorique getHistorique(String numChassis) {
+        VehiculeEntity vehiculeEntity = vehiculeRepository.findByNumChassis(numChassis)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule avec numéro de chassis " + numChassis + " non trouvé"));
+
+        Vehicule vehicule = vehiculeMapper.toDto(vehiculeEntity);
+        Long vehiculeId = vehiculeEntity.getId();
+
+        // 1. Missions du véhicule
+        List<MissionEntity> missionEntities = missionRepository.findByVehiculeIdOrderByDhmsDebutPreviDesc(vehiculeId);
+
+        // 2. Récupérer les codeMission pour trouver les factures liées
+        List<String> codeMissions = missionEntities.stream()
+                .map(MissionEntity::getCodeMission)
+                .filter(c -> c != null && !c.isBlank())
+                .toList();
+
+        // 3. Trouver les lignes facture liées via extraRef
+        Map<String, LigneFactureEntity> ligneFactureByCodeMission = new java.util.HashMap<>();
+        if (!codeMissions.isEmpty()) {
+            List<LigneFactureEntity> lignesFacture = ligneFactureRepository.findByExtraRefIn(codeMissions);
+            for (LigneFactureEntity lf : lignesFacture) {
+                // On garde la première ligne par codeMission (pour accéder à la facture)
+                ligneFactureByCodeMission.putIfAbsent(lf.getExtraRef(), lf);
+            }
+        }
+
+        // 4. Construire les MissionHistorique
+        long totalGains = 0;
+        long totalDepensesMissions = 0;
+        List<MissionHistorique> missionsHistorique = new java.util.ArrayList<>();
+
+        for (MissionEntity m : missionEntities) {
+            // Dépenses de la mission
+            List<DepenseMissionEntity> depenseEntities = depenseMissionRepository.findByMissionId(m.getId());
+            List<DepenseMission> depenses = depenseMissionMapper.toDtoList(depenseEntities);
+            long totalDepensesMission = depenseEntities.stream().mapToLong(d -> d.getMontant() != null ? d.getMontant() : 0).sum();
+            totalDepensesMissions += totalDepensesMission;
+
+            // Facture liée
+            LigneFactureEntity ligneFacture = ligneFactureByCodeMission.get(m.getCodeMission());
+            Long factureId = null;
+            String numFacture = null;
+            net.ivoireautoservice.ias_manager.enums.FactureStatusEnum factureStatut = null;
+            Long montantFactureTtc = null;
+
+            if (ligneFacture != null && ligneFacture.getFacture() != null) {
+                var facture = ligneFacture.getFacture();
+                factureId = facture.getId();
+                numFacture = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
+                factureStatut = facture.getStatut();
+                montantFactureTtc = facture.getMontantTtc();
+
+                if (facture.getStatut() == net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE
+                        && facture.getMontantTtc() != null) {
+                    totalGains += facture.getMontantTtc();
+                }
+            }
+
+            String clientNom = m.getClient() != null ? m.getClient().getRaisonSociale() : null;
+            String chauffeurNom = null;
+            if (m.getChauffeur() != null && m.getChauffeur().getEmploye() != null) {
+                var emp = m.getChauffeur().getEmploye();
+                chauffeurNom = (emp.getNom() != null ? emp.getNom() : "") + " " + (emp.getPrenoms() != null ? emp.getPrenoms() : "");
+                chauffeurNom = chauffeurNom.trim();
+            }
+
+            missionsHistorique.add(MissionHistorique.builder()
+                    .id(m.getId())
+                    .codeMission(m.getCodeMission())
+                    .destination(m.getDestination())
+                    .typeTarification(m.getTypeTarification())
+                    .dhmsDebutPrevi(m.getDhmsDebutPrevi())
+                    .dhmsFinPrevi(m.getDhmsFinPrevi())
+                    .dhmsDebutReel(m.getDhmsDebutReel())
+                    .dhmsFinReel(m.getDhmsFinReel())
+                    .dureeLocation(m.getDureeLocation())
+                    .montantTotalHT(m.getMontantTotalHT())
+                    .totalPerdiem(m.getTotalPerdiem())
+                    .clientNom(clientNom)
+                    .chauffeurNom(chauffeurNom)
+                    .totalDepenses(totalDepensesMission)
+                    .depenses(depenses)
+                    .factureId(factureId)
+                    .numFacture(numFacture)
+                    .factureStatut(factureStatut)
+                    .montantFactureTtc(montantFactureTtc)
+                    .build());
+        }
+
+        // 5. Interventions du véhicule
+        List<InterventionEntity> interventionEntities = interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(vehiculeId);
+        long totalDepensesInterventions = 0;
+
+        List<InterventionHistorique> interventionsHistorique = new java.util.ArrayList<>();
+        for (InterventionEntity i : interventionEntities) {
+            long cout = i.getCout() != null ? i.getCout() : 0;
+            totalDepensesInterventions += cout;
+
+            interventionsHistorique.add(InterventionHistorique.builder()
+                    .id(i.getId())
+                    .objet(i.getObjet())
+                    .details(i.getDetails())
+                    .dhmsDebut(i.getDhmsDebut())
+                    .dhmsFin(i.getDhmsFin())
+                    .cout(i.getCout())
+                    .statut(i.getStatut())
+                    .typeIntervention(i.getTypeIntervention() != null ? i.getTypeIntervention().getLibelle() : null)
+                    .garageNom(i.getGarage() != null ? i.getGarage().getRaisonSociale() : null)
+                    .build());
+        }
+
+        long totalDepenses = totalDepensesMissions + totalDepensesInterventions;
+
+        return VehiculeHistorique.builder()
+                .vehicule(vehicule)
+                .totalGains(totalGains)
+                .totalDepenses(totalDepenses)
+                .totalDepensesMissions(totalDepensesMissions)
+                .totalDepensesInterventions(totalDepensesInterventions)
+                .solde(totalGains - totalDepenses)
+                .missions(missionsHistorique)
+                .interventions(interventionsHistorique)
+                .build();
     }
 
     private void resolveMarque(VehiculeRequest request, VehiculeEntity entity) {

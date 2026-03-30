@@ -47,18 +47,21 @@ public class LivraisonService {
     // ==================== LIVRAISONS CLIENT ====================
 
     @Transactional(readOnly = true)
-    public PagedResponse<LivraisonClient> getAllLivraisonsClient(String keyword, Pageable pageable) {
+    public PagedResponse<LivraisonClientSummary> getAllLivraisonsClient(String keyword, Pageable pageable) {
         var page = (keyword != null && !keyword.isBlank())
                 ? livraisonClientRepository.searchByKeyword(keyword.trim(), pageable)
                 : livraisonClientRepository.findAll(pageable);
-        return PagedResponse.of(page.map(livraisonClientMapper::toDto));
+        return PagedResponse.of(page.map(livraisonClientMapper::toSummary));
     }
 
     @Transactional(readOnly = true)
     public LivraisonClient getLivraisonClientById(Long id) {
         LivraisonClientEntity entity = livraisonClientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Livraison client", id));
-        return livraisonClientMapper.toDto(entity);
+        LivraisonClient dto = livraisonClientMapper.toDto(entity);
+        dto.setSorties(sortieProduitMapper.toDtoList(
+                sortieProduitRepository.findByLivraisonClientId(id)));
+        return dto;
     }
 
     @Transactional
@@ -171,25 +174,31 @@ public class LivraisonService {
     // ==================== LIVRAISONS FOURNISSEUR ====================
 
     @Transactional(readOnly = true)
-    public PagedResponse<LivraisonFournisseur> getAllLivraisonsFournisseur(String keyword, Pageable pageable) {
+    public PagedResponse<LivraisonFournisseurSummary> getAllLivraisonsFournisseur(String keyword, Pageable pageable) {
         var page = (keyword != null && !keyword.isBlank())
                 ? livraisonFournisseurRepository.searchByKeyword(keyword.trim(), pageable)
                 : livraisonFournisseurRepository.findAll(pageable);
-        return PagedResponse.of(page.map(livraisonFournisseurMapper::toDto));
+        return PagedResponse.of(page.map(livraisonFournisseurMapper::toSummary));
     }
 
     @Transactional(readOnly = true)
     public LivraisonFournisseur getLivraisonFournisseurById(Long id) {
         LivraisonFournisseurEntity entity = livraisonFournisseurRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Livraison fournisseur", id));
-        return livraisonFournisseurMapper.toDto(entity);
+        LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(entity);
+        dto.setEntrees(entreeProduitMapper.toDtoList(
+                entreeProduitRepository.findByLivraisonFournisseurId(id)));
+        return dto;
     }
 
     @Transactional(readOnly = true)
     public LivraisonFournisseur getLivraisonFournisseurByNumero(String numero) {
         LivraisonFournisseurEntity entity = livraisonFournisseurRepository.findByNumero(numero)
                 .orElseThrow(() -> new ResourceNotFoundException("Livraison fournisseur avec numéro " + numero + " non trouvé"));
-        return livraisonFournisseurMapper.toDto(entity);
+        LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(entity);
+        dto.setEntrees(entreeProduitMapper.toDtoList(
+                entreeProduitRepository.findByLivraisonFournisseurId(entity.getId())));
+        return dto;
     }
 
     @Transactional

@@ -22,7 +22,7 @@
         .invoice-wrapper {
             max-width: 210mm;
             margin: 0 auto;
-            background: #ffffff;
+            background: rgba(255, 255, 255, 0.37);
             position: relative;
         }
 
@@ -89,13 +89,15 @@
 
         /* Info Section */
         .info-table {
-            width: 100%;
+            width: 120%;
             padding: 24px 40px;
+            margin: 0 auto;
         }
 
-        .info-table > tbody > tr > td {
+        .info-table > tr > td {
             vertical-align: top;
-            width: 50%;
+            width: 40%;
+            display: block;
         }
 
         .info-block-title {
@@ -103,11 +105,11 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #1b2a6b;
+            text-align: right;
             font-weight: 700;
             margin-bottom: 12px;
             padding-bottom: 6px;
-            border-bottom: 2px solid #1b2a6b;
-            display: inline-block;
+            display: block;
         }
 
         .info-row-table {
@@ -119,7 +121,9 @@
             padding: 2px 0;
             font-size: 12px;
             line-height: 1.6;
+            text-align: right;
         }
+        .left .info-row-table td, .left .info-block-title { text-align: left;}
 
         .info-label {
             color: #5a6a8a;
@@ -134,11 +138,10 @@
 
         /* Object section */
         .object-section {
-            margin: 0 40px;
             padding: 12px 20px;
             background-color: #f0f3fa;
             border-left: 4px solid #1b2a6b;
-            margin-bottom: 20px;
+            margin: 0 40px 20px;
         }
 
         .object-section .info-label {
@@ -373,39 +376,59 @@
             size: A4;
             margin: 0;
         }
+        .left{ float: left; }
+        .right{ float: right; }
+        .clear{ clear: both}
+
+        /* Watermark */
+        .watermark {
+            position: fixed;
+            top: 60%;
+            left: 50%;
+            transform: translate(-60%, -50%) rotate(-35deg);
+            font-size: 100px;
+            font-weight: 900;
+            color: #e4e4e4;
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: -1;
+        }
     </style>
 </head>
 
 <body>
 
+<div class="watermark">PROFORMA</div>
+
 <div class="invoice-wrapper">
     <div class="top-bar"></div>
 
     <!-- Header -->
-    <table class="header-table">
-        <tr>
-            <td class="logo-section">
-                <img th:src="${logoUrl}" alt="GIAS - Ivoire Auto Services Groupe SARL"/>
-            </td>
-            <td class="invoice-title-section">
-                <div class="invoice-title">PROFORMA</div>
-                <div class="title-underline"></div>
-                <div class="invoice-number">
-                    N&#176; : <span th:text="${facture.numFacture != null ? facture.numFacture : facture.numProforma}">DA/01/79/00013972</span>
-                </div>
-                <div class="invoice-number">
-                    Date : <span th:text="${#temporals.format(facture.dhmsFacture != null ? facture.dhmsFacture : facture.dhmsCreationPiece, 'dd/MM/yyyy')}">14/02/2026</span>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="header-table">
+        <div class="logo-section left">
+            <img th:src="${logoUrl}" alt="GIAS - Ivoire Auto Services Groupe SARL"/>
+        </div>
+        <div class="invoice-title-section right">
+            <div class="invoice-title"></div>
+            <div class="title-underline"></div>
+            <div class="invoice-number">
+                N&#176; : <span th:text="${facture.numFacture != null ? facture.numFacture : facture.numProforma}">DA/01/79/00013972</span>
+            </div>
+            <div class="invoice-number">
+                Date : <span th:text="${#temporals.format(facture.createdAt, 'dd/MM/yyyy')}">14/02/2026</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
 
     <div class="brush-decoration"></div>
 
     <!-- Info Section -->
     <table class="info-table">
         <tr>
-            <td>
+            <td class="left">
                 <div class="info-block-title">De</div>
                 <table class="info-row-table">
                     <tr>
@@ -418,29 +441,31 @@
                     </tr>
                 </table>
             </td>
-            <td>
+            <td class="right">
                 <div class="info-block-title">Facturer &#224;</div>
                 <table class="info-row-table">
                     <tr>
                         <td class="info-label">Client :</td>
-                        <td class="info-value" th:text="${facture.partenaireRaisonSociale}">EBURKA CONSEILS</td>
+                        <td class="info-value" th:text="${partenaire.raisonSociale}"></td>
                     </tr>
                     <tr th:if="${partenaire.numCc != null}">
                         <td class="info-label">N&#176; C.C. :</td>
-                        <td class="info-value" th:text="${partenaire.numCc}">0514425K</td>
+                        <td class="info-value" th:text="${partenaire.numCc}"></td>
                     </tr>
                     <tr th:if="${partenaire.telephone1 != null}">
                         <td class="info-label">T&#233;l&#233;phone :</td>
-                        <td class="info-value" th:text="${partenaire.telephone1}">07 08 91 23 84</td>
+                        <td class="info-value" th:text="${partenaire.telephone1}"></td>
                     </tr>
                 </table>
             </td>
+            <br clear="both" />
         </tr>
+
     </table>
 
     <!-- Object -->
     <div class="object-section" th:if="${facture.objet != null}">
-        <table class="info-row-table">
+        <table class="">
             <tr>
                 <td class="info-label">Objet :</td>
                 <td class="info-value" th:text="${facture.objet}">Location de v&#233;hicule</td>
@@ -475,36 +500,33 @@
     </div>
 
     <!-- Conditions + Totals -->
-    <table class="totals-conditions-table">
-        <tr>
-            <td>
-                <div class="conditions-title">Conditions commerciales</div>
-                <ul class="conditions-list">
-                    <li>Mode de paiement : Esp&#232;ces ou ch&#232;que</li>
-                    <li th:if="${facture.validite != null}" th:text="'Validit&#233; de l\'offre : ' + ${#temporals.format(facture.validite, 'dd/MM/yyyy')}">Validit&#233; de l'offre : 30 jours</li>
-                    <li th:if="${facture.delaiLivraison != null}" th:text="'D&#233;lai de livraison : ' + ${#temporals.format(facture.delaiLivraison, 'dd/MM/yyyy')}">Disponibilit&#233; : Imm&#233;diate</li>
-                </ul>
-            </td>
-            <td>
-                <div class="totals-inner">
-                    <table class="totals-row-table">
-                        <tr>
-                            <td class="totals-label">Total HT</td>
-                            <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantHt, 1, 'POINT') + ' FCFA'}">120 000 FCFA</td>
-                        </tr>
-                        <tr>
-                            <td class="totals-label" th:text="'TVA (' + ${facture.tva != null ? facture.tva : 18} + '%)'">TVA (18%)</td>
-                            <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'POINT') + ' FCFA'}">21 600 FCFA</td>
-                        </tr>
-                        <tr class="grand-total">
-                            <td class="totals-label">Total TTC</td>
-                            <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc, 1, 'POINT') + ' FCFA'}">141 600 FCFA</td>
-                        </tr>
-                    </table>
-                </div>
-            </td>
-        </tr>
-    </table>
+    <div class="totals-conditions-table">
+        <div class="left">
+            <div class="conditions-title">Conditions commerciales</div>
+            <ul class="conditions-list">
+                <li>Mode de paiement : Esp&#232;ces ou ch&#232;que</li>
+                <li th:if="${facture.validite != null}" th:text="'Validit&#233; de l\'offre : ' + ${#temporals.format(facture.validite, 'dd/MM/yyyy')}">Validit&#233; de l'offre : 30 jours</li>
+                <li th:if="${facture.delaiLivraison != null}" th:text="'D&#233;lai de livraison : ' + ${#temporals.format(facture.delaiLivraison, 'dd/MM/yyyy')}">Disponibilit&#233; : Imm&#233;diate</li>
+            </ul>
+        </div>
+        <div class="totals-inner right">
+            <table class="totals-row-table">
+                <tr>
+                    <td class="totals-label">Total HT</td>
+                    <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                </tr>
+                <tr>
+                    <td class="totals-label" th:text="'TVA (' + ${facture.tva != null ? facture.tva : 18} + '%)'">TVA (18%)</td>
+                    <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                </tr>
+                <tr class="grand-total">
+                    <td class="totals-label">Total TTC</td>
+                    <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                </tr>
+            </table>
+        </div>
+        <div class="clear"></div>
+    </div>
 
     <!-- Amount in words -->
     <div class="amount-words" th:if="${montantEnLettres != null}">
@@ -513,21 +535,20 @@
     </div>
 
     <!-- Contact + Signature -->
-    <table class="signature-table">
-        <tr>
-            <td>
-                <div class="contact-item">Email : commercial@ivoireautoservices.net</div>
-                <div class="contact-item">T&#233;l : +225 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83</div>
-                <div class="contact-item">Angr&#233; 8&#232;me tranche, Abidjan</div>
-            </td>
-            <td class="signature-section">
-                <div class="signature-title">Signature &amp; Cachet</div>
-                <div class="signature-line"></div>
-                <div class="signature-name">GIAS SARL</div>
-                <div class="signature-role">Ivoire Auto Services Groupe</div>
-            </td>
-        </tr>
-    </table>
+    <div class="signature-table">
+        <div class="left">
+            <div class="contact-item">Email : commercial@ivoireautoservices.net</div>
+            <div class="contact-item">T&#233;l : +225 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83</div>
+            <div class="contact-item">Angr&#233; 8&#232;me tranche, Abidjan</div>
+        </div>
+        <div class="signature-section right">
+            <div class="signature-title">Signature &amp; Cachet</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">GIAS SARL</div>
+            <div class="signature-role">Ivoire Auto Services Groupe</div>
+        </div>
+        <div class="clear"></div>
+    </div>
 
     <!-- Footer -->
     <div class="invoice-footer">

@@ -2,7 +2,7 @@ package net.ivoireautoservice.ias_manager.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
-import net.ivoireautoservice.ias_manager.enums.TypeMissionEnum;
+import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,23 +14,20 @@ import java.time.LocalDateTime;
 public class MissionRequest {
 	private Long reference;
 
-	@NotNull(message = "Le type de mission est obligatoire")
-	private TypeMissionEnum typeMission;
-	private String codeMission;
+	@NotNull(message = "Le type de tarification est obligatoire")
+	private TypeTarificationEnum typeTarification;
 	private LocalDateTime dhmsDebutPrevi;
 	private LocalDateTime dhmsFinPrevi;
 	private LocalDateTime dhmsDebutReel;
 	private LocalDateTime dhmsFinReel;
-	private String itineraire;
 	private String destination;
 	private Boolean isInterieur;
 	private Boolean withChauffeur;
-	private Boolean isConfirmer;
 	private Boolean isSousTraitee;
 	private String detailsVehiculeSousTraitance;
 	private BigDecimal perdiem;
 	private BigDecimal totalPerdiem;
-	private BigDecimal tarifJournalier;
+	private BigDecimal tarif;
 	private BigDecimal montantTotalHT;
 	private Long dureeLocation;
 	private Long kilometrageDepart;
@@ -43,4 +40,6 @@ public class MissionRequest {
 	private Long chauffeurId;
 
 	private Long clientId;
+
+	private Long compteId;
 }

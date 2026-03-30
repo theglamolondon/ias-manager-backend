@@ -3,7 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import net.ivoireautoservice.ias_manager.enums.TypeMissionEnum;
+import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,9 +24,9 @@ public class MissionEntity extends AuditableEntity {
 
 	private Long reference;
 
-	@Enumerated(EnumType.ORDINAL)
+	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
-	private TypeMissionEnum typeMission;
+	private TypeTarificationEnum typeTarification;
 
 	private String codeMission;
 
@@ -42,15 +42,11 @@ public class MissionEntity extends AuditableEntity {
 	@Column(name = "dhms_fin_reel")
 	private LocalDateTime dhmsFinReel;
 
-	private String itineraire;
-
 	private String destination;
 
 	private Boolean isInterieur;
 
 	private Boolean withChauffeur;
-
-	private Boolean isConfirmer;
 
 	private Boolean isSousTraitee;
 
@@ -60,7 +56,8 @@ public class MissionEntity extends AuditableEntity {
 
 	private BigDecimal totalPerdiem;
 
-	private BigDecimal tarifJournalier;
+	@Column(name = "tarif_journalier")
+	private BigDecimal tarif;
 
 	private BigDecimal montantTotalHT;
 

@@ -9,7 +9,11 @@ import lombok.*;
 public class FactureStats {
 	private long total;
 	private long enAttente;
+	private long annulees;
 	private long payees;
-	private long montantTotalPaye;
+	private long impayees;
 	private long montantTotal;
+	private long montantTotalEnAttente;
+	private long montantTotalPaye;
+	private long montantTotalImpaye;
 }

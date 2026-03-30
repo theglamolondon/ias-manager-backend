@@ -30,6 +30,7 @@ public class VehiculeEntity extends AuditableEntity {
 
 	private LocalDate dateAchat;
 	private Long coutAchat;
+	private Long coutAssurance;
 	private String carteGrise;
 	private String typeCommercial;
 	private Integer nombrePlaces;

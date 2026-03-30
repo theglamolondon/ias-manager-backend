@@ -2,9 +2,11 @@ package net.ivoireautoservice.ias_manager.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.dto.core.DocumentVehicule;
 import net.ivoireautoservice.ias_manager.dto.core.Intervention;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.core.Vehicule;
+import net.ivoireautoservice.ias_manager.dto.core.VehiculeHistorique;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
@@ -30,13 +32,20 @@ public class VehiculeController {
     @GetMapping
     public ResponseEntity<PagedResponse<Vehicule>> getAllVehicules(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) Long typeId,
+            @RequestParam(required = false) Long assuranceId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(vehiculeService.getAllVehicules(keyword, pageable));
+        VehiculeStatusEnum statutEnum = null;
+        if (statut != null && !statut.isBlank()) {
+            try { statutEnum = VehiculeStatusEnum.valueOf(statut); } catch (IllegalArgumentException ignored) {}
+        }
+        return ResponseEntity.ok(vehiculeService.getAllVehicules(keyword, statutEnum, typeId, assuranceId, pageable));
     }
 
     @GetMapping("/{numChassis}")
@@ -84,6 +93,13 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.updateStatut(vehiculeId, statut));
     }
 
+    // ==================== HISTORIQUE ====================
+
+    @GetMapping("/historique/{numChassis}")
+    public ResponseEntity<VehiculeHistorique> getHistorique(@PathVariable String numChassis) {
+        return ResponseEntity.ok(vehiculeService.getHistorique(numChassis));
+    }
+
     // ==================== INTERVENTIONS ====================
 
     @GetMapping("/{vehiculeId}/interventions")
@@ -116,6 +132,30 @@ public class VehiculeController {
             @RequestParam(required = false) MultipartFile photoCoteDroit,
             @RequestParam(required = false) MultipartFile photoCoteGauche) {
         return ResponseEntity.ok(vehiculeService.updatePhotos(id, photoAvant, photoArriere, photoCoteDroit, photoCoteGauche));
+    }
+
+    // ==================== DOCUMENTS ====================
+
+    @GetMapping("/{vehiculeId}/documents")
+    public ResponseEntity<List<DocumentVehicule>> getDocuments(@PathVariable Long vehiculeId) {
+        return ResponseEntity.ok(vehiculeService.getDocuments(vehiculeId));
+    }
+
+    @PostMapping(value = "/{vehiculeId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentVehicule> addDocument(
+            @PathVariable Long vehiculeId,
+            @RequestParam String label,
+            @RequestParam MultipartFile file) {
+        DocumentVehicule created = vehiculeService.addDocument(vehiculeId, label, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @DeleteMapping("/{vehiculeId}/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocument(
+            @PathVariable Long vehiculeId,
+            @PathVariable Long documentId) {
+        vehiculeService.deleteDocument(vehiculeId, documentId);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{vehiculeId}")

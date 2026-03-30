@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = {"typeIntervention", "vehicule", "fournisseur"})
-@EqualsAndHashCode(callSuper = true, exclude = {"typeIntervention", "vehicule", "fournisseur"})
+@ToString(exclude = {"typeIntervention", "vehicule", "garage"})
+@EqualsAndHashCode(callSuper = true, exclude = {"typeIntervention", "vehicule", "garage"})
 public class InterventionEntity extends AuditableEntity {
 
 	@Id
@@ -48,5 +48,5 @@ public class InterventionEntity extends AuditableEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "fournisseur_id")
-	private PartenaireEntity fournisseur;
+	private PartenaireEntity garage;
 }

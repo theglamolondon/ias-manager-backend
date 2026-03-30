@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 
@@ -14,6 +15,10 @@ import java.time.LocalDate;
 public class VehiculeRequest {
 
 	@NotBlank(message = "L'immatriculation est obligatoire")
+	@Pattern(
+		regexp = "^([A-Za-z]{2}\\s?-?\\s?\\d{3}\\s?-?\\s?[A-Za-z]{2}|\\d{4}\\s?[A-Za-z]{2}\\s?\\d{2})$",
+		message = "Format invalide. Formats acceptés : AA-123-BB ou 1234 AB 01"
+	)
 	private String immatriculation;
 
 	private LocalDate dateImmatriculation;
@@ -21,6 +26,7 @@ public class VehiculeRequest {
 	private String couleur;
 	private LocalDate dateAchat;
 	private Long coutAchat;
+	private Long coutAssurance;
 	private String carteGrise;
 	private String typeCommercial;
 	private Integer nombrePlaces;

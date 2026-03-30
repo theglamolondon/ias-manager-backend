@@ -28,8 +28,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class MediaService {
 
-    private static final Set<String> ALLOWED_TYPES = Set.of(
+    private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
+    );
+
+    private static final Set<String> ALLOWED_DOCUMENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif",
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
 
     private final MediaRepository mediaRepository;
@@ -47,6 +56,32 @@ public class MediaService {
     @Transactional
     public Media uploadMedia(MultipartFile file) {
         validateFileType(file);
+
+        String id = UUID.randomUUID().toString();
+        String extension = getExtension(file.getOriginalFilename());
+        String storedFilename = id + "." + extension;
+
+        try {
+            Path targetPath = uploadPath.resolve(storedFilename).normalize();
+            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors du stockage du fichier : " + file.getOriginalFilename(), e);
+        }
+
+        MediaEntity entity = MediaEntity.builder()
+                .id(id)
+                .originalFilename(file.getOriginalFilename())
+                .storedFilename(storedFilename)
+                .contentType(file.getContentType())
+                .size(file.getSize())
+                .build();
+
+        return mediaMapper.toDto(mediaRepository.save(entity));
+    }
+
+    @Transactional
+    public Media uploadDocument(MultipartFile file) {
+        validateFileType(file, ALLOWED_DOCUMENT_TYPES);
 
         String id = UUID.randomUUID().toString();
         String extension = getExtension(file.getOriginalFilename());
@@ -105,10 +140,14 @@ public class MediaService {
     }
 
     private void validateFileType(MultipartFile file) {
+        validateFileType(file, ALLOWED_IMAGE_TYPES);
+    }
+
+    private void validateFileType(MultipartFile file, Set<String> allowedTypes) {
         String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_TYPES.contains(contentType)) {
+        if (contentType == null || !allowedTypes.contains(contentType)) {
             throw new MaxMediaExceededException(
-                    "Type de fichier non autorisé : " + contentType + ". Types autorisés : " + ALLOWED_TYPES
+                    "Type de fichier non autorisé : " + contentType + ". Types autorisés : " + allowedTypes
             );
         }
     }

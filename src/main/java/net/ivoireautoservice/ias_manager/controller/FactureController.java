@@ -3,10 +3,8 @@ package net.ivoireautoservice.ias_manager.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Facture;
-import net.ivoireautoservice.ias_manager.dto.core.LigneFacture;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
-import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.services.FactureService;
 import org.slf4j.Logger;
@@ -36,8 +34,8 @@ public class FactureController {
 			@RequestParam(required = false) Boolean factureClient,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
-			@RequestParam(defaultValue = "id") String tri,
-			@RequestParam(defaultValue = "asc") String ordre) {
+			@RequestParam(defaultValue = "createdAt") String tri,
+			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
 		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, pageable));
@@ -47,8 +45,8 @@ public class FactureController {
 	public ResponseEntity<PagedResponse<Facture>> getFacturesClients(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
-			@RequestParam(defaultValue = "id") String tri,
-			@RequestParam(defaultValue = "asc") String ordre) {
+			@RequestParam(defaultValue = "createdAt") String tri,
+			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
 		return ResponseEntity.ok(factureService.getFacturesClients(pageable));
@@ -120,9 +118,10 @@ public class FactureController {
 	@PatchMapping("/{id}/statut")
 	public ResponseEntity<?> changerStatut(
 			@PathVariable Long id,
-			@RequestParam FactureStatusEnum statut) {
+			@RequestParam FactureStatusEnum statut,
+			@RequestParam(required = false) Long compteId) {
 		try{
-			return ResponseEntity.ok(factureService.changerStatut(id, statut));
+			return ResponseEntity.ok(factureService.changerStatut(id, statut, compteId));
 		}catch (Exception e){
 			logger.error("ERREUR | {} | {}", e.getMessage(), e.getStackTrace());
 			return ResponseEntity.badRequest().body(e.getMessage());

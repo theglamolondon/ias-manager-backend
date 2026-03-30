@@ -9,7 +9,7 @@ import org.mapstruct.MappingTarget;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = MediaMapper.class)
 public interface ProduitMapper {
 
     @Mapping(source = "famille.id", target = "familleId")
@@ -20,9 +20,11 @@ public interface ProduitMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "famille", ignore = true)
+    @Mapping(target = "image", ignore = true)
     ProduitEntity toEntity(ProduitRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "famille", ignore = true)
+    @Mapping(target = "image", ignore = true)
     void updateEntity(ProduitRequest request, @MappingTarget ProduitEntity entity);
 }

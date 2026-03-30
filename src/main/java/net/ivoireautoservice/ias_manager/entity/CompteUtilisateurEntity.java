@@ -31,4 +31,8 @@ public class CompteUtilisateurEntity extends AuditableEntity {
 	@Column(name = "can_appro", nullable = false)
 	@Builder.Default
 	private Boolean canAppro = false;
+
+	@Column(name = "can_settle", nullable = false)
+	@Builder.Default
+	private Boolean canSettle = false;
 }

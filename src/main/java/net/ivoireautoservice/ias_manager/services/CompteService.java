@@ -39,6 +39,7 @@ public class CompteService {
     private final LigneCompteRepository ligneCompteRepository;
     private final UserRepository userRepository;
     private final SecurityService securityService;
+    private final MediaService mediaService;
     private final CompteMapper compteMapper;
     private final CompteUtilisateurMapper compteUtilisateurMapper;
     private final LigneCompteMapper ligneCompteMapper;
@@ -73,7 +74,7 @@ public class CompteService {
     }
 
     @Transactional
-    public Compte createCompte(CompteRequest request) {
+    public Compte createCompte(CompteRequest request, org.springframework.web.multipart.MultipartFile logo) {
         CompteEntity entity = compteMapper.toEntity(request);
 
         // Résoudre le manager
@@ -81,6 +82,10 @@ public class CompteService {
             Utilisateur manager = userRepository.findById(request.getManagerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", request.getManagerId()));
             entity.setManager(manager);
+        }
+
+        if (logo != null && !logo.isEmpty()) {
+            entity.setLogo(mediaService.getMediaEntity(mediaService.uploadMedia(logo).getId()));
         }
 
         CompteEntity saved = compteRepository.save(entity);
@@ -92,7 +97,7 @@ public class CompteService {
     }
 
     @Transactional
-    public Compte updateCompte(Long id, CompteRequest request) {
+    public Compte updateCompte(Long id, CompteRequest request, org.springframework.web.multipart.MultipartFile logo) {
         CompteEntity entity = compteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compte", id));
         compteMapper.updateEntity(request, entity);
@@ -104,6 +109,10 @@ public class CompteService {
             entity.setManager(manager);
         } else {
             entity.setManager(null);
+        }
+
+        if (logo != null && !logo.isEmpty()) {
+            entity.setLogo(mediaService.getMediaEntity(mediaService.uploadMedia(logo).getId()));
         }
 
         CompteEntity saved = compteRepository.save(entity);
@@ -128,10 +137,13 @@ public class CompteService {
                 boolean canAppro = Boolean.TRUE.equals(cuReq.getCanAppro())
                         && Boolean.TRUE.equals(compte.getCanAppro());
 
+                boolean canSettle = Boolean.TRUE.equals(cuReq.getCanSettle());
+
                 CompteUtilisateurEntity cuEntity = CompteUtilisateurEntity.builder()
                         .compte(compte)
                         .utilisateur(utilisateur)
                         .canAppro(canAppro)
+                        .canSettle(canSettle)
                         .build();
 
                 compte.getUtilisateurs().add(cuEntity);
@@ -147,6 +159,27 @@ public class CompteService {
             throw new ResourceNotFoundException("Compte", id);
         }
         compteRepository.deleteById(id);
+    }
+
+    // ==================== MES COMPTES ====================
+
+    @Transactional(readOnly = true)
+    public List<Compte> getMesComptes(boolean factureClient) {
+        Utilisateur utilisateur = securityService.getUtilisateurConnecte();
+
+        List<CompteUtilisateurEntity> associations;
+        if (factureClient) {
+            // Encaissement : uniquement les comptes avec canAppro sur le compte ET sur l'utilisateur
+            associations = compteUtilisateurRepository
+                    .findByUtilisateurIdAndCanApproTrueAndCompteCanApproTrue(utilisateur.getId());
+        } else {
+            // Décaissement : tous les comptes attribués à l'utilisateur
+            associations = compteUtilisateurRepository.findByUtilisateurId(utilisateur.getId());
+        }
+
+        return associations.stream()
+                .map(cu -> compteMapper.toDto(cu.getCompte()))
+                .toList();
     }
 
     // ==================== LIGNES COMPTE ====================
@@ -200,6 +233,12 @@ public class CompteService {
         } else {
             nouvelleBalance = balanceAvant + request.getMontant();
         }
+
+        // Bloquer si la balance deviendrait négative et que le compte ne l'autorise pas
+        if (!Boolean.TRUE.equals(compte.getCanBeNegative()) && nouvelleBalance < 0) {
+            throw new BadRequestException("Solde insuffisant. Ce compte n'autorise pas un solde négatif");
+        }
+
         compte.setBalance(nouvelleBalance);
         compteRepository.save(compte);
 
@@ -213,6 +252,44 @@ public class CompteService {
                 .balanceAvant(balanceAvant)
                 .observation(request.getObservation())
                 .build();
+
+        LigneCompteEntity saved = ligneCompteRepository.save(entity);
+        return ligneCompteMapper.toDto(saved);
+    }
+
+    @Transactional
+    public LigneCompte solderCompte(Long compteId) {
+        CompteEntity compte = compteRepository.findById(compteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Compte", compteId));
+
+        Utilisateur utilisateur = securityService.getUtilisateurConnecte();
+
+        // Vérifier que l'utilisateur est autorisé à solder ce compte
+        CompteUtilisateurEntity compteUtilisateur = compteUtilisateurRepository
+                .findByCompteIdAndUtilisateurId(compteId, utilisateur.getId())
+                .orElseThrow(() -> new BadRequestException("Vous n'êtes pas autorisé à effectuer des mouvements sur ce compte"));
+
+        if (!Boolean.TRUE.equals(compteUtilisateur.getCanSettle())) {
+            throw new BadRequestException("Vous n'êtes pas autorisé à solder ce compte");
+        }
+
+        Long balanceAvant = compte.getBalance();
+        if (balanceAvant == 0) {
+            throw new BadRequestException("Le compte est déjà soldé");
+        }
+
+        LigneCompteEntity entity = LigneCompteEntity.builder()
+                .utilisateur(utilisateur)
+                .compte(compte)
+                .type(CompteLigneType.SOLDE)
+                .dhmsOperation(LocalDateTime.now())
+                .objet("SOLDE DU COMPTE")
+                .montant(Math.abs(balanceAvant))
+                .balanceAvant(balanceAvant)
+                .build();
+
+        compte.setBalance(0L);
+        compteRepository.save(compte);
 
         LigneCompteEntity saved = ligneCompteRepository.save(entity);
         return ligneCompteMapper.toDto(saved);

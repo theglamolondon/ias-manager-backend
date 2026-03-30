@@ -13,8 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = "utilisateurs")
-@EqualsAndHashCode(callSuper = true, exclude = "utilisateurs")
+@ToString(exclude = {"utilisateurs", "logo"})
+@EqualsAndHashCode(callSuper = true, exclude = {"utilisateurs", "logo"})
 public class CompteEntity extends AuditableEntity {
 
 	@Id
@@ -35,6 +35,14 @@ public class CompteEntity extends AuditableEntity {
 	@Column(name = "can_appro", nullable = false)
 	@Builder.Default
 	private Boolean canAppro = false;
+
+	@Column(name = "can_be_negative", nullable = false)
+	@Builder.Default
+	private Boolean canBeNegative = false;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "logo_id")
+	private MediaEntity logo;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "utilisateur_id")

@@ -30,6 +30,9 @@ public class LigneFactureEntity extends AuditableEntity {
 
 	private Long montantHt;
 
+	@Column(name = "extra_ref")
+	private String extraRef;
+
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "facture_id", referencedColumnName = "id", nullable = false)
 	private FactureEntity facture;

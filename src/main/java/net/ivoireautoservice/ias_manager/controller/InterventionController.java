@@ -70,8 +70,9 @@ public class InterventionController {
     @PatchMapping("/{id}/cloturer")
     public ResponseEntity<Intervention> cloturerIntervention(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "true") boolean vehiculeDisponible) {
-        return ResponseEntity.ok(interventionService.cloturerIntervention(id, vehiculeDisponible));
+            @RequestParam(defaultValue = "true") boolean vehiculeDisponible,
+            @RequestParam(required = false) Long compteId) {
+        return ResponseEntity.ok(interventionService.cloturerIntervention(id, vehiculeDisponible, compteId));
     }
 
     @DeleteMapping("/{id}")
