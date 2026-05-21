@@ -14,15 +14,20 @@ public interface BonCommandeMapper {
 
     @Mapping(source = "partenaire.id", target = "partenaireId")
     @Mapping(source = "partenaire.raisonSociale", target = "partenaireRaisonSociale")
+    @Mapping(target = "items", ignore = true)
     BonCommande toDto(BonCommandeEntity entity);
 
     List<BonCommande> toDtoList(List<BonCommandeEntity> entities);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "numero", ignore = true)
+    @Mapping(target = "statut", ignore = true)
     @Mapping(target = "partenaire", ignore = true)
     BonCommandeEntity toEntity(BonCommandeRequest request);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "numero", ignore = true)
+    @Mapping(target = "statut", ignore = true)
     @Mapping(target = "partenaire", ignore = true)
     void updateEntity(BonCommandeRequest request, @MappingTarget BonCommandeEntity entity);
 }

@@ -16,6 +16,8 @@ public interface EntreeProduitRepository extends JpaRepository<EntreeProduitEnti
 
     List<EntreeProduitEntity> findByLivraisonFournisseurId(Long livraisonFournisseurId);
 
-    @Query("SELECT COALESCE(SUM(e.quantite), 0) FROM EntreeProduitEntity e WHERE e.createdAt BETWEEN :debut AND :fin")
+    @Query("SELECT COALESCE(SUM(e.quantite), 0) FROM EntreeProduitEntity e " +
+            "WHERE e.livraisonFournisseur.statut = net.ivoireautoservice.ias_manager.enums.StatutBonLivraisonEnum.VALIDE " +
+            "AND e.livraisonFournisseur.dateValidation BETWEEN :debut AND :fin")
     long sumQuantiteBetween(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
 }

@@ -1,6 +1,8 @@
 package net.ivoireautoservice.ias_manager.dto.request;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -16,8 +18,10 @@ public class LivraisonFournisseurRequest {
 
 	private LocalDateTime dhmsLivraison;
 
-	private Long factureId;
+	@NotNull(message = "Le bon de commande est obligatoire")
+	private Long bonCommandeId;
 
+	@NotEmpty(message = "Au moins une ligne livrée est requise")
 	@Valid
-	private List<EntreeProduitRequest> items;
+	private List<LivraisonFournisseurItemRequest> items;
 }

@@ -195,7 +195,7 @@ public class StatistiqueService {
 		LocalDateTime fin = dateFin.plusDays(1).atStartOfDay();
 
 		return LivraisonFournisseurStats.builder()
-				.total(livraisonFournisseurRepository.countByCreatedAtBetween(debut, fin))
+				.total(livraisonFournisseurRepository.countValidesBetween(debut, fin))
 				.avecFacture(livraisonFournisseurRepository.countAvecFacture(debut, fin))
 				.sansFacture(livraisonFournisseurRepository.countSansFacture(debut, fin))
 				.produitsEntres(entreeProduitRepository.sumQuantiteBetween(debut, fin))

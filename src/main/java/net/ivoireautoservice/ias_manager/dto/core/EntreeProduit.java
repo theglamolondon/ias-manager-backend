@@ -9,4 +9,5 @@ public class EntreeProduit {
 	private Long produitId;
 	private String produitDesignation;
 	private Long livraisonFournisseurId;
+	private Long ligneBonCommandeId;
 }

@@ -15,6 +15,7 @@ public interface EntreeProduitMapper {
     @Mapping(source = "produit.id", target = "produitId")
     @Mapping(source = "produit.designation", target = "produitDesignation")
     @Mapping(source = "livraisonFournisseur.id", target = "livraisonFournisseurId")
+    @Mapping(source = "ligneBonCommande.id", target = "ligneBonCommandeId")
     EntreeProduit toDto(EntreeProduitEntity entity);
 
     List<EntreeProduit> toDtoList(List<EntreeProduitEntity> entities);
@@ -22,10 +23,12 @@ public interface EntreeProduitMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "produit", ignore = true)
     @Mapping(target = "livraisonFournisseur", ignore = true)
+    @Mapping(target = "ligneBonCommande", ignore = true)
     EntreeProduitEntity toEntity(EntreeProduitRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "produit", ignore = true)
     @Mapping(target = "livraisonFournisseur", ignore = true)
+    @Mapping(target = "ligneBonCommande", ignore = true)
     void updateEntity(EntreeProduitRequest request, @MappingTarget EntreeProduitEntity entity);
 }

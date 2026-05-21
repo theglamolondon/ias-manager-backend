@@ -7,6 +7,7 @@ import net.ivoireautoservice.ias_manager.dto.core.LivraisonClientSummary;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
+import net.ivoireautoservice.ias_manager.dto.request.AnnulationLivraisonRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.services.LivraisonService;
 import org.springframework.data.domain.PageRequest;
@@ -84,6 +85,12 @@ public class LivraisonController {
         return ResponseEntity.ok(livraisonService.getLivraisonFournisseurById(id));
     }
 
+    @GetMapping("/fournisseurs/facturables")
+    public ResponseEntity<java.util.List<LivraisonFournisseurSummary>> getLivraisonsFournisseurFacturables(
+            @RequestParam(required = false) Long partenaireId) {
+        return ResponseEntity.ok(livraisonService.getLivraisonsFournisseurFacturables(partenaireId));
+    }
+
     @GetMapping("/fournisseurs/numero/{numero}")
     public ResponseEntity<LivraisonFournisseur> getLivraisonFournisseurByNumero(@PathVariable String numero) {
         return ResponseEntity.ok(livraisonService.getLivraisonFournisseurByNumero(numero));
@@ -96,6 +103,19 @@ public class LivraisonController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PatchMapping("/fournisseurs/{id}/valider")
+    public ResponseEntity<LivraisonFournisseur> validerLivraisonFournisseur(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "false") boolean facturerMaintenant) {
+        return ResponseEntity.ok(livraisonService.validerLivraisonFournisseur(id, facturerMaintenant));
+    }
+
+    @PatchMapping("/fournisseurs/{id}/annuler")
+    public ResponseEntity<LivraisonFournisseur> annulerLivraisonFournisseur(
+            @PathVariable Long id,
+            @Valid @RequestBody AnnulationLivraisonRequest request) {
+        return ResponseEntity.ok(livraisonService.annulerLivraisonFournisseur(id, request.getStatutBcCible()));
+    }
 
     @GetMapping("/fournisseurs/{id}/pdf")
     public ResponseEntity<byte[]> generateBonLivraisonFournisseurPdf(@PathVariable Long id) {

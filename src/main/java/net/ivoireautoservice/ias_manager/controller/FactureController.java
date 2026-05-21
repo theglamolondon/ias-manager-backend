@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Facture;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
+import net.ivoireautoservice.ias_manager.dto.request.FactureFournisseurGroupeeRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.services.FactureService;
@@ -90,6 +91,13 @@ public class FactureController {
 	@PostMapping
 	public ResponseEntity<Facture> createFacture(@Valid @RequestBody FactureRequest request) {
 		Facture created = factureService.createFacture(request);
+		return ResponseEntity.status(HttpStatus.CREATED).body(created);
+	}
+
+	@PostMapping("/fournisseurs/groupee")
+	public ResponseEntity<Facture> genererFactureFournisseurGroupee(
+			@Valid @RequestBody FactureFournisseurGroupeeRequest request) {
+		Facture created = factureService.genererFactureFournisseurGroupee(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
