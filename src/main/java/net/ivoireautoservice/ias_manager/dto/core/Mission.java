@@ -20,6 +20,8 @@ public class Mission {
 	private LocalDateTime dhmsFinPrevi;
 	private LocalDateTime dhmsDebutReel;
 	private LocalDateTime dhmsFinReel;
+	private LocalDateTime dhmsAnnulation;
+	private String motifAnnulation;
 	private String destination;
 	private Boolean isInterieur;
 	private Boolean withChauffeur;
@@ -38,4 +40,5 @@ public class Mission {
 	private Partenaire client;
 	private List<DepenseMission> depenses;
 	private List<Media> medias;
+	private Facture facture;
 }

@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.config.MoneyUtils;
 import net.ivoireautoservice.ias_manager.dto.core.BonCommande;
 import net.ivoireautoservice.ias_manager.dto.core.LigneBonCommande;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
@@ -10,6 +11,7 @@ import net.ivoireautoservice.ias_manager.entity.BonCommandeEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneBonCommandeEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
+import net.ivoireautoservice.ias_manager.entity.Utilisateur;
 import net.ivoireautoservice.ias_manager.enums.BonCommandeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
@@ -25,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +41,9 @@ public class BonCommandeService {
     private final ProduitRepository produitRepository;
     private final BonCommandeMapper bonCommandeMapper;
     private final LigneBonCommandeMapper ligneBonCommandeMapper;
+    private final PrintService printService;
+    private final MoneyUtils moneyUtils;
+    private final SecurityService securityService;
 
     // ==================== BON DE COMMANDE ====================
 
@@ -79,6 +86,7 @@ public class BonCommandeService {
         if (entity.getDateCommande() == null) {
             entity.setDateCommande(LocalDate.now());
         }
+        entity.setCreatedBy(securityService.getUtilisateurConnecteOrNull());
 
         BonCommandeEntity saved = bonCommandeRepository.save(entity);
 
@@ -235,6 +243,61 @@ public class BonCommandeService {
         }
 
         ligneBonCommandeRepository.delete(entity);
+    }
+
+    // ==================== PDF ====================
+
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id) {
+        BonCommandeEntity entity = bonCommandeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Bon de commande", id));
+
+        if (entity.getStatut() == BonCommandeStatusEnum.CREE) {
+            throw new BadRequestException("Le bon de commande doit être validé avant d'être imprimé");
+        }
+        if (entity.getStatut() == BonCommandeStatusEnum.ANNULE) {
+            throw new BadRequestException("Impossible d'imprimer un bon de commande annulé");
+        }
+
+        BonCommande bc = toDtoWithItems(entity);
+        PartenaireEntity partenaire = entity.getPartenaire();
+
+        long montantHt = bc.getMontantHt() != null ? bc.getMontantHt() : 0L;
+        long montantTtc = bc.getMontantTtc() != null ? bc.getMontantTtc() : 0L;
+        long montantTva = montantTtc - montantHt;
+
+        String emetteur = null;
+        String contactEmetteur = null;
+        try {
+            Utilisateur user = securityService.getUtilisateurConnecte();
+            if (user != null) {
+                String prenom = user.getPrenom() != null ? user.getPrenom() : "";
+                String nom = user.getNom() != null ? user.getNom() : "";
+                String full = (prenom + " " + nom).trim();
+                emetteur = full.isEmpty() ? null : full;
+                contactEmetteur = user.getTelephone();
+            }
+        } catch (IllegalStateException ignored) {
+            // Aucun utilisateur connecté : on laisse les champs émetteur vides.
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("bonCommande", bc);
+        data.put("partenaire", partenaire);
+        data.put("montantTva", montantTva);
+        data.put("montantEnLettres", moneyUtils.montantEnLettre(montantTtc));
+        data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+        data.put("emetteur", emetteur);
+        data.put("contactEmetteur", contactEmetteur);
+
+        // Signature du directeur : uniquement à partir du moment où le BC est validé
+        // (le statut CREE est déjà rejeté plus haut, on couvre VALIDE / PARTIELLEMENT_LIVRE / LIVRE).
+        if (entity.getStatut() != BonCommandeStatusEnum.ANNULE
+                && entity.getStatut() != BonCommandeStatusEnum.CREE) {
+            data.put("signatureUrl", "classpath:/static/img/signature.png");
+        }
+
+        return printService.generatePdf("pdf/BonDeCommande", data);
     }
 
     // ==================== HELPERS ====================

@@ -15,4 +15,12 @@ public class SecurityService {
 		}
 		return (Utilisateur) authentication.getPrincipal();
 	}
+
+	public Utilisateur getUtilisateurConnecteOrNull() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !(authentication.getPrincipal() instanceof Utilisateur)) {
+			return null;
+		}
+		return (Utilisateur) authentication.getPrincipal();
+	}
 }

@@ -20,6 +20,7 @@ import net.ivoireautoservice.ias_manager.entity.LigneFactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
+import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
@@ -50,6 +51,7 @@ public class FactureService {
 	private final EntreeProduitRepository entreeProduitRepository;
 	private final PartenaireRepository partenaireRepository;
 	private final ProduitRepository produitRepository;
+	private final LigneCompteRepository ligneCompteRepository;
 	private final FactureMapper factureMapper;
 	private final LigneFactureMapper ligneFactureMapper;
 	private final LivraisonClientMapper livraisonClientMapper;
@@ -59,6 +61,7 @@ public class FactureService {
 	private final CompteService compteService;
 	private final PrintService printService;
 	private final MoneyUtils moneyUtils;
+	private final SecurityService securityService;
 
 	// ==================== FACTURES ====================
 
@@ -152,6 +155,8 @@ public class FactureService {
 			entity.setType(hasProduit ? FactureTypeEnum.PRODUIT : FactureTypeEnum.AUTRE);
 		}
 
+		entity.setCreatedBy(securityService.getUtilisateurConnecteOrNull());
+
 		FactureEntity saved = factureRepository.save(entity);
 
 		// Enregistrer les lignes
@@ -167,6 +172,9 @@ public class FactureService {
 		FactureEntity entity = factureRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Facture", id));
 
+		if (entity.getNature() == FactureNatureEnum.AVOIR) {
+			throw new BadRequestException("Une facture d'avoir ne peut pas être modifiée");
+		}
 		if (entity.getStatut() == FactureStatusEnum.ANNULEE) {
 			throw new BadRequestException("Impossible de modifier une facture annulée");
 		}
@@ -319,6 +327,7 @@ public class FactureService {
 						: "Facture fournisseur groupée — " + livraisons.size() + " livraison(s)")
 				.numProforma(generateNumProformaFournisseur())
 				.numFacture(generateNumFactureGroupee())
+				.createdBy(securityService.getUtilisateurConnecteOrNull())
 				.build();
 		FactureEntity savedFacture = factureRepository.save(facture);
 
@@ -381,6 +390,10 @@ public class FactureService {
 		FactureEntity entity = factureRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("Facture", id));
 
+		if (entity.getNature() == FactureNatureEnum.AVOIR) {
+			throw new BadRequestException("Le statut d'une facture d'avoir ne peut pas être modifié");
+		}
+
 		FactureStatusEnum statutActuel = entity.getStatut();
 		validerTransition(statutActuel, nouveauStatut);
 
@@ -423,7 +436,9 @@ public class FactureService {
 				.observation("Facture " + numRef + " — " + (facture.getObjet() != null ? facture.getObjet() : ""))
 				.build();
 
-		compteService.createLigne(compteId, ligneRequest);
+		LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneRequest);
+		ligne.setFacture(facture);
+		ligneCompteRepository.save(ligne);
 	}
 
 	private void validerTransition(FactureStatusEnum actuel, FactureStatusEnum nouveau) {
@@ -438,6 +453,117 @@ public class FactureService {
 			throw new BadRequestException(
 					String.format("Transition de statut invalide : %s → %s", actuel, nouveau));
 		}
+	}
+
+	// ==================== AVOIR & REMBOURSEMENT ====================
+
+	/**
+	 * Génère une facture d'avoir qui annule une facture proforma existante.
+	 * L'avoir reprend les mêmes lignes que l'originale (en positif pour la lecture),
+	 * pointe vers l'originale via factureOrigine, et possède la nature AVOIR.
+	 */
+	@Transactional
+	public FactureEntity genererAvoir(FactureEntity origine) {
+		String numAvoir = "AV-" + (origine.getNumFacture() != null ? origine.getNumFacture() : origine.getNumProforma());
+
+		FactureEntity avoir = FactureEntity.builder()
+				.factureClient(origine.getFactureClient())
+				.statut(FactureStatusEnum.FACTUREE)
+				.nature(FactureNatureEnum.AVOIR)
+				.type(origine.getType())
+				.tva(origine.getTva())
+				.partenaire(origine.getPartenaire())
+				.objet("AVOIR sur facture " + (origine.getNumFacture() != null ? origine.getNumFacture() : origine.getNumProforma())
+						+ (origine.getObjet() != null ? " — " + origine.getObjet() : ""))
+				.numProforma(numAvoir)
+				.numFacture(numAvoir)
+				.montantHt(origine.getMontantHt())
+				.montantTtc(origine.getMontantTtc())
+				.factureOrigine(origine)
+				.createdBy(securityService.getUtilisateurConnecteOrNull())
+				.build();
+
+		FactureEntity savedAvoir = factureRepository.save(avoir);
+
+		// Recopier les lignes
+		List<LigneFactureEntity> lignesOrigine = ligneFactureRepository.findByFactureId(origine.getId());
+		for (LigneFactureEntity src : lignesOrigine) {
+			LigneFactureEntity copie = LigneFactureEntity.builder()
+					.reference(src.getReference())
+					.designation(src.getDesignation())
+					.qte(src.getQte())
+					.prixUnitaire(src.getPrixUnitaire())
+					.remise(src.getRemise())
+					.montantHt(src.getMontantHt())
+					.extraRef(src.getExtraRef())
+					.facture(savedAvoir)
+					.produit(src.getProduit())
+					.build();
+			ligneFactureRepository.save(copie);
+		}
+
+		return savedAvoir;
+	}
+
+	/**
+	 * Crée une ligne de compte de type REMBOURSEMENT (débit) pour la facture donnée,
+	 * sur le compte spécifié.
+	 */
+	@Transactional
+	public LigneCompteEntity enregistrerRemboursement(FactureEntity facture, Long compteId) {
+		String numRef = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
+		LigneCompteRequest ligneRequest = LigneCompteRequest.builder()
+				.type(CompteLigneType.REMBOURSEMENT)
+				.objet("REMBOURSEMENT FACTURE N°" + numRef)
+				.montant(facture.getMontantTtc())
+				.observation("Remboursement facture " + numRef
+						+ (facture.getObjet() != null ? " — " + facture.getObjet() : ""))
+				.build();
+
+		LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneRequest);
+		ligne.setFacture(facture);
+		return ligneCompteRepository.save(ligne);
+	}
+
+	// ==================== RE-SYNC DEPUIS UNE SOURCE AMONT (ex. Mission) ====================
+
+	/**
+	 * Remplace toutes les lignes d'une facture par celles fournies, et recalcule
+	 * montantHt / montantTtc. Réservé aux factures encore modifiables
+	 * (BROUILLON ou PROFORMA). Optionnellement, le partenaire est mis à jour
+	 * si {@code newPartenaire} est fourni et diffère.
+	 *
+	 * Utilisé par MissionService.updateMission pour garder la facture de
+	 * location en cohérence avec les modifications de la mission tant qu'aucun
+	 * mouvement financier n'a eu lieu.
+	 */
+	@Transactional
+	public Facture replaceMissionFactureLines(FactureEntity facture, PartenaireEntity newPartenaire, List<LigneFactureRequest> items) {
+		if (facture.getNature() == FactureNatureEnum.AVOIR) {
+			throw new BadRequestException("Une facture d'avoir ne peut pas être resynchronisée");
+		}
+		if (facture.getStatut() != FactureStatusEnum.BROUILLON && facture.getStatut() != FactureStatusEnum.PROFORMA) {
+			throw new BadRequestException("Seule une facture BROUILLON ou PROFORMA peut être resynchronisée (statut actuel : " + facture.getStatut() + ")");
+		}
+
+		if (newPartenaire != null
+				&& (facture.getPartenaire() == null || !facture.getPartenaire().getId().equals(newPartenaire.getId()))) {
+			facture.setPartenaire(newPartenaire);
+		}
+
+		List<LigneFactureEntity> existing = ligneFactureRepository.findByFactureId(facture.getId());
+		if (!existing.isEmpty()) {
+			ligneFactureRepository.deleteAll(existing);
+		}
+		saveLignes(facture, items);
+
+		long totalHt = items.stream().mapToLong(i -> i.getMontantHt() != null ? i.getMontantHt() : 0).sum();
+		facture.setMontantHt(totalHt);
+		float tvaPct = facture.getTva() != null ? facture.getTva() : 0f;
+		facture.setMontantTtc(totalHt + Math.round(totalHt * tvaPct / 100f));
+
+		FactureEntity saved = factureRepository.save(facture);
+		return toDtoWithItems(saved);
 	}
 
 	// ==================== PDF ====================
@@ -456,9 +582,14 @@ public class FactureService {
 		data.put("montantEnLettres", moneyUtils.montantEnLettre(facture.getMontantTtc()));
 		data.put("logoUrl", "classpath:/static/img/logo-ias.png");
 
-		String template = entity.getType() == FactureTypeEnum.MISSION
-				? "pdf/factureLocation"
-				: "pdf/factureProforma";
+		String template;
+		if (entity.getNature() == FactureNatureEnum.AVOIR) {
+			template = "pdf/factureAvoir";
+		} else if (entity.getType() == FactureTypeEnum.MISSION) {
+			template = "pdf/factureLocation";
+		} else {
+			template = "pdf/factureProforma";
+		}
 		return printService.generatePdf(template, data);
 	}
 

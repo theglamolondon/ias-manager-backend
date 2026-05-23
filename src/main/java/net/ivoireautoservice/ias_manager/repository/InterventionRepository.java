@@ -15,6 +15,8 @@ public interface InterventionRepository extends JpaRepository<InterventionEntity
 
     java.util.List<InterventionEntity> findByVehiculeIdOrderByDhmsDebutDesc(Long vehiculeId);
 
+    boolean existsByVehiculeIdAndStatut(Long vehiculeId, InterventionStatut statut);
+
     @Query("SELECT i FROM InterventionEntity i JOIN i.vehicule v " +
             "WHERE LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<InterventionEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);

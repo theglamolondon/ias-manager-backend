@@ -21,5 +21,7 @@ public class BonCommande {
 	private BonCommandeStatusEnum statut;
 	private Long partenaireId;
 	private String partenaireRaisonSociale;
+	private Long createdById;
+	private String createdByNom;
 	private List<LigneBonCommande> items;
 }

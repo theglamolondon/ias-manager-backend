@@ -12,7 +12,9 @@ import net.ivoireautoservice.ias_manager.services.BonCommandeService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,6 +77,15 @@ public class BonCommandeController {
     @PatchMapping("/{id}/annuler")
     public ResponseEntity<BonCommande> annuler(@PathVariable Long id) {
         return ResponseEntity.ok(bonCommandeService.annuler(id));
+    }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+        byte[] pdf = bonCommandeService.generatePdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("inline", "bon-de-commande-" + id + ".pdf");
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
     // ==================== LIGNES BC ====================

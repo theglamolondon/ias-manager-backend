@@ -50,6 +50,7 @@ public class LivraisonService {
     private final LivraisonFournisseurMapper livraisonFournisseurMapper;
     private final EntreeProduitMapper entreeProduitMapper;
     private final PrintService printService;
+    private final SecurityService securityService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -98,6 +99,7 @@ public class LivraisonService {
         LivraisonClientEntity livraison = LivraisonClientEntity.builder()
                 .dhmsLivraison(LocalDateTime.now())
                 .facture(facture)
+                .createdBy(securityService.getUtilisateurConnecteOrNull())
                 .build();
         LivraisonClientEntity savedLivraison = livraisonClientRepository.save(livraison);
 
@@ -265,6 +267,7 @@ public class LivraisonService {
                 .dhmsLivraison(request.getDhmsLivraison() != null ? request.getDhmsLivraison() : LocalDateTime.now())
                 .bonCommande(bc)
                 .statut(StatutBonLivraisonEnum.CREE)
+                .createdBy(securityService.getUtilisateurConnecteOrNull())
                 .build();
         LivraisonFournisseurEntity savedLivraison = livraisonFournisseurRepository.save(livraison);
 
@@ -502,6 +505,7 @@ public class LivraisonService {
                 .objet("Facture fournisseur — BC " + bc.getNumero() + " — Livraison " + livraison.getNumero())
                 .numProforma(generateNumProformaFournisseur())
                 .numFacture("F-" + livraison.getNumero())
+                .createdBy(securityService.getUtilisateurConnecteOrNull())
                 .build();
 
         FactureEntity savedFacture = factureRepository.save(facture);

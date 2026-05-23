@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = {"utilisateur", "compte"})
-@EqualsAndHashCode(callSuper = true, exclude = {"utilisateur", "compte"})
+@ToString(exclude = {"utilisateur", "compte", "facture"})
+@EqualsAndHashCode(callSuper = true, exclude = {"utilisateur", "compte", "facture"})
 public class LigneCompteEntity extends AuditableEntity {
 
 	@Id
@@ -28,6 +28,10 @@ public class LigneCompteEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "compte_id", nullable = false)
 	private CompteEntity compte;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "facture_id")
+	private FactureEntity facture;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)

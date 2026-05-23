@@ -19,6 +19,10 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
 
     Optional<FactureEntity> findByNumFacture(String numFacture);
 
+    Optional<FactureEntity> findFirstByFactureOrigineId(Long factureOrigineId);
+
+    List<FactureEntity> findByNumProformaIn(List<String> numProformas);
+
     /**
      * Retourne le plus grand suffixe numérique des proformas dont le numProforma commence par le préfixe donné.
      * Utilisé pour la génération auto du numéro proforma au format {prefix}{seq}.

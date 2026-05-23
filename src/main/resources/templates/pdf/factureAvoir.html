@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8"/>
+    <title>Avoir - GIAS | Ivoire Auto Services Groupe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1a1a2e;
+            font-size: 12px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .invoice-wrapper {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: #ffffff;
+            position: relative;
+        }
+
+        .top-bar {
+            height: 8px;
+            background-color: #1b2a6b;
+        }
+
+        .header-table {
+            width: 100%;
+            padding: 30px 40px 20px 40px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .logo-section img {
+            width: 180px;
+            height: auto;
+        }
+
+        .invoice-title-section {
+            text-align: right;
+        }
+
+        .invoice-title {
+            font-size: 38px;
+            font-weight: 800;
+            color: #1b2a6b;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .title-underline {
+            width: 60px;
+            height: 4px;
+            background-color: #1b2a6b;
+            margin-left: auto;
+            margin-top: 4px;
+        }
+
+        .invoice-number {
+            font-size: 11px;
+            color: #5a6a8a;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .invoice-number span {
+            color: #1b2a6b;
+            font-weight: 700;
+        }
+
+        .brush-decoration {
+            width: 100%;
+            height: 3px;
+            background-color: #1b2a6b;
+            opacity: 0.15;
+        }
+
+        .info-table {
+            width: 120%;
+            padding: 24px 40px;
+            margin: 0 auto;
+        }
+
+        .info-table > tr > td {
+            vertical-align: top;
+            width: 40%;
+            display: block;
+        }
+
+        .info-block-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1b2a6b;
+            font-weight: 700;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            display: block;
+            text-align: right;
+        }
+
+        .left{ float: left; }
+        .right{ float: right; }
+        .clear{ clear: both}
+
+        .watermark {
+            position: fixed;
+            top: 60%;
+            left: 50%;
+            transform: translate(-60%, -50%) rotate(-35deg);
+            font-size: 100px;
+            font-weight: 900;
+            color: #e4e4e4;
+            letter-spacing: 10px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .info-row-table {
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .info-row-table td {
+            padding: 2px 0;
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .left .info-row-table td, .left .info-block-title { text-align: left;}
+
+        .info-label {
+            color: #5a6a8a;
+            font-weight: 500;
+            width: 110px;
+        }
+
+        .info-value {
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .object-section {
+            padding: 12px 20px;
+            background-color: #f0f3fa;
+            border-left: 4px solid #1b2a6b;
+            margin: 0 40px 20px;
+        }
+
+        .object-section .info-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #1b2a6b;
+            font-weight: 700;
+        }
+
+        .object-section .info-value {
+            font-size: 12px;
+        }
+
+        .table-section {
+            padding: 0 40px;
+            margin-bottom: 20px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .invoice-table thead tr {
+            background-color: #1b2a6b;
+            color: #ffffff;
+        }
+
+        .invoice-table thead th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .invoice-table thead th:last-child {
+            text-align: right;
+        }
+
+        .invoice-table thead th.text-center {
+            text-align: center;
+        }
+
+        .invoice-table thead th.text-right {
+            text-align: right;
+        }
+
+        .invoice-table tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #333;
+        }
+
+        .invoice-table tbody td.text-center {
+            text-align: center;
+        }
+
+        .invoice-table tbody td.text-right {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .invoice-table tbody tr:last-child td {
+            border-bottom: 2px solid #1b2a6b;
+        }
+
+        .totals-conditions-table {
+            width: 100%;
+            padding: 20px 40px;
+        }
+
+        .totals-conditions-table > tbody > tr > td {
+            vertical-align: top;
+        }
+
+        .conditions-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+        }
+
+        .conditions-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .conditions-list li {
+            font-size: 11px;
+            color: #5a6a8a;
+            padding: 3px 0 3px 14px;
+            line-height: 1.6;
+        }
+
+        .totals-inner {
+            width: 280px;
+            float: right;
+        }
+
+        .totals-row-table {
+            width: 100%;
+        }
+
+        .totals-row-table td {
+            padding: 10px 0;
+            font-size: 12px;
+            border-bottom: 1px solid #e8ecf1;
+        }
+
+        .totals-label {
+            color: #5a6a8a;
+            font-weight: 500;
+        }
+
+        .totals-value {
+            font-weight: 600;
+            color: #1a1a2e;
+            text-align: right;
+        }
+
+        .grand-total td {
+            border-bottom: none;
+            border-top: 2px solid #1b2a6b;
+            padding-top: 12px;
+        }
+
+        .grand-total .totals-label {
+            color: #1a1a2e;
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .grand-total .totals-value {
+            color: #1b2a6b;
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        .amount-words {
+            margin: 16px 40px;
+            padding: 12px 20px;
+            background-color: #f0f3fa;
+            font-size: 11px;
+            color: #1b2a6b;
+            font-style: italic;
+            font-weight: 500;
+            border: 1px dashed #c0ccee;
+        }
+
+        .amount-words strong {
+            font-style: normal;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .signature-table {
+            width: 100%;
+            padding: 10px 40px 20px 40px;
+        }
+
+        .signature-table > tbody > tr > td {
+            vertical-align: top;
+        }
+
+        .contact-item {
+            font-size: 11px;
+            color: #5a6a8a;
+            margin-bottom: 6px;
+        }
+
+        .signature-section {
+            text-align: center;
+            width: 200px;
+        }
+
+        .signature-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1b2a6b;
+            font-weight: 700;
+            margin-bottom: 50px;
+        }
+
+        .signature-line {
+            width: 180px;
+            height: 1px;
+            background-color: #1b2a6b;
+            margin: 0 auto 8px auto;
+        }
+
+        .signature-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .signature-role {
+            font-size: 10px;
+            color: #5a6a8a;
+        }
+
+        .invoice-footer {
+            border-top: 1px solid #d0d5e0;
+            color: #5a6a8a;
+            padding: 16px 40px;
+            text-align: center;
+            font-size: 9.5px;
+            line-height: 1.8;
+            margin-top: 20px;
+        }
+
+        .invoice-footer p {
+            margin: 0;
+        }
+
+        .footer-bottom-bar {
+            height: 8px;
+            background-color: #1b2a6b;
+        }
+
+        .origine-banner {
+            margin: 0 40px 16px 40px;
+            padding: 10px 16px;
+            background-color: #f0f3fa;
+            border: 1px solid #c0ccee;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #1b2a6b;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="watermark">AVOIR</div>
+
+<div class="invoice-wrapper">
+    <div class="top-bar"></div>
+
+    <!-- Header -->
+    <div class="header-table">
+        <div class="logo-section left">
+            <img th:src="${logoUrl}" alt="GIAS - Ivoire Auto Services Groupe SARL"/>
+        </div>
+        <div class="invoice-title-section right">
+            <div class="invoice-title">Avoir</div>
+            <div class="title-underline"></div>
+            <div class="invoice-number">
+                N&#176; : <span th:text="${facture.numFacture != null ? facture.numFacture : facture.numProforma}">AV-XXXX</span>
+            </div>
+            <div class="invoice-number">
+                Date : <span th:text="${#temporals.format(facture.createdAt, 'dd/MM/yyyy')}">14/02/2026</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="brush-decoration"></div>
+
+    <!-- Bandeau facture d'origine -->
+    <div class="origine-banner" th:if="${facture.factureOrigineNumero != null}">
+        <strong>Annule et remplace la facture N&#176;</strong>
+        <span th:text="${facture.factureOrigineNumero}">DA/01/79/XXXX</span>
+    </div>
+
+    <!-- Info Section -->
+    <table class="info-table">
+        <tr>
+            <td class="left">
+                <div class="info-block-title">De</div>
+                <table class="info-row-table">
+                    <tr>
+                        <td class="info-label">Entreprise :</td>
+                        <td class="info-value">Ivoire Auto Services Groupe</td>
+                    </tr>
+                    <tr>
+                        <td class="info-label">Statut :</td>
+                        <td class="info-value">SARL</td>
+                    </tr>
+                </table>
+            </td>
+            <td class="right">
+                <div class="info-block-title">&#192; l'attention de</div>
+                <table class="info-row-table">
+                    <tr>
+                        <td class="info-label">Client :</td>
+                        <td class="info-value" th:text="${partenaire.raisonSociale}"></td>
+                    </tr>
+                    <tr th:if="${partenaire.numCc != null}">
+                        <td class="info-label">N&#176; C.C. :</td>
+                        <td class="info-value" th:text="${partenaire.numCc}"></td>
+                    </tr>
+                    <tr th:if="${partenaire.telephone1 != null}">
+                        <td class="info-label">T&#233;l&#233;phone :</td>
+                        <td class="info-value" th:text="${partenaire.telephone1}"></td>
+                    </tr>
+                </table>
+            </td>
+            <td class="clear"></td>
+        </tr>
+    </table>
+
+    <!-- Object -->
+    <div class="object-section" th:if="${facture.objet != null}">
+        <table class="info-row-table">
+            <tr>
+                <td class="info-label">Objet :</td>
+                <td class="info-value" th:text="${facture.objet}">Annulation de location de v&#233;hicule</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>D&#233;signation</th>
+                    <th class="text-center">Qt&#233;</th>
+                    <th class="text-right">Prix Unit. HT</th>
+                    <th class="text-right">Total HT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item : ${facture.items}">
+                    <td th:text="${item.designation}">-</td>
+                    <td class="text-center" th:text="${#numbers.formatInteger(item.qte, 1)}">1</td>
+                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.prixUnitaire, 1, 'POINT') + ' FCFA'}">0</td>
+                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.montantHt, 1, 'POINT') + ' FCFA'}">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Conditions + Totals -->
+    <div class="totals-conditions-table">
+        <div class="left">
+            <div class="conditions-title">Motif</div>
+            <ul class="conditions-list">
+                <li>Annulation de la facture d'origine.</li>
+                <li>Le montant total ci-contre est <strong>&#224; d&#233;duire</strong> du compte client.</li>
+            </ul>
+        </div>
+        <div class="right">
+            <div class="totals-inner">
+                <table class="totals-row-table">
+                    <tr>
+                        <td class="totals-label">Total HT</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                    </tr>
+                    <tr>
+                        <td class="totals-label" th:text="'TVA (' + ${facture.tva != null ? facture.tva : 0} + '%)'">TVA (0%)</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td class="totals-label">Total TTC</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <!-- Amount in words -->
+    <div class="amount-words" th:if="${montantEnLettres != null}">
+        <strong>Avoir d'un montant de : </strong>
+        <span th:text="${montantEnLettres}">Cent vingt mille francs CFA.</span>
+    </div>
+
+    <!-- Contact + Signature -->
+    <div class="signature-table">
+        <div class="left">
+            <div class="contact-item">Email : commercial@ivoireautoservices.net</div>
+            <div class="contact-item">T&#233;l : +225 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83</div>
+            <div class="contact-item">Angr&#233; 8&#232;me tranche, Abidjan</div>
+        </div>
+        <div class="signature-section right">
+            <div class="signature-title">Signature &amp; Cachet</div>
+            <div class="signature-line"></div>
+            <div class="signature-name">GIAS SARL</div>
+            <div class="signature-role">Ivoire Auto Services Groupe</div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="invoice-footer">
+        <p>Situ&#233; &#224; Angr&#233; 8&#232;me tranche non loin du carrefour de la pri&#232;re.</p>
+        <p>Tel : +225 : 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83 &#8212; 13 BP 1715 Abidjan 13</p>
+        <p>N&#176;CC : 1912797 L R&#233;el Normal d&#8217;Imposition Centre des Imp&#244;ts de la Djibi &#8212;
+            N&#176; RC : CI-ABJ-2019-B-02715 &#8212; NSIA N&#176; 035361963575</p>
+        <p>IBAN : CI93 CI04 2012 - Compte Bancaire BIAO N&#176; 03536196357524 - SWIFT Code : BIAOCIABXXX</p>
+        <p>Email : commercial@ivoireautoservices.net</p>
+    </div>
+    <div class="footer-bottom-bar"></div>
+</div>
+
+</body>
+
+</html>

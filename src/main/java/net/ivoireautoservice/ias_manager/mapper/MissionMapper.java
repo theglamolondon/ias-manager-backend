@@ -14,6 +14,7 @@ public interface MissionMapper {
 
 	@Mapping(target = "depenses", ignore = true)
 	@Mapping(target = "medias", ignore = true)
+	@Mapping(target = "facture", ignore = true)
 	Mission toDto(MissionEntity entity);
 
 	List<Mission> toDtoList(List<MissionEntity> entities);
@@ -23,6 +24,8 @@ public interface MissionMapper {
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
 	@Mapping(target = "client", ignore = true)
+	@Mapping(target = "dhmsAnnulation", ignore = true)
+	@Mapping(target = "motifAnnulation", ignore = true)
 	MissionEntity toEntity(MissionRequest request);
 
 	@Mapping(target = "id", ignore = true)
@@ -30,5 +33,7 @@ public interface MissionMapper {
 	@Mapping(target = "vehicule", ignore = true)
 	@Mapping(target = "chauffeur", ignore = true)
 	@Mapping(target = "client", ignore = true)
+	@Mapping(target = "dhmsAnnulation", ignore = true)
+	@Mapping(target = "motifAnnulation", ignore = true)
 	void updateEntity(MissionRequest request, @MappingTarget MissionEntity entity);
 }

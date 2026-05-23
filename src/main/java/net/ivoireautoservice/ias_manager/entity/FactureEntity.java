@@ -15,8 +15,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = {"partenaire"})
-@EqualsAndHashCode(callSuper = true, exclude = {"partenaire"})
+@ToString(exclude = {"partenaire", "createdBy"})
+@EqualsAndHashCode(callSuper = true, exclude = {"partenaire", "createdBy"})
 public class FactureEntity extends AuditableEntity {
 
 	@Id
@@ -53,4 +53,12 @@ public class FactureEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "partenaire_id", referencedColumnName = "id")
 	private PartenaireEntity partenaire;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "facture_origine_id", referencedColumnName = "id")
+	private FactureEntity factureOrigine;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "created_by_id", referencedColumnName = "id")
+	private Utilisateur createdBy;
 }

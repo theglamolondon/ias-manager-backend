@@ -13,8 +13,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@ToString(exclude = "partenaire")
-@EqualsAndHashCode(callSuper = true, exclude = "partenaire")
+@ToString(exclude = {"partenaire", "createdBy"})
+@EqualsAndHashCode(callSuper = true, exclude = {"partenaire", "createdBy"})
 public class BonCommandeEntity extends AuditableEntity {
 
 	@Id
@@ -42,4 +42,8 @@ public class BonCommandeEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "partenaire_id", referencedColumnName = "id", nullable = false)
 	private PartenaireEntity partenaire;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "created_by_id", referencedColumnName = "id")
+	private Utilisateur createdBy;
 }

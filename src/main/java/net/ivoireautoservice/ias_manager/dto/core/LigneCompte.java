@@ -16,6 +16,7 @@ public class LigneCompte {
 	private String utilisateurPrenom;
 	private Long compteId;
 	private String compteIntitule;
+	private Long factureId;
 	private CompteLigneType type;
 	private LocalDateTime dhmsOperation;
 	private String objet;

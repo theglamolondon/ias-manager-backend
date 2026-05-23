@@ -4,9 +4,11 @@ import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
+import net.ivoireautoservice.ias_manager.entity.Utilisateur;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
 import java.util.List;
 
@@ -19,6 +21,8 @@ public interface LivraisonFournisseurMapper {
     @Mapping(source = "bonCommande.numero", target = "bonCommandeNumero")
     @Mapping(source = "bonCommande.statut", target = "bonCommandeStatut")
     @Mapping(source = "bonCommande.partenaire.raisonSociale", target = "partenaireRaisonSociale")
+    @Mapping(source = "createdBy.id", target = "createdById")
+    @Mapping(source = "createdBy", target = "createdByNom", qualifiedByName = "livraisonFournUtilisateurNom")
     @Mapping(target = "entrees", ignore = true)
     LivraisonFournisseur toDto(LivraisonFournisseurEntity entity);
 
@@ -41,6 +45,7 @@ public interface LivraisonFournisseurMapper {
     @Mapping(target = "dateAnnulation", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     LivraisonFournisseurEntity toEntity(LivraisonFournisseurRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -51,5 +56,15 @@ public interface LivraisonFournisseurMapper {
     @Mapping(target = "dateAnnulation", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
     void updateEntity(LivraisonFournisseurRequest request, @MappingTarget LivraisonFournisseurEntity entity);
+
+    @Named("livraisonFournUtilisateurNom")
+    default String livraisonFournUtilisateurNom(Utilisateur u) {
+        if (u == null) return null;
+        String prenom = u.getPrenom() != null ? u.getPrenom() : "";
+        String nom = u.getNom() != null ? u.getNom() : "";
+        String full = (prenom + " " + nom).trim();
+        return full.isEmpty() ? null : full;
+    }
 }

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
+import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
@@ -69,6 +70,13 @@ public class MissionController {
 		return ResponseEntity.ok(missionService.terminerMission(id, date));
 	}
 
+	@PostMapping("/{id}/annuler")
+	public ResponseEntity<Mission> annulerMission(
+			@PathVariable Long id,
+			@RequestBody(required = false) AnnulerMissionRequest request) {
+		return ResponseEntity.ok(missionService.annulerMission(id, request != null ? request : new AnnulerMissionRequest()));
+	}
+
 	// ==================== CHANGEMENT DE VEHICULE ====================
 
 	@PatchMapping("/changer-vehicule")
@@ -85,8 +93,9 @@ public class MissionController {
 			@RequestParam Long vehiculeId,
 			@RequestParam TypeTarificationEnum typeTarification,
 			@RequestParam LocalDateTime debut,
-			@RequestParam LocalDateTime fin) {
-		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin));
+			@RequestParam LocalDateTime fin,
+			@RequestParam(required = false) Boolean isInterieur) {
+		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin, isInterieur));
 	}
 
 	// ==================== DEPENSES ====================

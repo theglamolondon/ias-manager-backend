@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "SITES")
 @Data
@@ -23,4 +25,10 @@ public class SiteEntity extends AuditableEntity {
 	private String logo;
 
 	private String devise;
+
+	@Column(name = "sup_is_interieur", precision = 19, scale = 2)
+	private BigDecimal supIsInterieur;
+
+	@Column(name = "sup_is_exterieur", precision = 19, scale = 2)
+	private BigDecimal supIsExterieur;
 }

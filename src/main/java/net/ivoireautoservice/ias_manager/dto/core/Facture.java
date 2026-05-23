@@ -26,6 +26,10 @@ public class Facture {
 	private FactureNatureEnum nature;
 	private FactureTypeEnum type;
 	private Partenaire partenaire;
+	private Long factureOrigineId;
+	private String factureOrigineNumero;
+	private Long createdById;
+	private String createdByNom;
 	private List<LigneFacture> items;
 	private Livraison livraison;
 }

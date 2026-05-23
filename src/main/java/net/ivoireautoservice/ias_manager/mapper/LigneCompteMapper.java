@@ -15,6 +15,7 @@ public interface LigneCompteMapper {
     @Mapping(source = "utilisateur.prenom", target = "utilisateurPrenom")
     @Mapping(source = "compte.id", target = "compteId")
     @Mapping(source = "compte.intitule", target = "compteIntitule")
+    @Mapping(source = "facture.id", target = "factureId")
     LigneCompte toDto(LigneCompteEntity entity);
 
     List<LigneCompte> toDtoList(List<LigneCompteEntity> entities);

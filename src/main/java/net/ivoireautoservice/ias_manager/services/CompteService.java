@@ -205,6 +205,11 @@ public class CompteService {
 
     @Transactional
     public LigneCompte createLigne(Long compteId, LigneCompteRequest request) {
+        return ligneCompteMapper.toDto(createLigneEntity(compteId, request));
+    }
+
+    @Transactional
+    public LigneCompteEntity createLigneEntity(Long compteId, LigneCompteRequest request) {
         CompteEntity compte = compteRepository.findById(compteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Compte", compteId));
 
@@ -228,7 +233,8 @@ public class CompteService {
         // Mise à jour de la balance selon le type
         Long balanceAvant = compte.getBalance();
         long nouvelleBalance;
-        if (request.getType() == CompteLigneType.DEPENSE) {
+        if (request.getType() == CompteLigneType.DEPENSE
+                || request.getType() == CompteLigneType.REMBOURSEMENT) {
             nouvelleBalance = balanceAvant - request.getMontant();
         } else {
             nouvelleBalance = balanceAvant + request.getMontant();
@@ -253,8 +259,7 @@ public class CompteService {
                 .observation(request.getObservation())
                 .build();
 
-        LigneCompteEntity saved = ligneCompteRepository.save(entity);
-        return ligneCompteMapper.toDto(saved);
+        return ligneCompteRepository.save(entity);
     }
 
     @Transactional

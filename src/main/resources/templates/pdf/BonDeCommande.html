@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8"/>
+    <title>Bon de commande - GIAS | Ivoire Auto Services Groupe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1a1a2e;
+            font-size: 10px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .invoice-wrapper {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: #ffffff;
+            position: relative;
+        }
+
+        /* Top decorative bar */
+        .top-bar {
+            height: 8px;
+            background-color: #1b2a6b;
+        }
+
+        /* Header */
+        .header-table {
+            width: 100%;
+            padding: 30px 40px 10px 40px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .logo-section img {
+            width: 180px;
+            height: auto;
+        }
+
+        .company-block {
+            text-align: right;
+            border-left: 3px solid #1b2a6b;
+            padding-left: 14px;
+            font-size: 9px;
+            line-height: 1.2;
+            color: #1a1a2e;
+            font-weight: 300;
+            display: inline-block;
+        }
+
+        .company-block .company-name {
+            color: #1b2a6b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        /* Document title */
+        .doc-title-section {
+            padding: 10px 40px 10px 40px;
+        }
+
+        .doc-title {
+            font-size: 25px;
+            font-weight: 500;
+            color: #1b2a6b;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .doc-title-underline {
+            width: 60px;
+            height: 4px;
+            background-color: #1b2a6b;
+            margin-top: 4px;
+        }
+        .object-section {
+            padding: 12px 20px;
+            background-color: #f0f3fa;
+            border-left: 4px solid #1b2a6b;
+            margin: 0 40px 20px;
+        }
+
+        .object-section .info-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #1b2a6b;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .object-section .info-value {
+            font-size: 12px;
+        }
+
+
+        /* Info section */
+        .info-table {
+            width: 100%;
+            padding: 18px 40px 4px 40px;
+        }
+
+        .info-table td {
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .info-block .info-row {
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .info-block .info-label {
+            color: #5a6a8a;
+            font-weight: 300;
+        }
+
+        .info-block .info-value {
+            color: #1a1a2e;
+            font-weight: 300;
+        }
+
+        .info-block .info-highlight {
+            color: #1b2a6b;
+            font-weight: 300;
+        }
+
+        .partenaire-name {
+            font-size: 22px;
+            font-weight: 500;
+            color: #1b2a6b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        /* Divider */
+        .brush-decoration {
+            width: calc(100% - 80px);
+            margin: 8px 20px 0 20px;
+            height: 1px;
+            background-color: #d0d5e0;
+        }
+
+        /* Legal notes */
+        .legal-notes {
+            padding: 14px 40px 6px 40px;
+            font-size: 8px;
+            color: #4a4a5e;
+            line-height: 1.3;
+        }
+
+        .legal-notes p {
+            margin: 0 0 2px 0;
+        }
+
+        .legal-notes ol {
+            margin: 2px 0 4px 36px;
+            padding: 0;
+        }
+
+        .legal-notes ol li {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Table */
+        .table-section {
+            padding: 0 20px;
+            margin-bottom: 12px;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
+
+        .invoice-table thead tr {
+            background-color: #1b2a6b;
+            color: #ffffff;
+        }
+
+        .invoice-table thead th {
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .invoice-table thead th.text-center {
+            text-align: center;
+        }
+
+        .invoice-table thead th.text-right {
+            text-align: right;
+        }
+
+        .invoice-table tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e8ecf1;
+            color: #333;
+            vertical-align: middle;
+        }
+
+        .invoice-table tbody td.text-center {
+            text-align: center;
+        }
+
+        .invoice-table tbody td.text-right {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .invoice-table tbody tr:last-child td {
+            border-bottom: 2px solid #1b2a6b;
+        }
+
+
+        /* Amount in words */
+        .amount-words {
+            margin: 22px 20px 16px 20px;
+            font-size: 11px;
+            font-weight: 300;
+            color: #1a1a2e;
+            line-height: 1;
+        }
+
+        /* Signature directeur */
+        .signature-block {
+            margin: 24px 40px 32px 0;
+            text-align: right;
+        }
+
+        .signature-block .signature-label {
+            font-size: 11px;
+            color: #1a1a2e;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .signature-block img {
+            width: 140px;
+            height: auto;
+        }
+
+
+        /* Footer */
+        .invoice-footer {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            border-top: 1px solid #d0d5e0;
+            color: #5a6a8a;
+            padding: 16px 0 16px 20px;
+            text-align: center;
+            font-size: 8px;
+            line-height: 1.3;
+        }
+
+        .invoice-footer p {
+            margin: 0;
+        }
+
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        .left { float: left; }
+        .right { float: right; }
+        .clear { clear: both; }
+    </style>
+</head>
+
+<body>
+
+<div class="invoice-wrapper">
+    <div class="top-bar"></div>
+
+    <!-- Header : Logo + Company block -->
+    <div class="header-table">
+        <div class="logo-section left">
+            <img th:src="${logoUrl}" alt="GIAS - Ivoire Auto Services Groupe SARL"/>
+        </div>
+        <div class="right">
+            <div class="company-block">
+                <div class="company-name">Ivoire Auto Services</div>
+                <div>Cocody, Angr&#233; 8&#232;me tranche</div>
+                <div>13 BP 1715 Abidjan 13</div>
+                <div>N&#176; CC : 0526299 H</div>
+                <div>N&#176; RC : CI-ABJ-2008-A-1483</div>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <!-- Document title -->
+    <div class="doc-title-section">
+        <div class="doc-title">Bon de commande</div>
+        <div class="doc-title-underline"></div>
+    </div>
+
+    <!-- Info section : N&#176; + Date + Emetteur (left) | Fournisseur + Contacts (right) -->
+    <table class="info-table">
+        <tr>
+            <td class="info-block">
+                <div class="info-row">
+                    <span class="info-label">N&#176; : </span>
+                    <span class="info-highlight" th:text="${bonCommande.numero}">BC-2026-001</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date : </span>
+                    <span class="info-value" th:text="${bonCommande.dateCommande != null ? #temporals.format(bonCommande.dateCommande, 'dd/MM/yyyy') : (#temporals.format(bonCommande.createdAt, 'dd/MM/yyyy'))}">23/04/2026</span>
+                </div>
+                <div class="info-row" th:if="${emetteur != null}">
+                    <span class="info-label">Emetteur : </span>
+                    <span class="info-value" th:text="${emetteur}">Kon&#233; Ahmed</span>
+                </div>
+                <div class="info-row" th:if="${contactEmetteur != null}">
+                    <span class="info-label">Contact : </span>
+                    <span class="info-value" th:text="${contactEmetteur}">(+225) 07 07 93 97 12</span>
+                </div>
+            </td>
+            <td class="info-block" style="text-align: right;">
+                <div class="partenaire-name" th:text="${partenaire.raisonSociale}">SOCIDA</div>
+                <div class="info-row" th:if="${partenaire.numCc != null}">
+                    <span class="info-label">N&#176; C.C. : </span>
+                    <span class="info-value" th:text="${partenaire.numCc}">7502352 H</span>
+                </div>
+                <div class="info-row" th:if="${partenaire.telephone1 != null}">
+                    <span class="info-label">T&#233;l&#233;phone : </span>
+                    <span class="info-value" th:text="${partenaire.telephone1}">21214000</span>
+                </div>
+                <div class="info-row" th:if="${partenaire.email1 != null}">
+                    <span class="info-label">Email : </span>
+                    <span class="info-value" th:text="${partenaire.email1}"></span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="brush-decoration"></div>
+
+    <!-- Legal notes -->
+    <div class="legal-notes">
+        <p>Le N&#176; de cette commande doit imp&#233;rativement figurer sur votre facture. A d&#233;faut, cette derni&#232;re vous sera retourn&#233;e.</p>
+        <p>L'accus&#233; de r&#233;ception de la pr&#233;sente commande est &#224; retourner dans les (03) jours de la r&#233;ception de la commande, dat&#233;, sign&#233; et rev&#234;tu de votre cachet commercial &#224; l'adresse email indiqu&#233; ci-dessus. Pass&#233; ce d&#233;lai, la commande sera consid&#233;r&#233;e comme accept&#233;e dans tous ses termes et conditions par le fournisseur ou le sous-traitant.</p>
+        <p>La pr&#233;sente commande est soumise prioritairement :</p>
+        <ol>
+            <li>Aux conditions particuli&#232;res, figurant sur la pr&#233;sente commande</li>
+            <li>Aux conditions du contrat de prestation et/ou service et/ou de sous-traitance lorsque celui-ci existe</li>
+            <li>Aux conditions du contrat cadre lorsque celui-ci existe</li>
+            <li>A nos conditions g&#233;n&#233;rales d'achat (CGA)</li>
+        </ol>
+        <p>Pour les fournitures de services, les dispositions du contrat de s&#233;curit&#233;, sont &#233;galement applicables.</p>
+        <p>L'acceptation expresse ou tacite de la commande implique l'acceptation sans r&#233;serve, de l'ensemble de ses conditions.</p>
+    </div>
+
+    <!-- Object -->
+    <div class="object-section" th:if="${bonCommande.objet != null}">
+        <div class="info-label">Objet</div>
+        <div class="info-value" th:text="${bonCommande.objet}">-</div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th style="width: 90px;">R&#233;f&#233;rence</th>
+                    <th>D&#233;signation</th>
+                    <th class="text-right" style="width: 110px;">P.U HT</th>
+                    <th class="text-center" style="width: 90px;">Quantit&#233;</th>
+                    <th class="text-right" style="width: 130px;">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item : ${bonCommande.items}">
+                    <td th:text="${item.reference != null ? item.reference : '#'}">#</td>
+                    <td th:text="${item.designation}">D&#233;signation</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire != null ? item.prixUnitaire : 0, 1, 'POINT')}">0</td>
+                    <td class="text-center" th:text="${#numbers.formatInteger(item.qte != null ? item.qte : 0, 1)}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt != null ? item.montantHt : 0, 1, 'POINT')}">0</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Montant HT</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantHt != null ? bonCommande.montantHt : 0, 1, 'POINT')}">0</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right" th:text="'TVA ' + ${bonCommande.tva != null ? bonCommande.tva : 18} + '%'">TVA 18%</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(montantTva, 1, 'POINT')}">0</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="text-right">Montant TTC</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantTtc != null ? bonCommande.montantTtc : 0, 1, 'POINT')}">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Amount in words -->
+    <div class="amount-words" th:if="${montantEnLettres != null}">
+        Arr&#234;t&#233; le pr&#233;sent bon de commande &#224; la somme de
+        <span th:text="${montantEnLettres}">francs CFA</span>.
+    </div>
+
+    <!-- Signature directeur (uniquement pour les bons de commande valid&#233;s) -->
+    <div class="signature-block" th:if="${signatureUrl != null}">
+        <div class="signature-label">Le Directeur</div>
+        <img th:src="${signatureUrl}" alt="Signature du directeur"/>
+    </div>
+
+    <!-- Footer -->
+    <div class="invoice-footer">
+        <p>Situ&#233; &#224; Angr&#233; 8&#232;me tranche non loin du carrefour de la pri&#232;re.</p>
+        <p>Tel : +225 : 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83 &#8212; 13 BP 1715 Abidjan 13</p>
+        <p>N&#176;CC : 1912797 L R&#233;el Simplifi&#233; d'Imposition Centre des Imp&#244;ts de la Djibi &#8212;
+            N&#176; RC : CI-ABJ-2019-B-02715 &#8212; NSIA N&#176; 035361963575</p>
+        <p>IBAN : CI93 CI04 2012 - Compte Bancaire BIAO N&#176; 03536196357524 - SWIFT Code : BIAOCIABXXX</p>
+        <p>Email : commercial@ivoireautoservices.net</p>
+    </div>
+    
+</div>
+
+</body>
+
+</html>

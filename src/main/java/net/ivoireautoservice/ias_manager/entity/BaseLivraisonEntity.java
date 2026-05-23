@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 
 @MappedSuperclass
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
-@ToString(exclude = {"facture"})
-@EqualsAndHashCode(callSuper = true, exclude = {"facture"})
+@ToString(exclude = {"facture", "createdBy"})
+@EqualsAndHashCode(callSuper = true, exclude = {"facture", "createdBy"})
 public abstract class BaseLivraisonEntity extends AuditableEntity {
 
 	@Id
@@ -21,4 +21,8 @@ public abstract class BaseLivraisonEntity extends AuditableEntity {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "facture_id", referencedColumnName = "id", unique = true)
 	private FactureEntity facture;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "created_by_id", referencedColumnName = "id")
+	private Utilisateur createdBy;
 }

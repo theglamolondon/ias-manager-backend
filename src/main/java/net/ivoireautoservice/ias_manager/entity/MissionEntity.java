@@ -42,6 +42,12 @@ public class MissionEntity extends AuditableEntity {
 	@Column(name = "dhms_fin_reel")
 	private LocalDateTime dhmsFinReel;
 
+	@Column(name = "dhms_annulation")
+	private LocalDateTime dhmsAnnulation;
+
+	@Column(name = "motif_annulation", columnDefinition = "TEXT")
+	private String motifAnnulation;
+
 	private String destination;
 
 	private Boolean isInterieur;
