@@ -42,4 +42,11 @@ public class MissionRequest {
 	private Long clientId;
 
 	private Long compteId;
+
+	/**
+	 * Si vrai (par défaut), une facture client est générée automatiquement à la
+	 * création de la mission (sauf tarification INDEFINIE). Si faux, aucune
+	 * facture n'est créée — elle pourra l'être manuellement plus tard.
+	 */
+	private Boolean genererFacture;
 }

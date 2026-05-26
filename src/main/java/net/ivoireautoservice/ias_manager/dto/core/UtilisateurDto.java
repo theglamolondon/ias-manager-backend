@@ -14,4 +14,6 @@ public class UtilisateurDto {
 	private String adresse;
 	private String telephone;
 	private String role;
+	private Boolean hasChangePassword;
+	private Long employeId;
 }

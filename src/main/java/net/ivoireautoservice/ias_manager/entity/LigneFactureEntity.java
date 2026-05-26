@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 @Entity
 @Table(name = "LIGNES_FACTURE")
@@ -29,6 +30,10 @@ public class LigneFactureEntity extends AuditableEntity {
 	private String designation;
 
 	private Long montantHt;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "type_tarification")
+	private TypeTarificationEnum typeTarification;
 
 	@Column(name = "extra_ref")
 	private String extraRef;

@@ -24,23 +24,34 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     List<FactureEntity> findByNumProformaIn(List<String> numProformas);
 
     /**
-     * Toutes les factures qui contiennent au moins une ligne dont l'extraRef
-     * correspond au codeMission donné. Permet de retrouver les factures
-     * émises pour une mission donnée (mission classique ou facturation
-     * groupée multi-missions à tarification INDEFINIE).
+     * Toutes les factures de type MISSION qui contiennent au moins une ligne
+     * dont l'extraRef correspond au codeMission donné. Permet de retrouver
+     * les factures émises pour une mission donnée (mission classique
+     * auto-facturée ou facturation groupée multi-missions).
+     *
+     * Le filtre sur f.type = MISSION est essentiel : extraRef est un champ
+     * générique multi-usages (rempli aussi par les lignes de factures
+     * fournisseur depuis LigneBonCommande.extraRef, texte libre). Sans ce
+     * filtre, un extraRef de BC qui coïnciderait par hasard avec un
+     * codeMission ferait remonter une facture fournisseur comme étant liée
+     * à la mission, ce qui est faux.
      */
     @Query("SELECT DISTINCT f FROM FactureEntity f JOIN LigneFactureEntity lf ON lf.facture = f " +
             "WHERE lf.extraRef = :codeMission " +
+            "AND f.type = net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION " +
             "ORDER BY f.createdAt DESC")
     List<FactureEntity> findByLigneExtraRef(@Param("codeMission") String codeMission);
 
     /**
-     * Pour une liste de codeMission, renvoie les couples (extraRef, FactureEntity).
+     * Pour une liste de codeMission, renvoie les couples (extraRef, FactureEntity)
+     * en se limitant aux factures de type MISSION (cf. javadoc de
+     * findByLigneExtraRef pour la raison du filtre sur le type).
      * Utilisé pour construire en bulk la map codeMission → facture liée
      * (table missions).
      */
     @Query("SELECT DISTINCT lf.extraRef, lf.facture FROM LigneFactureEntity lf " +
-            "WHERE lf.extraRef IN :codes")
+            "WHERE lf.extraRef IN :codes " +
+            "AND lf.facture.type = net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION")
     List<Object[]> findFacturesByLigneExtraRefIn(@Param("codes") List<String> codes);
 
     /**
@@ -84,6 +95,19 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     Page<FactureEntity> searchByKeyword(
             @Param("keyword") String keyword,
             @Param("factureClient") Boolean factureClient,
+            Pageable pageable);
+
+    @Query("SELECT f FROM FactureEntity f LEFT JOIN f.partenaire p " +
+            "WHERE (:factureClient IS NULL OR f.factureClient = :factureClient) " +
+            "AND (:partenaireId IS NULL OR p.id = :partenaireId) " +
+            "AND (COALESCE(:keyword, '') = '' " +
+            "    OR LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<FactureEntity> findFiltered(
+            @Param("keyword") String keyword,
+            @Param("factureClient") Boolean factureClient,
+            @Param("partenaireId") Long partenaireId,
             Pageable pageable);
 
     @Query("SELECT MONTH(f.createdAt), SUM(f.montantTtc) FROM FactureEntity f " +

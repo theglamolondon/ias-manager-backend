@@ -24,8 +24,9 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
             "    OR (:statut = 'ANNULEE' AND m.dhmsAnnulation IS NOT NULL) " +
             "    OR (:statut = 'TERMINEE' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NOT NULL) " +
             "    OR (:statut = 'EN_COURS' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NULL AND m.dhmsDebutReel IS NOT NULL) " +
-            "    OR (:statut = 'PLANIFIEE' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NULL AND m.dhmsDebutReel IS NULL))")
-    Page<MissionEntity> search(@Param("keyword") String keyword, @Param("statut") String statut, Pageable pageable);
+            "    OR (:statut = 'PLANIFIEE' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NULL AND m.dhmsDebutReel IS NULL)) " +
+            "AND (:partenaireId IS NULL OR m.client.id = :partenaireId)")
+    Page<MissionEntity> search(@Param("keyword") String keyword, @Param("statut") String statut, @Param("partenaireId") Long partenaireId, Pageable pageable);
 
     @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), SUM(m.montantTotalHT) " +
             "FROM MissionEntity m " +
@@ -45,17 +46,30 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
     List<MissionEntity> findByVehiculeIdOrderByDhmsDebutPreviDesc(Long vehiculeId);
 
     /**
-     * Missions facturables au mois pour un client donné : tarification INDEFINIE,
-     * démarrées et non terminées ni annulées. Utilisé pour la génération
-     * manuelle de factures mission depuis le module Factures Client.
+     * Missions facturables manuellement pour un client donné : toutes les
+     * missions non annulées qui ne sont pas déjà rattachées à une facture
+     * de type MISSION (via LigneFacture.extraRef = mission.codeMission ET
+     * facture.type = MISSION). Couvre tous les types de tarification
+     * (JOURNALIERE, MENSUELLE, UNIQUE, INDEFINIE) et tous les statuts
+     * (planifiée, en cours, terminée), du moment que la mission n'a pas
+     * encore été facturée. Utilisé pour la facturation groupée depuis le
+     * module Factures Client.
+     *
+     * Le filtre sur facture.type = MISSION est important : extraRef est un
+     * champ générique multi-usages, aussi rempli par les lignes de factures
+     * fournisseur (héritage de LigneBonCommande.extraRef, texte libre). Sans
+     * ce filtre, un extraRef de BC qui coïnciderait par hasard avec un
+     * codeMission marquerait à tort la mission comme déjà facturée.
      */
     @Query("SELECT m FROM MissionEntity m " +
             "WHERE m.client.id = :clientId " +
-            "AND m.typeTarification = net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.INDEFINIE " +
-            "AND m.dhmsDebutReel IS NOT NULL " +
-            "AND m.dhmsFinReel IS NULL " +
             "AND m.dhmsAnnulation IS NULL " +
-            "ORDER BY m.dhmsDebutReel ASC")
+            "AND NOT EXISTS (" +
+            "    SELECT 1 FROM LigneFactureEntity lf " +
+            "    WHERE lf.extraRef = m.codeMission " +
+            "    AND lf.facture.type = net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION" +
+            ") " +
+            "ORDER BY COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi) ASC")
     List<MissionEntity> findFacturablesByClient(@Param("clientId") Long clientId);
 
     @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), COUNT(DISTINCT m.vehicule.id) " +

@@ -34,35 +34,38 @@ public class FactureController {
 	public ResponseEntity<PagedResponse<Facture>> getAllFactures(
 			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) Boolean factureClient,
+			@RequestParam(required = false) Long partenaireId,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, pageable));
+		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, partenaireId, pageable));
 	}
 
 	@GetMapping("/clients")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesClients(
+			@RequestParam(required = false) Long partenaireId,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getFacturesClients(pageable));
+		return ResponseEntity.ok(factureService.getFacturesClients(partenaireId, pageable));
 	}
 
 	@GetMapping("/fournisseurs")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesFournisseurs(
+			@RequestParam(required = false) Long partenaireId,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getFacturesFournisseurs(pageable));
+		return ResponseEntity.ok(factureService.getFacturesFournisseurs(partenaireId, pageable));
 	}
 
 	@GetMapping("/livrables")

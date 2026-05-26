@@ -70,24 +70,19 @@ public class FactureService {
 	// ==================== FACTURES ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getAllFactures(String keyword, Boolean factureClient, Pageable pageable) {
-		if (keyword != null && !keyword.isBlank()) {
-			return PagedResponse.of(factureRepository.searchByKeyword(keyword.trim(), factureClient, pageable).map(this::toDtoWithItems));
-		}
-		if (factureClient != null) {
-			return PagedResponse.of(factureRepository.findByFactureClient(factureClient, pageable).map(this::toDtoWithItems));
-		}
-		return PagedResponse.of(factureRepository.findAll(pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getAllFactures(String keyword, Boolean factureClient, Long partenaireId, Pageable pageable) {
+		String keywordParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+		return PagedResponse.of(factureRepository.findFiltered(keywordParam, factureClient, partenaireId, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getFacturesClients(Pageable pageable) {
-		return PagedResponse.of(factureRepository.findByFactureClient(true, pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getFacturesClients(Long partenaireId, Pageable pageable) {
+		return PagedResponse.of(factureRepository.findFiltered(null, true, partenaireId, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getFacturesFournisseurs(Pageable pageable) {
-		return PagedResponse.of(factureRepository.findByFactureClient(false, pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getFacturesFournisseurs(Long partenaireId, Pageable pageable) {
+		return PagedResponse.of(factureRepository.findFiltered(null, false, partenaireId, pageable).map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)
@@ -385,16 +380,19 @@ public class FactureService {
 	// ==================== FACTURATION GROUPÉE MISSION ====================
 
 	/**
-	 * Génère une facture client regroupant plusieurs missions à tarification
-	 * INDEFINIE en cours pour un même client. Les coûts de location (tarif,
-	 * perdiem, durée) sont passés explicitement par mission pour permettre
-	 * leur ajustement à la facturation.
+	 * Génère une facture client regroupant plusieurs missions non encore
+	 * facturées pour un même client, tous types de tarification confondus
+	 * (JOURNALIERE, MENSUELLE, UNIQUE, INDEFINIE). Les coûts de location
+	 * (tarif, perdiem, durée) sont passés explicitement par mission pour
+	 * permettre leur ajustement à la facturation.
 	 *
-	 * Contrairement aux factures auto-créées à la création des missions,
-	 * cette facture n'utilise pas le codeMission comme numProforma : un
-	 * numéro dédié FM-{timestamp} est généré, et chaque ligne porte le
-	 * codeMission de sa mission d'origine dans extraRef pour permettre la
-	 * traçabilité Mission ↔ Facture.
+	 * Validation : chaque mission doit appartenir au client sélectionné,
+	 * ne pas être annulée et ne pas être déjà rattachée à une facture
+	 * (via LigneFacture.extraRef = mission.codeMission). Le statut de la
+	 * mission (planifiée, en cours, terminée) n'est pas restreint.
+	 *
+	 * Chaque ligne porte le codeMission de sa mission d'origine dans extraRef
+	 * pour assurer la traçabilité Mission ↔ Facture.
 	 */
 	@Transactional
 	public Facture genererFactureMissionGroupee(FactureMissionGroupeeRequest request) {
@@ -413,19 +411,19 @@ public class FactureService {
 			throw new BadRequestException("Une ou plusieurs missions sont introuvables");
 		}
 
-		// Validation : toutes du même client, à tarification INDEFINIE et EN_COURS.
+		// Validation : toutes du même client, non annulées, non déjà facturées.
 		for (MissionEntity m : missions) {
 			if (m.getClient() == null || !m.getClient().getId().equals(client.getId())) {
 				throw new BadRequestException("La mission " + m.getCodeMission()
 						+ " n'appartient pas au client sélectionné");
 			}
-			if (m.getTypeTarification() != net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.INDEFINIE) {
+			if (m.getDhmsAnnulation() != null) {
 				throw new BadRequestException("La mission " + m.getCodeMission()
-						+ " n'est pas à tarification INDEFINIE");
+						+ " est annulée et ne peut pas être facturée");
 			}
-			if (m.getDhmsDebutReel() == null || m.getDhmsFinReel() != null || m.getDhmsAnnulation() != null) {
+			if (!factureRepository.findByLigneExtraRef(m.getCodeMission()).isEmpty()) {
 				throw new BadRequestException("La mission " + m.getCodeMission()
-						+ " n'est pas en cours et ne peut pas être facturée");
+						+ " est déjà rattachée à une facture");
 			}
 		}
 
@@ -448,7 +446,7 @@ public class FactureService {
 				.validite(request.getValidite())
 				.objet(request.getObjet() != null && !request.getObjet().isBlank()
 						? request.getObjet()
-						: "Facturation missions — " + missions.size() + " mission(s)")
+						: "Location de véhicule #" + client.getRaisonSociale())
 				.numProforma(numero)
 				.numFacture(numero)
 				.createdBy(securityService.getUtilisateurConnecteOrNull())
@@ -469,23 +467,48 @@ public class FactureService {
 				throw new BadRequestException("La durée de location de la mission " + mission.getCodeMission() + " est invalide");
 			}
 
+			net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum type = mission.getTypeTarification();
+			boolean unique = type == net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.UNIQUE;
+			boolean mensuelle = type == net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.MENSUELLE
+					|| type == net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.INDEFINIE;
+			String uniteLabel = mensuelle ? "mois" : "jour(s)";
+
+			// Pour UNIQUE : la quantité est forcée à 1 et le tarif représente le forfait.
+			long qteLocation = unique ? 1L : item.getDureeLocation();
 			long prixLocation = item.getTarif().longValue();
-			long qteLocation = item.getDureeLocation();
 			long montantLocation = prixLocation * qteLocation;
 			montantHt += montantLocation;
 
 			String immat = mission.getVehicule() != null ? mission.getVehicule().getImmatriculation() : "";
-			String periode = mission.getDhmsDebutReel() != null
-					? " (depuis le " + mission.getDhmsDebutReel().format(fmt) + ")"
-					: "";
+			boolean hasDatesPrevi = mission.getDhmsDebutPrevi() != null && mission.getDhmsFinPrevi() != null;
+			String periode;
+			if (unique) {
+				periode = hasDatesPrevi
+						? " du " + mission.getDhmsDebutPrevi().format(fmt) + " au " + mission.getDhmsFinPrevi().format(fmt)
+						: "";
+			} else if (hasDatesPrevi) {
+				periode = " du " + mission.getDhmsDebutPrevi().format(fmt) + " au " + mission.getDhmsFinPrevi().format(fmt);
+			} else if (mission.getDhmsDebutReel() != null) {
+				periode = " (depuis le " + mission.getDhmsDebutReel().format(fmt) + ")";
+			} else {
+				periode = "";
+			}
+
+			String designation;
+			if (unique) {
+				designation = "MISSION " + mission.getCodeMission() + " - " + immat + " (forfait)" + periode;
+			} else {
+				designation = "MISSION " + mission.getCodeMission() + " - " + immat
+						+ " de " + qteLocation + " " + uniteLabel + periode;
+			}
 
 			LigneFactureEntity ligneLocation = LigneFactureEntity.builder()
-					.designation("MISSION " + mission.getCodeMission() + " - " + immat
-							+ " - " + qteLocation + " mois" + periode)
+					.designation(designation)
 					.qte(qteLocation)
 					.prixUnitaire(prixLocation)
 					.remise(0f)
 					.montantHt(montantLocation)
+					.typeTarification(type)
 					.extraRef(mission.getCodeMission())
 					.facture(savedFacture)
 					.build();
@@ -508,6 +531,7 @@ public class FactureService {
 						.prixUnitaire(prixPerdiem)
 						.remise(0f)
 						.montantHt(montantPerdiem)
+						.typeTarification(net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.JOURNALIERE)
 						.extraRef(mission.getCodeMission())
 						.facture(savedFacture)
 						.build();
@@ -676,6 +700,7 @@ public class FactureService {
 					.prixUnitaire(src.getPrixUnitaire())
 					.remise(src.getRemise())
 					.montantHt(src.getMontantHt())
+					.typeTarification(src.getTypeTarification())
 					.extraRef(src.getExtraRef())
 					.facture(savedAvoir)
 					.produit(src.getProduit())

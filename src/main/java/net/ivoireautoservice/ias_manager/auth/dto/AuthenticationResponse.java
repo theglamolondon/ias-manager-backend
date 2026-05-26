@@ -5,5 +5,6 @@ public record AuthenticationResponse(
         String nom,
         String prenoms,
         String email,
-        String role
+        String role,
+        Boolean hasChangePassword
 ) {}

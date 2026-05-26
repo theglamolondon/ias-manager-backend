@@ -66,12 +66,12 @@ public class MissionService {
 	// ==================== MISSIONS ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Mission> getAllMissions(String keyword, MissionStatutFilter statut, Pageable pageable) {
+	public PagedResponse<Mission> getAllMissions(String keyword, MissionStatutFilter statut, Long partenaireId, Pageable pageable) {
 		String keywordParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
 		String statutParam = statut != null ? statut.name() : null;
-		Page<MissionEntity> page = (keywordParam == null && statutParam == null)
+		Page<MissionEntity> page = (keywordParam == null && statutParam == null && partenaireId == null)
 				? missionRepository.findAll(pageable)
-				: missionRepository.search(keywordParam, statutParam, pageable);
+				: missionRepository.search(keywordParam, statutParam, partenaireId, pageable);
 
 		List<String> codes = page.stream()
 				.map(MissionEntity::getCodeMission)
@@ -97,9 +97,10 @@ public class MissionService {
 	}
 
 	/**
-	 * Missions facturables au mois pour un client donné : tarification INDEFINIE,
-	 * démarrées et non terminées ni annulées. Utilisé pour la facturation
-	 * manuelle multi-missions depuis le module Factures Client.
+	 * Missions facturables manuellement pour un client donné : toutes les
+	 * missions non annulées qui ne sont pas déjà rattachées à une facture,
+	 * tous types de tarification confondus. Utilisé pour la facturation
+	 * groupée depuis le module Factures Client.
 	 */
 	@Transactional(readOnly = true)
 	public List<Mission> getMissionsFacturables(Long clientId) {
@@ -110,7 +111,7 @@ public class MissionService {
 	/**
 	 * Retourne toutes les factures émises pour une mission donnée (mission
 	 * classique auto-facturée à la création, ou facturation groupée
-	 * multi-missions à tarification INDEFINIE).
+	 * multi-missions depuis le module Factures Client).
 	 */
 	@Transactional(readOnly = true)
 	public List<Facture> getFacturesByMissionId(Long missionId) {
@@ -179,10 +180,15 @@ public class MissionService {
 
 		MissionEntity saved = missionRepository.save(entity);
 
-		// Création automatique de la facture client
-		// Sauf pour les missions à tarification INDEFINIE : pas de facture à la création
-		// (la facturation se fera manuellement depuis le module Factures Client).
-		if (saved.getClient() != null && saved.getTypeTarification() != TypeTarificationEnum.INDEFINIE) {
+		// Création automatique de la facture client.
+		// Conditions :
+		//  - client renseigné
+		//  - tarification != INDEFINIE (facturation manuelle plus tard depuis Factures Client)
+		//  - flag genererFacture non explicitement à false (défaut = true pour rétro-compat)
+		boolean genererFacture = !Boolean.FALSE.equals(request.getGenererFacture());
+		if (genererFacture
+				&& saved.getClient() != null
+				&& saved.getTypeTarification() != TypeTarificationEnum.INDEFINIE) {
 			Facture facture = createFactureForMission(saved);
 
 			// Si un compte est fourni, marquer la facture comme payée

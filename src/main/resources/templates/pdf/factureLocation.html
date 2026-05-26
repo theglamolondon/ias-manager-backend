@@ -193,12 +193,12 @@
         }
 
         .invoice-table thead th {
-            padding: 12px 16px;
+            padding: 10px 8px;
             text-align: left;
             font-weight: 600;
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .invoice-table thead th:last-child {
@@ -214,9 +214,10 @@
         }
 
         .invoice-table tbody td {
-            padding: 14px 16px;
+            padding: 12px 8px;
             border-bottom: 1px solid #e8ecf1;
             color: #333;
+            font-size: 11px;
         }
 
         .invoice-table tbody td.text-center {
@@ -478,18 +479,24 @@
         <table class="invoice-table">
             <thead>
                 <tr>
+                    <th>R&#233;f&#233;rence</th>
                     <th>D&#233;signation</th>
+                    <th class="text-right">P.U HT</th>
                     <th class="text-center">Qt&#233;</th>
-                    <th class="text-right">Prix Unit. HT</th>
-                    <th class="text-right">Total HT</th>
+                    <th class="text-center">P&#233;riode</th>
+                    <th class="text-center">Rem.</th>
+                    <th class="text-right">Total</th>
                 </tr>
             </thead>
             <tbody>
                 <tr th:each="item : ${facture.items}">
+                    <td class="text-center" th:text="${item.reference != null ? item.reference : '#'}">#</td>
                     <td th:text="${item.designation}">-</td>
-                    <td class="text-center" th:text="${#numbers.formatInteger(item.qte, 1)}">1</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire, 1, 'POINT') + ' FCFA'}">0</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt, 1, 'POINT') + ' FCFA'}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire, 1, 'POINT')}">0</td>
+                    <td class="text-center">1</td>
+                    <td class="text-center" th:text="${#numbers.formatInteger(item.qte, 1) + ' Jours'}">1 Jours</td>
+                    <td class="text-center" th:text="${(item.remise != null ? #numbers.formatDecimal(item.remise, 1, 0) : '0') + ' %'}">0 %</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt, 1, 'POINT')}">0</td>
                 </tr>
             </tbody>
         </table>

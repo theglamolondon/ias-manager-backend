@@ -23,6 +23,11 @@ public class UtilisateurRequest {
 	private String adresse;
 	private String telephone;
 
-	@NotBlank(message = "Le mot de passe est obligatoire")
 	private String password;
+
+	/**
+	 * Lien optionnel vers un employé existant. Si renseigné lors de la
+	 * création, le compte est rattaché à cet employé.
+	 */
+	private Long employeId;
 }

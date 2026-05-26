@@ -13,6 +13,7 @@ import java.util.List;
 public interface UtilisateurMapper {
 
     @Mapping(target = "role", expression = "java(entity.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace(\"ROLE_\", \"\")).orElse(null))")
+    @Mapping(target = "employeId", expression = "java(entity.getEmploye() != null ? entity.getEmploye().getId() : null)")
     UtilisateurDto toDto(Utilisateur entity);
 
     List<UtilisateurDto> toDtoList(List<Utilisateur> entities);
@@ -20,10 +21,14 @@ public interface UtilisateurMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "employe", ignore = true)
+    @Mapping(target = "hasChangePassword", ignore = true)
     Utilisateur toEntity(UtilisateurRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "role", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "employe", ignore = true)
+    @Mapping(target = "hasChangePassword", ignore = true)
     void updateEntity(UtilisateurRequest request, @MappingTarget Utilisateur entity);
 }

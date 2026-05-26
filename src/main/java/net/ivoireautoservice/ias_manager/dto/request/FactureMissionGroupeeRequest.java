@@ -10,9 +10,9 @@ import java.util.List;
 
 /**
  * Requête de génération d'une facture client regroupant plusieurs missions
- * à tarification INDEFINIE en cours pour un même client. Les coûts de
- * location sont passés explicitement par mission pour permettre leur
- * ajustement à la facturation.
+ * non encore facturées pour un même client (tous types de tarification
+ * confondus). Les coûts de location sont passés explicitement par mission
+ * pour permettre leur ajustement à la facturation.
  */
 @Data
 @AllArgsConstructor

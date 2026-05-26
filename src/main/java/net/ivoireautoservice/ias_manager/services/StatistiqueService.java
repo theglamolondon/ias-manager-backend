@@ -35,6 +35,7 @@ public class StatistiqueService {
 	private final CompteRepository compteRepository;
 	private final EntreeProduitRepository entreeProduitRepository;
 	private final SortieProduitRepository sortieProduitRepository;
+	private final PartenaireRepository partenaireRepository;
 
 	@Transactional(readOnly = true)
 	public StatistiqueDashboard getDashboard(int annee) {
@@ -177,6 +178,15 @@ public class StatistiqueService {
 				.permisValides(chauffeurRepository.countByExpDatePermisAfter(aujourdhui))
 				.permisExpirentBientot(chauffeurRepository.countByExpDatePermisBetween(aujourdhui, finAnnee))
 				.permisExpires(chauffeurRepository.countByExpDatePermisBefore(aujourdhui))
+				.build();
+	}
+
+	@Transactional(readOnly = true)
+	public PartenaireStats getPartenaireStats() {
+		return PartenaireStats.builder()
+				.total(partenaireRepository.count())
+				.clients(partenaireRepository.countByIsClientTrue())
+				.fournisseurs(partenaireRepository.countByIsFournisseurTrue())
 				.build();
 	}
 

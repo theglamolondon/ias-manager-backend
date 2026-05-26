@@ -13,6 +13,10 @@ public interface PartenaireRepository extends JpaRepository<PartenaireEntity, Lo
 
     Page<PartenaireEntity> findByIsFournisseurTrue(Pageable pageable);
 
+    long countByIsClientTrue();
+
+    long countByIsFournisseurTrue();
+
     @Query("SELECT p FROM PartenaireEntity p " +
             "WHERE LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(p.telephone1) LIKE LOWER(CONCAT('%', :keyword, '%')) " +

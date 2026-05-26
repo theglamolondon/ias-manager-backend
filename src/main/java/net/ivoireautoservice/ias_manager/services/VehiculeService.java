@@ -284,10 +284,12 @@ public class VehiculeService {
                 .filter(c -> c != null && !c.isBlank())
                 .toList();
 
-        // 3. Trouver les lignes facture liées via extraRef
+        // 3. Trouver les lignes facture liées via extraRef (restreintes aux
+        // factures de type MISSION pour éviter les faux positifs avec les
+        // extraRef de lignes de factures fournisseur).
         Map<String, LigneFactureEntity> ligneFactureByCodeMission = new java.util.HashMap<>();
         if (!codeMissions.isEmpty()) {
-            List<LigneFactureEntity> lignesFacture = ligneFactureRepository.findByExtraRefIn(codeMissions);
+            List<LigneFactureEntity> lignesFacture = ligneFactureRepository.findByExtraRefInForMission(codeMissions);
             for (LigneFactureEntity lf : lignesFacture) {
                 // On garde la première ligne par codeMission (pour accéder à la facture)
                 ligneFactureByCodeMission.putIfAbsent(lf.getExtraRef(), lf);

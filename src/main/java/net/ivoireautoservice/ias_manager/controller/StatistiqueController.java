@@ -59,6 +59,11 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getProduitStats());
 	}
 
+	@GetMapping("/partenaires")
+	public ResponseEntity<PartenaireStats> getPartenaireStats() {
+		return ResponseEntity.ok(statistiqueService.getPartenaireStats());
+	}
+
 	@GetMapping("/livraisons/fournisseurs")
 	public ResponseEntity<LivraisonFournisseurStats> getLivraisonFournisseurStats(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
