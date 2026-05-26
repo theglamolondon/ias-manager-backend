@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
+import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
@@ -10,6 +11,7 @@ import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.services.MissionService;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,18 +31,29 @@ public class MissionController {
 	@GetMapping
 	public ResponseEntity<PagedResponse<Mission>> getAllMissions(
 			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) MissionStatutFilter statut,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "id") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(missionService.getAllMissions(keyword, pageable));
+		return ResponseEntity.ok(missionService.getAllMissions(keyword, statut, pageable));
 	}
 
 	@GetMapping("/{id}")
 	public ResponseEntity<Mission> getMissionById(@PathVariable Long id) {
 		return ResponseEntity.ok(missionService.getMissionById(id));
+	}
+
+	@GetMapping("/facturables")
+	public ResponseEntity<List<Mission>> getMissionsFacturables(@RequestParam Long clientId) {
+		return ResponseEntity.ok(missionService.getMissionsFacturables(clientId));
+	}
+
+	@GetMapping("/{id}/factures")
+	public ResponseEntity<List<Facture>> getFacturesByMission(@PathVariable Long id) {
+		return ResponseEntity.ok(missionService.getFacturesByMissionId(id));
 	}
 
 	@PostMapping

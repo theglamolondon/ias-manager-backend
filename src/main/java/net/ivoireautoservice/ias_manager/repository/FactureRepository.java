@@ -24,6 +24,26 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     List<FactureEntity> findByNumProformaIn(List<String> numProformas);
 
     /**
+     * Toutes les factures qui contiennent au moins une ligne dont l'extraRef
+     * correspond au codeMission donné. Permet de retrouver les factures
+     * émises pour une mission donnée (mission classique ou facturation
+     * groupée multi-missions à tarification INDEFINIE).
+     */
+    @Query("SELECT DISTINCT f FROM FactureEntity f JOIN LigneFactureEntity lf ON lf.facture = f " +
+            "WHERE lf.extraRef = :codeMission " +
+            "ORDER BY f.createdAt DESC")
+    List<FactureEntity> findByLigneExtraRef(@Param("codeMission") String codeMission);
+
+    /**
+     * Pour une liste de codeMission, renvoie les couples (extraRef, FactureEntity).
+     * Utilisé pour construire en bulk la map codeMission → facture liée
+     * (table missions).
+     */
+    @Query("SELECT DISTINCT lf.extraRef, lf.facture FROM LigneFactureEntity lf " +
+            "WHERE lf.extraRef IN :codes")
+    List<Object[]> findFacturesByLigneExtraRefIn(@Param("codes") List<String> codes);
+
+    /**
      * Retourne le plus grand suffixe numérique des proformas dont le numProforma commence par le préfixe donné.
      * Utilisé pour la génération auto du numéro proforma au format {prefix}{seq}.
      */
@@ -39,6 +59,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
 
     @Query("SELECT f FROM FactureEntity f WHERE f.statut IN :statuts " +
             "AND f.factureClient = :factureClient " +
+            "AND f.type <> net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION " +
             "AND NOT EXISTS (SELECT lc FROM LivraisonClientEntity lc WHERE lc.facture = f) " +
             "AND NOT EXISTS (SELECT lf FROM LivraisonFournisseurEntity lf WHERE lf.facture = f)")
     Page<FactureEntity> findFacturesSansLivraison(
@@ -47,6 +68,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             Pageable pageable);
 
     @Query("SELECT f FROM FactureEntity f WHERE f.statut IN :statuts " +
+            "AND f.type <> net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION " +
             "AND NOT EXISTS (SELECT lc FROM LivraisonClientEntity lc WHERE lc.facture = f) " +
             "AND NOT EXISTS (SELECT lf FROM LivraisonFournisseurEntity lf WHERE lf.facture = f)")
     Page<FactureEntity> findFacturesSansLivraison(

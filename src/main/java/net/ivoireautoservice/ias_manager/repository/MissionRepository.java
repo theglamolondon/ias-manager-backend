@@ -14,12 +14,18 @@ import java.util.List;
 public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
 
     @Query("SELECT m FROM MissionEntity m LEFT JOIN m.vehicule v LEFT JOIN m.chauffeur c LEFT JOIN c.employe e " +
-            "WHERE LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR LOWER(m.destination) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR CAST(m.id AS string) LIKE CONCAT('%', :keyword, '%') " +
-            "OR LOWER(e.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "OR LOWER(e.prenoms) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<MissionEntity> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+            "WHERE (COALESCE(:keyword, '') = '' " +
+            "    OR LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(m.destination) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR CAST(m.id AS string) LIKE CONCAT('%', :keyword, '%') " +
+            "    OR LOWER(e.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(e.prenoms) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:statut IS NULL " +
+            "    OR (:statut = 'ANNULEE' AND m.dhmsAnnulation IS NOT NULL) " +
+            "    OR (:statut = 'TERMINEE' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NOT NULL) " +
+            "    OR (:statut = 'EN_COURS' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NULL AND m.dhmsDebutReel IS NOT NULL) " +
+            "    OR (:statut = 'PLANIFIEE' AND m.dhmsAnnulation IS NULL AND m.dhmsFinReel IS NULL AND m.dhmsDebutReel IS NULL))")
+    Page<MissionEntity> search(@Param("keyword") String keyword, @Param("statut") String statut, Pageable pageable);
 
     @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), SUM(m.montantTotalHT) " +
             "FROM MissionEntity m " +
@@ -37,6 +43,20 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
     long countByYear(@Param("year") int year);
 
     List<MissionEntity> findByVehiculeIdOrderByDhmsDebutPreviDesc(Long vehiculeId);
+
+    /**
+     * Missions facturables au mois pour un client donné : tarification INDEFINIE,
+     * démarrées et non terminées ni annulées. Utilisé pour la génération
+     * manuelle de factures mission depuis le module Factures Client.
+     */
+    @Query("SELECT m FROM MissionEntity m " +
+            "WHERE m.client.id = :clientId " +
+            "AND m.typeTarification = net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.INDEFINIE " +
+            "AND m.dhmsDebutReel IS NOT NULL " +
+            "AND m.dhmsFinReel IS NULL " +
+            "AND m.dhmsAnnulation IS NULL " +
+            "ORDER BY m.dhmsDebutReel ASC")
+    List<MissionEntity> findFacturablesByClient(@Param("clientId") Long clientId);
 
     @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), COUNT(DISTINCT m.vehicule.id) " +
             "FROM MissionEntity m " +

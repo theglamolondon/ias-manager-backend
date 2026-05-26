@@ -25,4 +25,10 @@ public class Employe {
 	private String lieuNaissance;
 	private Long serviceId;
 	private String serviceLibelle;
+
+	private Boolean isChauffeur;
+	private Long chauffeurId;
+	private String numeroPermis;
+	private LocalDate expDatePermis;
+	private String typePermis;
 }

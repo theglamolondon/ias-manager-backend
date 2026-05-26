@@ -8,6 +8,8 @@ import net.ivoireautoservice.ias_manager.dto.core.LivraisonClient;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.FactureFournisseurGroupeeRequest;
+import net.ivoireautoservice.ias_manager.dto.request.FactureMissionGroupeeRequest;
+import net.ivoireautoservice.ias_manager.dto.request.FactureMissionItemRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
@@ -18,6 +20,7 @@ import net.ivoireautoservice.ias_manager.entity.FactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneBonCommandeEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneFactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
+import net.ivoireautoservice.ias_manager.entity.MissionEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
@@ -52,6 +55,7 @@ public class FactureService {
 	private final PartenaireRepository partenaireRepository;
 	private final ProduitRepository produitRepository;
 	private final LigneCompteRepository ligneCompteRepository;
+	private final MissionRepository missionRepository;
 	private final FactureMapper factureMapper;
 	private final LigneFactureMapper ligneFactureMapper;
 	private final LivraisonClientMapper livraisonClientMapper;
@@ -132,10 +136,16 @@ public class FactureService {
 		// Le champ factureClient du request est la source de vérité
 		entity.setFactureClient(Boolean.TRUE.equals(request.getFactureClient()));
 
-		// Génération auto du numéro proforma fournisseur si absent : format DA/01/79/{seq}
-		if (Boolean.FALSE.equals(entity.getFactureClient())
-				&& (entity.getNumProforma() == null || entity.getNumProforma().isBlank())) {
-			entity.setNumProforma(generateNumProformaFournisseur());
+		// Nomenclature DA/01/79/{seq} :
+		// - Fournisseur : auto numProforma si absent (numFacture reste libre).
+		// - Client : numProforma = numFacture = DA/01/79/{seq}, toujours, quel que soit
+		//   ce que le request a fourni.
+		if (Boolean.TRUE.equals(entity.getFactureClient())) {
+			String numero = generateNumFactureDA();
+			entity.setNumProforma(numero);
+			entity.setNumFacture(numero);
+		} else if (entity.getNumProforma() == null || entity.getNumProforma().isBlank()) {
+			entity.setNumProforma(generateNumFactureDA());
 		}
 
 		// Déterminer la nature selon le type du partenaire
@@ -325,7 +335,7 @@ public class FactureService {
 				.objet(request.getObjet() != null && !request.getObjet().isBlank()
 						? request.getObjet()
 						: "Facture fournisseur groupée — " + livraisons.size() + " livraison(s)")
-				.numProforma(generateNumProformaFournisseur())
+				.numProforma(generateNumFactureDA())
 				.numFacture(generateNumFactureGroupee())
 				.createdBy(securityService.getUtilisateurConnecteOrNull())
 				.build();
@@ -372,15 +382,180 @@ public class FactureService {
 		return "FG-" + System.currentTimeMillis();
 	}
 
-	/**
-	 * Génère un numéro proforma fournisseur au format {PREFIX}{seq} où PREFIX = "DA/01/79/".
-	 */
-	private static final String NUM_PROFORMA_FOURNISSEUR_PREFIX = "DA/01/79/";
+	// ==================== FACTURATION GROUPÉE MISSION ====================
 
-	private String generateNumProformaFournisseur() {
-		Integer maxSuffix = factureRepository.findMaxNumProformaSuffix(NUM_PROFORMA_FOURNISSEUR_PREFIX);
+	/**
+	 * Génère une facture client regroupant plusieurs missions à tarification
+	 * INDEFINIE en cours pour un même client. Les coûts de location (tarif,
+	 * perdiem, durée) sont passés explicitement par mission pour permettre
+	 * leur ajustement à la facturation.
+	 *
+	 * Contrairement aux factures auto-créées à la création des missions,
+	 * cette facture n'utilise pas le codeMission comme numProforma : un
+	 * numéro dédié FM-{timestamp} est généré, et chaque ligne porte le
+	 * codeMission de sa mission d'origine dans extraRef pour permettre la
+	 * traçabilité Mission ↔ Facture.
+	 */
+	@Transactional
+	public Facture genererFactureMissionGroupee(FactureMissionGroupeeRequest request) {
+		PartenaireEntity client = partenaireRepository.findById(request.getPartenaireId())
+				.orElseThrow(() -> new ResourceNotFoundException("Partenaire", request.getPartenaireId()));
+
+		if (request.getMissions() == null || request.getMissions().isEmpty()) {
+			throw new BadRequestException("Au moins une mission est requise");
+		}
+
+		List<Long> missionIds = request.getMissions().stream()
+				.map(FactureMissionItemRequest::getMissionId)
+				.toList();
+		List<MissionEntity> missions = missionRepository.findAllById(missionIds);
+		if (missions.size() != missionIds.size()) {
+			throw new BadRequestException("Une ou plusieurs missions sont introuvables");
+		}
+
+		// Validation : toutes du même client, à tarification INDEFINIE et EN_COURS.
+		for (MissionEntity m : missions) {
+			if (m.getClient() == null || !m.getClient().getId().equals(client.getId())) {
+				throw new BadRequestException("La mission " + m.getCodeMission()
+						+ " n'appartient pas au client sélectionné");
+			}
+			if (m.getTypeTarification() != net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.INDEFINIE) {
+				throw new BadRequestException("La mission " + m.getCodeMission()
+						+ " n'est pas à tarification INDEFINIE");
+			}
+			if (m.getDhmsDebutReel() == null || m.getDhmsFinReel() != null || m.getDhmsAnnulation() != null) {
+				throw new BadRequestException("La mission " + m.getCodeMission()
+						+ " n'est pas en cours et ne peut pas être facturée");
+			}
+		}
+
+		Map<Long, MissionEntity> missionsById = missions.stream()
+				.collect(java.util.stream.Collectors.toMap(MissionEntity::getId, m -> m));
+
+		Float tva = request.getTva() != null ? request.getTva() : 0f;
+
+		String numero = generateNumFactureDA();
+		FactureEntity facture = FactureEntity.builder()
+				.factureClient(true)
+				.statut(FactureStatusEnum.PROFORMA)
+				.nature(client.getType() == TypePartenaireEnum.PARTICULIER
+						? FactureNatureEnum.RECU
+						: FactureNatureEnum.FACTURE)
+				.type(FactureTypeEnum.MISSION)
+				.tva(tva)
+				.partenaire(client)
+				.delaiLivraison(request.getDelaiLivraison())
+				.validite(request.getValidite())
+				.objet(request.getObjet() != null && !request.getObjet().isBlank()
+						? request.getObjet()
+						: "Facturation missions — " + missions.size() + " mission(s)")
+				.numProforma(numero)
+				.numFacture(numero)
+				.createdBy(securityService.getUtilisateurConnecteOrNull())
+				.build();
+		FactureEntity savedFacture = factureRepository.save(facture);
+
+		// Construction des lignes : pour chaque mission, une ligne location +
+		// éventuellement une ligne perdiem chauffeur (si applicable).
+		long montantHt = 0L;
+		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+		for (FactureMissionItemRequest item : request.getMissions()) {
+			MissionEntity mission = missionsById.get(item.getMissionId());
+			if (item.getTarif() == null || item.getTarif().signum() <= 0) {
+				throw new BadRequestException("Le tarif de la mission " + mission.getCodeMission() + " est invalide");
+			}
+			if (item.getDureeLocation() == null || item.getDureeLocation() <= 0) {
+				throw new BadRequestException("La durée de location de la mission " + mission.getCodeMission() + " est invalide");
+			}
+
+			long prixLocation = item.getTarif().longValue();
+			long qteLocation = item.getDureeLocation();
+			long montantLocation = prixLocation * qteLocation;
+			montantHt += montantLocation;
+
+			String immat = mission.getVehicule() != null ? mission.getVehicule().getImmatriculation() : "";
+			String periode = mission.getDhmsDebutReel() != null
+					? " (depuis le " + mission.getDhmsDebutReel().format(fmt) + ")"
+					: "";
+
+			LigneFactureEntity ligneLocation = LigneFactureEntity.builder()
+					.designation("MISSION " + mission.getCodeMission() + " - " + immat
+							+ " - " + qteLocation + " mois" + periode)
+					.qte(qteLocation)
+					.prixUnitaire(prixLocation)
+					.remise(0f)
+					.montantHt(montantLocation)
+					.extraRef(mission.getCodeMission())
+					.facture(savedFacture)
+					.build();
+			ligneFactureRepository.save(ligneLocation);
+
+			// Perdiem chauffeur si applicable.
+			if (Boolean.TRUE.equals(mission.getWithChauffeur())
+					&& item.getPerdiem() != null
+					&& item.getPerdiem().signum() > 0
+					&& item.getDureePerdiem() != null
+					&& item.getDureePerdiem() > 0) {
+				long prixPerdiem = item.getPerdiem().longValue();
+				long qtePerdiem = item.getDureePerdiem();
+				long montantPerdiem = prixPerdiem * qtePerdiem;
+				montantHt += montantPerdiem;
+
+				LigneFactureEntity lignePerdiem = LigneFactureEntity.builder()
+						.designation("Chauffeur - Perdiem " + immat + " " + qtePerdiem + " jour(s)")
+						.qte(qtePerdiem)
+						.prixUnitaire(prixPerdiem)
+						.remise(0f)
+						.montantHt(montantPerdiem)
+						.extraRef(mission.getCodeMission())
+						.facture(savedFacture)
+						.build();
+				ligneFactureRepository.save(lignePerdiem);
+			}
+		}
+
+		savedFacture.setMontantHt(montantHt);
+		savedFacture.setMontantTtc(montantHt + Math.round(montantHt * tva / 100f));
+		FactureEntity finalFacture = factureRepository.save(savedFacture);
+		return toDtoWithItems(finalFacture);
+	}
+
+	// ==================== FACTURES PAR MISSION ====================
+
+	/**
+	 * Retourne toutes les factures qui incluent au moins une ligne référençant
+	 * le codeMission donné dans extraRef. Couvre à la fois la facture
+	 * auto-générée à la création (mission non INDEFINIE) et les factures de
+	 * facturation groupée (mission INDEFINIE en cours).
+	 */
+	@Transactional(readOnly = true)
+	public List<Facture> getFacturesByCodeMission(String codeMission) {
+		if (codeMission == null || codeMission.isBlank()) return List.of();
+		List<FactureEntity> entities = factureRepository.findByLigneExtraRef(codeMission);
+		// Inclure aussi la facture historique liée par numProforma (avant introduction
+		// de la facturation groupée multi-missions).
+		factureRepository.findByNumProforma(codeMission).ifPresent(f -> {
+			if (entities.stream().noneMatch(e -> e.getId().equals(f.getId()))) {
+				entities.add(f);
+			}
+		});
+		return entities.stream().map(this::toDtoWithItems).toList();
+	}
+
+	/**
+	 * Nomenclature unique des factures : {PREFIX}{seq} où PREFIX = "DA/01/79/".
+	 * Compteur partagé entre toutes les factures (client + fournisseur) : le
+	 * suffixe est calculé à partir du MAX(numProforma LIKE 'DA/01/79/%') et
+	 * incrémenté de 1. Pour les factures client, ce même numéro est utilisé
+	 * pour numProforma et numFacture.
+	 */
+	private static final String NUM_FACTURE_DA_PREFIX = "DA/01/79/";
+
+	private String generateNumFactureDA() {
+		Integer maxSuffix = factureRepository.findMaxNumProformaSuffix(NUM_FACTURE_DA_PREFIX);
 		int next = (maxSuffix != null ? maxSuffix : 0) + 1;
-		return NUM_PROFORMA_FOURNISSEUR_PREFIX + next;
+		return NUM_FACTURE_DA_PREFIX + next;
 	}
 
 	// ==================== CHANGEMENT DE STATUT ====================
@@ -464,7 +639,13 @@ public class FactureService {
 	 */
 	@Transactional
 	public FactureEntity genererAvoir(FactureEntity origine) {
-		String numAvoir = "AV-" + (origine.getNumFacture() != null ? origine.getNumFacture() : origine.getNumProforma());
+		// Pour un avoir sur facture client : on continue la séquence DA/01/79/{seq}
+		// (le document reste une facture client, même type de numérotation).
+		// Pour un avoir sur facture fournisseur : on garde le marqueur AV- pour
+		// distinguer du document d'origine, le numFacture fournisseur étant libre.
+		String numAvoir = Boolean.TRUE.equals(origine.getFactureClient())
+				? generateNumFactureDA()
+				: "AV-" + (origine.getNumFacture() != null ? origine.getNumFacture() : origine.getNumProforma());
 
 		FactureEntity avoir = FactureEntity.builder()
 				.factureClient(origine.getFactureClient())

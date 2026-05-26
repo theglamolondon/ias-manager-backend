@@ -15,6 +15,7 @@ import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
+import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import java.util.Objects;
@@ -65,19 +66,27 @@ public class MissionService {
 	// ==================== MISSIONS ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Mission> getAllMissions(String keyword, Pageable pageable) {
-		Page<MissionEntity> page = (keyword != null && !keyword.isBlank())
-				? missionRepository.searchByKeyword(keyword.trim(), pageable)
-				: missionRepository.findAll(pageable);
+	public PagedResponse<Mission> getAllMissions(String keyword, MissionStatutFilter statut, Pageable pageable) {
+		String keywordParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+		String statutParam = statut != null ? statut.name() : null;
+		Page<MissionEntity> page = (keywordParam == null && statutParam == null)
+				? missionRepository.findAll(pageable)
+				: missionRepository.search(keywordParam, statutParam, pageable);
 
 		List<String> codes = page.stream()
 				.map(MissionEntity::getCodeMission)
 				.filter(c -> c != null && !c.isBlank())
 				.toList();
-		java.util.Map<String, FactureEntity> facturesByCode = codes.isEmpty()
-				? java.util.Collections.emptyMap()
-				: factureRepository.findByNumProformaIn(codes).stream()
-						.collect(java.util.stream.Collectors.toMap(FactureEntity::getNumProforma, f -> f, (a, b) -> a));
+		// Lien mission ↔ facture par LigneFacture.extraRef (= codeMission), depuis
+		// que la numérotation facture est passée au format DA/01/79/{seq}.
+		java.util.Map<String, FactureEntity> facturesByCode = new java.util.HashMap<>();
+		if (!codes.isEmpty()) {
+			for (Object[] row : factureRepository.findFacturesByLigneExtraRefIn(codes)) {
+				String code = (String) row[0];
+				FactureEntity facture = (FactureEntity) row[1];
+				facturesByCode.putIfAbsent(code, facture);
+			}
+		}
 
 		return PagedResponse.of(page.map(entity -> {
 			Mission dto = missionMapper.toDto(entity);
@@ -85,6 +94,29 @@ public class MissionService {
 			if (facture != null) dto.setFacture(factureMapper.toDto(facture));
 			return dto;
 		}));
+	}
+
+	/**
+	 * Missions facturables au mois pour un client donné : tarification INDEFINIE,
+	 * démarrées et non terminées ni annulées. Utilisé pour la facturation
+	 * manuelle multi-missions depuis le module Factures Client.
+	 */
+	@Transactional(readOnly = true)
+	public List<Mission> getMissionsFacturables(Long clientId) {
+		List<MissionEntity> missions = missionRepository.findFacturablesByClient(clientId);
+		return missionMapper.toDtoList(missions);
+	}
+
+	/**
+	 * Retourne toutes les factures émises pour une mission donnée (mission
+	 * classique auto-facturée à la création, ou facturation groupée
+	 * multi-missions à tarification INDEFINIE).
+	 */
+	@Transactional(readOnly = true)
+	public List<Facture> getFacturesByMissionId(Long missionId) {
+		MissionEntity mission = missionRepository.findById(missionId)
+				.orElseThrow(() -> new ResourceNotFoundException("Mission", missionId));
+		return factureService.getFacturesByCodeMission(mission.getCodeMission());
 	}
 
 	@Transactional(readOnly = true)
@@ -102,9 +134,10 @@ public class MissionService {
 				.toList();
 		dto.setMedias(medias);
 
-		// La facture associée à une mission est indexée sur codeMission == numProforma.
+		// La facture associée à une mission est retrouvée via LigneFacture.extraRef.
 		if (entity.getCodeMission() != null) {
-			factureRepository.findByNumProforma(entity.getCodeMission())
+			factureRepository.findByLigneExtraRef(entity.getCodeMission()).stream()
+					.findFirst()
 					.ifPresent(facture -> dto.setFacture(factureMapper.toDto(facture)));
 		}
 
@@ -185,7 +218,7 @@ public class MissionService {
 
 		// 4. Si changement comptable + facture liée verrouillée → refus.
 		FactureEntity facture = entity.getCodeMission() != null
-				? factureRepository.findByNumProforma(entity.getCodeMission()).orElse(null)
+				? factureRepository.findByLigneExtraRef(entity.getCodeMission()).stream().findFirst().orElse(null)
 				: null;
 
 		if (comptableChanged && facture != null && isFactureVerrouillee(facture)) {
@@ -325,7 +358,7 @@ public class MissionService {
 		}
 
 		FactureEntity facture = mission.getCodeMission() != null
-				? factureRepository.findByNumProforma(mission.getCodeMission()).orElse(null)
+				? factureRepository.findByLigneExtraRef(mission.getCodeMission()).stream().findFirst().orElse(null)
 				: null;
 
 		if (facture != null) {
@@ -692,8 +725,9 @@ public class MissionService {
 		List<LigneFactureRequest> items = buildMissionFactureItems(mission);
 		long totalHt = items.stream().mapToLong(i -> i.getMontantHt() != null ? i.getMontantHt() : 0).sum();
 
+		// La numérotation client (DA/01/79/{seq}) est gérée par FactureService.createFacture.
+		// Le lien mission ↔ facture passe par LigneFacture.extraRef = mission.codeMission.
 		FactureRequest factureRequest = FactureRequest.builder()
-				.numProforma(mission.getCodeMission())
 				.objet("MISSION " + mission.getCodeMission())
 				.factureClient(true)
 				.partenaireId(mission.getClient().getId())

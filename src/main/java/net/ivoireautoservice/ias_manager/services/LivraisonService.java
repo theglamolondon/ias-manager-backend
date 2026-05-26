@@ -87,6 +87,10 @@ public class LivraisonService {
         FactureEntity facture = factureRepository.findById(factureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
 
+        if (facture.getType() == FactureTypeEnum.MISSION) {
+            throw new BadRequestException("Une facture de type MISSION ne peut pas faire l'objet d'une livraison client");
+        }
+
         if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.PAYEE) {
             throw new BadRequestException("La livraison client nécessite une facture PROFORMA ou PAYEE");
         }

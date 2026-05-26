@@ -31,4 +31,9 @@ public class EmployeRequest {
 	private String email;
 	private String lieuNaissance;
 	private Long serviceId;
+
+	private Boolean isChauffeur;
+	private String numeroPermis;
+	private LocalDate expDatePermis;
+	private String typePermis;
 }
