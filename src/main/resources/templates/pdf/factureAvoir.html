@@ -493,8 +493,8 @@
                 <tr th:each="item : ${facture.items}">
                     <td th:text="${item.designation}">-</td>
                     <td class="text-center" th:text="${#numbers.formatInteger(item.qte, 1)}">1</td>
-                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.prixUnitaire, 1, 'POINT') + ' FCFA'}">0</td>
-                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.montantHt, 1, 'POINT') + ' FCFA'}">0</td>
+                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.prixUnitaire, 1, 'WHITESPACE') + ' FCFA'}">0</td>
+                    <td class="text-right" th:text="${'-' + #numbers.formatInteger(item.montantHt, 1, 'WHITESPACE') + ' FCFA'}">0</td>
                 </tr>
             </tbody>
         </table>
@@ -514,15 +514,15 @@
                 <table class="totals-row-table">
                     <tr>
                         <td class="totals-label">Total HT</td>
-                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantHt, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                     <tr>
                         <td class="totals-label" th:text="'TVA (' + ${facture.tva != null ? facture.tva : 0} + '%)'">TVA (0%)</td>
-                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                     <tr class="grand-total">
                         <td class="totals-label">Total TTC</td>
-                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${'-' + #numbers.formatInteger(facture.montantTtc, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                 </table>
             </div>

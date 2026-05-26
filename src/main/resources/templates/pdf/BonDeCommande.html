@@ -393,21 +393,21 @@
                 <tr th:each="item : ${bonCommande.items}">
                     <td th:text="${item.reference != null ? item.reference : '#'}">#</td>
                     <td th:text="${item.designation}">D&#233;signation</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire != null ? item.prixUnitaire : 0, 1, 'POINT')}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire != null ? item.prixUnitaire : 0, 1, 'WHITESPACE')}">0</td>
                     <td class="text-center" th:text="${#numbers.formatInteger(item.qte != null ? item.qte : 0, 1)}">0</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt != null ? item.montantHt : 0, 1, 'POINT')}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt != null ? item.montantHt : 0, 1, 'WHITESPACE')}">0</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right">Montant HT</td>
-                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantHt != null ? bonCommande.montantHt : 0, 1, 'POINT')}">0</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantHt != null ? bonCommande.montantHt : 0, 1, 'WHITESPACE')}">0</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right" th:text="'TVA ' + ${bonCommande.tva != null ? bonCommande.tva : 18} + '%'">TVA 18%</td>
-                    <td class="value text-right" th:text="${#numbers.formatInteger(montantTva, 1, 'POINT')}">0</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(montantTva, 1, 'WHITESPACE')}">0</td>
                 </tr>
                 <tr>
                     <td colspan="4" class="text-right">Montant TTC</td>
-                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantTtc != null ? bonCommande.montantTtc : 0, 1, 'POINT')}">0</td>
+                    <td class="value text-right" th:text="${#numbers.formatInteger(bonCommande.montantTtc != null ? bonCommande.montantTtc : 0, 1, 'WHITESPACE')}">0</td>
                 </tr>
             </tbody>
         </table>

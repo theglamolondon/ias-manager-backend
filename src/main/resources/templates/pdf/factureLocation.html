@@ -374,6 +374,10 @@
 
         /* Footer */
         .invoice-footer {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            border-bottom: 8px solid #1b2a6b;
             border-top: 1px solid #d0d5e0;
             color: #5a6a8a;
             padding: 16px 40px;
@@ -386,12 +390,6 @@
         .invoice-footer p {
             margin: 0;
         }
-
-        .footer-bottom-bar {
-            height: 8px;
-            background-color: #1b2a6b;
-        }
-
         @page {
             size: A4;
             margin: 0;
@@ -492,11 +490,17 @@
                 <tr th:each="item : ${facture.items}">
                     <td class="text-center" th:text="${item.reference != null ? item.reference : '#'}">#</td>
                     <td th:text="${item.designation}">-</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire, 1, 'POINT')}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.prixUnitaire, 1, 'WHITESPACE')}">0</td>
                     <td class="text-center">1</td>
-                    <td class="text-center" th:text="${#numbers.formatInteger(item.qte, 1) + ' Jours'}">1 Jours</td>
+                    <td class="text-center"
+                        th:with="unite=${item.typeTarification == null ? 'Jours'
+                                       : (item.typeTarification.name() == 'MENSUELLE' ? 'Mois'
+                                       : (item.typeTarification.name() == 'UNIQUE' ? 'Forfait' : 'Jours'))}"
+                        th:text="${item.typeTarification != null and item.typeTarification.name() == 'UNIQUE'
+                                   ? unite
+                                   : #numbers.formatInteger(item.qte, 1) + ' ' + unite}">31</td>
                     <td class="text-center" th:text="${(item.remise != null ? #numbers.formatDecimal(item.remise, 1, 0) : '0') + ' %'}">0 %</td>
-                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt, 1, 'POINT')}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatInteger(item.montantHt, 1, 'WHITESPACE')}">0</td>
                 </tr>
             </tbody>
         </table>
@@ -516,15 +520,15 @@
                 <table class="totals-row-table">
                     <tr>
                         <td class="totals-label">Total HT</td>
-                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantHt, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                     <tr>
                         <td class="totals-label" th:text="'TVA (' + ${facture.tva != null ? facture.tva : 0} + '%)'">TVA (0%)</td>
-                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc - facture.montantHt, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                     <tr class="grand-total">
                         <td class="totals-label">Total TTC</td>
-                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc, 1, 'POINT') + ' FCFA'}">0 FCFA</td>
+                        <td class="totals-value" th:text="${#numbers.formatInteger(facture.montantTtc, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</td>
                     </tr>
                 </table>
             </div>
@@ -563,7 +567,6 @@
         <p>IBAN : CI93 CI04 2012 - Compte Bancaire BIAO N&#176; 03536196357524 - SWIFT Code : BIAOCIABXXX</p>
         <p>Email : commercial@ivoireautoservices.net</p>
     </div>
-    <div class="footer-bottom-bar"></div>
 </div>
 
 </body>

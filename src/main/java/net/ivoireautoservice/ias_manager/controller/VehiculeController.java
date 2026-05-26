@@ -9,11 +9,15 @@ import net.ivoireautoservice.ias_manager.dto.core.Vehicule;
 import net.ivoireautoservice.ias_manager.dto.core.VehiculeHistorique;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
+import net.ivoireautoservice.ias_manager.dto.response.ImportVehiculeResult;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
+import net.ivoireautoservice.ias_manager.services.ImportService;
 import net.ivoireautoservice.ias_manager.services.VehiculeService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +32,7 @@ import java.util.List;
 public class VehiculeController {
 
     private final VehiculeService vehiculeService;
+    private final ImportService importService;
 
     @GetMapping
     public ResponseEntity<PagedResponse<Vehicule>> getAllVehicules(
@@ -162,5 +167,22 @@ public class VehiculeController {
     public ResponseEntity<Void> deleteVehicule(@PathVariable Long vehiculeId) {
         vehiculeService.deleteVehicule(vehiculeId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== IMPORT EXCEL ====================
+
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<List<ImportVehiculeResult>> importVehicules(@RequestParam MultipartFile file) {
+        List<ImportVehiculeResult> results = importService.importVehicules(file);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/import/template")
+    public ResponseEntity<byte[]> getImportTemplate() {
+        byte[] bytes = importService.generateImportTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename("modele_import_vehicules.xlsx").build());
+        return ResponseEntity.ok().headers(headers).body(bytes);
     }
 }

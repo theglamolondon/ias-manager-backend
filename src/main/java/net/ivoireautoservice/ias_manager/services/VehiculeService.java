@@ -287,12 +287,12 @@ public class VehiculeService {
         // 3. Trouver les lignes facture liées via extraRef (restreintes aux
         // factures de type MISSION pour éviter les faux positifs avec les
         // extraRef de lignes de factures fournisseur).
-        Map<String, LigneFactureEntity> ligneFactureByCodeMission = new java.util.HashMap<>();
+        // On conserve TOUTES les lignes par codeMission (location + perdiem éventuel).
+        Map<String, List<LigneFactureEntity>> lignesByCodeMission = new java.util.HashMap<>();
         if (!codeMissions.isEmpty()) {
             List<LigneFactureEntity> lignesFacture = ligneFactureRepository.findByExtraRefInForMission(codeMissions);
             for (LigneFactureEntity lf : lignesFacture) {
-                // On garde la première ligne par codeMission (pour accéder à la facture)
-                ligneFactureByCodeMission.putIfAbsent(lf.getExtraRef(), lf);
+                lignesByCodeMission.computeIfAbsent(lf.getExtraRef(), k -> new java.util.ArrayList<>()).add(lf);
             }
         }
 
@@ -309,22 +309,29 @@ public class VehiculeService {
             totalDepensesMissions += totalDepensesMission;
 
             // Facture liée
-            LigneFactureEntity ligneFacture = ligneFactureByCodeMission.get(m.getCodeMission());
+            List<LigneFactureEntity> lignesMission = lignesByCodeMission.getOrDefault(m.getCodeMission(), List.of());
             Long factureId = null;
             String numFacture = null;
             net.ivoireautoservice.ias_manager.enums.FactureStatusEnum factureStatut = null;
             Long montantFactureTtc = null;
 
-            if (ligneFacture != null && ligneFacture.getFacture() != null) {
-                var facture = ligneFacture.getFacture();
+            if (!lignesMission.isEmpty() && lignesMission.get(0).getFacture() != null) {
+                var facture = lignesMission.get(0).getFacture();
                 factureId = facture.getId();
                 numFacture = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
                 factureStatut = facture.getStatut();
-                montantFactureTtc = facture.getMontantTtc();
 
-                if (facture.getStatut() == net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE
-                        && facture.getMontantTtc() != null) {
-                    totalGains += facture.getMontantTtc();
+                // Somme du HT des lignes propres à cette mission (location + perdiem),
+                // puis application de la TVA de la facture — évite de compter le TTC
+                // total d'une facture groupée multi-véhicules.
+                long missionHt = lignesMission.stream()
+                        .mapToLong(l -> l.getMontantHt() != null ? l.getMontantHt() : 0L)
+                        .sum();
+                float tva = facture.getTva() != null ? facture.getTva() : 0f;
+                montantFactureTtc = missionHt + Math.round(missionHt * tva / 100f);
+
+                if (facture.getStatut() == net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE) {
+                    totalGains += montantFactureTtc;
                 }
             }
 

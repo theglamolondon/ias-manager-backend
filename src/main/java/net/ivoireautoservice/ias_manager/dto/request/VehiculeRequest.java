@@ -22,7 +22,7 @@ public class VehiculeRequest {
 	private String immatriculation;
 
 	private LocalDate dateImmatriculation;
-//	private String numChassis;
+	private String numChassis;
 	private String couleur;
 	private LocalDate dateAchat;
 	private Long coutAchat;
