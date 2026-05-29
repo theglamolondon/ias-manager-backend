@@ -87,9 +87,9 @@ public class LivraisonService {
         FactureEntity facture = factureRepository.findById(factureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
 
-        if (facture.getType() == FactureTypeEnum.MISSION) {
-            throw new BadRequestException("Une facture de type MISSION ne peut pas faire l'objet d'une livraison client");
-        }
+        // if (facture.getType() == FactureTypeEnum.MISSION) {
+        //     throw new BadRequestException("Une facture de type MISSION ne peut pas faire l'objet d'une livraison client");
+        // }
 
         if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.PAYEE) {
             throw new BadRequestException("La livraison client nécessite une facture PROFORMA ou PAYEE");
@@ -133,6 +133,53 @@ public class LivraisonService {
         // Construire la réponse
         LivraisonClient dto = livraisonClientMapper.toDto(savedLivraison);
         dto.setSorties(sortieProduitMapper.toDtoList(sorties));
+        return dto;
+    }
+
+    @Transactional
+    public LivraisonFournisseur enregistrerLivraisonFournisseurFromFacture(Long factureId) {
+        FactureEntity facture = factureRepository.findById(factureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
+
+        if (Boolean.TRUE.equals(facture.getFactureClient())) {
+            throw new BadRequestException("Impossible de créer un BL fournisseur depuis une facture client");
+        }
+        if (facture.getType() == FactureTypeEnum.MISSION) {
+            throw new BadRequestException("Une facture de type MISSION ne peut pas faire l'objet d'un bon de livraison fournisseur");
+        }
+        if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.FACTUREE) {
+            throw new BadRequestException("Le bon de livraison ne peut être généré que pour une facture PROFORMA ou FACTUREE");
+        }
+        if (livraisonFournisseurRepository.existsByFactureId(factureId)) {
+            throw new BadRequestException("Cette facture a déjà fait l'objet d'un bon de livraison fournisseur");
+        }
+
+        String numero = "BLF-" + factureId + "-" + System.currentTimeMillis();
+
+        LivraisonFournisseurEntity livraison = LivraisonFournisseurEntity.builder()
+                .numero(numero)
+                .dhmsLivraison(LocalDateTime.now())
+                .facture(facture)
+                .statut(StatutBonLivraisonEnum.CREE)
+                .createdBy(securityService.getUtilisateurConnecteOrNull())
+                .build();
+        LivraisonFournisseurEntity saved = livraisonFournisseurRepository.save(livraison);
+
+        List<EntreeProduitEntity> entrees = new ArrayList<>();
+        List<LigneFactureEntity> lignes = ligneFactureRepository.findByFactureId(factureId);
+        for (LigneFactureEntity ligne : lignes) {
+            if (ligne.getProduit() != null && ligne.getQte() != null) {
+                EntreeProduitEntity entree = EntreeProduitEntity.builder()
+                        .quantite(ligne.getQte())
+                        .livraisonFournisseur(saved)
+                        .produit(ligne.getProduit())
+                        .build();
+                entrees.add(entreeProduitRepository.save(entree));
+            }
+        }
+
+        LivraisonFournisseur dto = livraisonFournisseurMapper.toDto(saved);
+        dto.setEntrees(entreeProduitMapper.toDtoList(entrees));
         return dto;
     }
 

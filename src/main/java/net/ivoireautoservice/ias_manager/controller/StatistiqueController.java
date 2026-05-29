@@ -31,6 +31,11 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getVehiculeStats());
 	}
 
+	@GetMapping("/vehicules/alertes")
+	public ResponseEntity<VehiculeAlertesStats> getVehiculeAlertesStats() {
+		return ResponseEntity.ok(statistiqueService.getVehiculeAlertesStats());
+	}
+
 	@GetMapping("/missions")
 	public ResponseEntity<MissionStats> getMissionStats(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,

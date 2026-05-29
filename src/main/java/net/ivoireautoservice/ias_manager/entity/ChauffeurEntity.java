@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 
 import java.time.LocalDate;
 
@@ -29,4 +30,9 @@ public class ChauffeurEntity extends AuditableEntity {
 
 	private LocalDate expDatePermis;
 	private String typePermis;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	@Builder.Default
+	private StatutChauffeurEnum statut = StatutChauffeurEnum.DISPONIBLE;
 }

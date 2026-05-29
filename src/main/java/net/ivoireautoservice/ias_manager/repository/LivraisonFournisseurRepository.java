@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface LivraisonFournisseurRepository extends JpaRepository<LivraisonFournisseurEntity, Long> {
 
     Optional<LivraisonFournisseurEntity> findByNumero(String numero);
+    boolean existsByFactureId(Long factureId);
     /**
      * Hérité de l'ancien modèle 1:1 facture↔BL. Ne plus utiliser : préférer {@link #findAllByFactureId(Long)}.
      * Conservée pour les codes existants qui ne s'attendent qu'à un seul BL par facture (livraisons antérieures à la facturation groupée).

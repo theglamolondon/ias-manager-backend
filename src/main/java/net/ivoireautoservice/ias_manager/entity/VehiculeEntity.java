@@ -38,6 +38,9 @@ public class VehiculeEntity extends AuditableEntity {
 	private Long kilometrage;
 	private LocalDate finValiditeVisite;
 	private LocalDate finValiditeAssurance;
+	private LocalDate finValiditePatente;
+	private LocalDate finValiditeCarteStationnement;
+	private LocalDate finValiditeCarteTransport;
 	private LocalDate dateMiseCirculation;
 	private LocalDate dateFinGarantie;
 	private String concessionnaire;

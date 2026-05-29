@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
+import net.ivoireautoservice.ias_manager.dto.request.AffecterChauffeurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
@@ -89,6 +90,15 @@ public class MissionController {
 			@PathVariable Long id,
 			@RequestBody(required = false) AnnulerMissionRequest request) {
 		return ResponseEntity.ok(missionService.annulerMission(id, request != null ? request : new AnnulerMissionRequest()));
+	}
+
+	// ==================== AFFECTATION CHAUFFEUR ====================
+
+	@PatchMapping("/{id}/affecter-chauffeur")
+	public ResponseEntity<Mission> affecterChauffeur(
+			@PathVariable Long id,
+			@RequestBody AffecterChauffeurRequest request) {
+		return ResponseEntity.ok(missionService.affecterChauffeur(id, request));
 	}
 
 	// ==================== CHANGEMENT DE VEHICULE ====================

@@ -180,17 +180,26 @@ public class FactureService {
 		if (entity.getNature() == FactureNatureEnum.AVOIR) {
 			throw new BadRequestException("Une facture d'avoir ne peut pas être modifiée");
 		}
-		if (entity.getStatut() == FactureStatusEnum.ANNULEE) {
-			throw new BadRequestException("Impossible de modifier une facture annulée");
-		}
-		if (entity.getStatut() == FactureStatusEnum.PAYEE) {
-			throw new BadRequestException("Impossible de modifier une facture payée");
+		if (entity.getStatut() != FactureStatusEnum.BROUILLON && entity.getStatut() != FactureStatusEnum.PROFORMA) {
+			throw new BadRequestException("Seule une facture en brouillon ou proforma peut être modifiée (statut actuel : " + entity.getStatut() + ")");
 		}
 
 		factureMapper.updateEntity(request, entity);
 		resolveRelations(request, entity);
 
 		FactureEntity saved = factureRepository.save(entity);
+
+		if (entity.getStatut() == FactureStatusEnum.BROUILLON || entity.getStatut() == FactureStatusEnum.PROFORMA) {
+			List<LigneFactureEntity> existing = ligneFactureRepository.findByFactureId(saved.getId());
+			if (!existing.isEmpty()) {
+				ligneFactureRepository.deleteAll(existing);
+			}
+			List<LigneFactureEntity> lignes = saveLignes(saved, request.getItems());
+			Facture dto = factureMapper.toDto(saved);
+			dto.setItems(ligneFactureMapper.toDtoList(lignes));
+			return dto;
+		}
+
 		return toDtoWithItems(saved);
 	}
 
@@ -797,6 +806,34 @@ public class FactureService {
 			template = "pdf/factureProforma";
 		}
 		return printService.generatePdf(template, data);
+	}
+
+	/**
+	 * Génère une Pièce de Caisse (reçu de caisse) pour une facture donnée.
+	 * Le document est produit en deux exemplaires (Original + Duplicata) sur
+	 * une seule page A4 avec ligne de coupe centrale.
+	 *
+	 * La case cochée est :
+	 *  - RECETTE si la facture est une facture client (encaissement)
+	 *  - DÉPENSE si la facture est une facture fournisseur (décaissement)
+	 */
+	@Transactional(readOnly = true)
+	public byte[] generatePieceDeConsigne(Long factureId) {
+		FactureEntity entity = factureRepository.findById(factureId)
+				.orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
+
+		Facture facture = toDtoWithItems(entity);
+		PartenaireEntity partenaire = entity.getPartenaire();
+
+		Map<String, Object> data = new HashMap<>();
+		data.put("facture", facture);
+		data.put("partenaire", partenaire);
+		data.put("montantEnLettres", moneyUtils.montantEnLettre(facture.getMontantTtc()));
+		data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+		// true = Recette (client paie GIAS), false = Dépense (GIAS paie fournisseur)
+		data.put("isRecette", Boolean.TRUE.equals(entity.getFactureClient()));
+
+		return printService.generatePdf("pdf/pieceDeConsigne", data);
 	}
 
 	// ==================== HELPERS ====================

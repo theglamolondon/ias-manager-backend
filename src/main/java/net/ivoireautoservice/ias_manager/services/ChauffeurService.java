@@ -6,12 +6,11 @@ import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.ChauffeurRequest;
 import net.ivoireautoservice.ias_manager.entity.ChauffeurEntity;
 import net.ivoireautoservice.ias_manager.entity.EmployeEntity;
+import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.ChauffeurMapper;
 import net.ivoireautoservice.ias_manager.repository.ChauffeurRepository;
 import net.ivoireautoservice.ias_manager.repository.EmployeRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,7 +25,6 @@ public class ChauffeurService {
     private final ChauffeurRepository chauffeurRepository;
     private final EmployeRepository employeRepository;
     private final ChauffeurMapper chauffeurMapper;
-    private final Logger logger = LoggerFactory.getLogger(ChauffeurService.class);
 
     @Transactional(readOnly = true)
     public List<Chauffeur> getAllChauffeurs() {
@@ -34,10 +32,20 @@ public class ChauffeurService {
     }
 
     @Transactional(readOnly = true)
-    public PagedResponse<Chauffeur> getAllChauffeurs(String keyword, Pageable pageable) {
-        Page<ChauffeurEntity> page = (keyword != null && !keyword.isBlank())
-                ? chauffeurRepository.searchByKeyword(keyword.trim(), pageable)
-                : chauffeurRepository.findAll(pageable);
+    public PagedResponse<Chauffeur> getAllChauffeurs(String keyword, StatutChauffeurEnum statut, Pageable pageable) {
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+        boolean hasStatut = statut != null;
+
+        Page<ChauffeurEntity> page;
+        if (hasKeyword && hasStatut) {
+            page = chauffeurRepository.searchByKeywordAndStatut(keyword.trim(), statut, pageable);
+        } else if (hasKeyword) {
+            page = chauffeurRepository.searchByKeyword(keyword.trim(), pageable);
+        } else if (hasStatut) {
+            page = chauffeurRepository.findByStatut(statut, pageable);
+        } else {
+            page = chauffeurRepository.findAll(pageable);
+        }
         return PagedResponse.of(page.map(chauffeurMapper::toDto));
     }
 
@@ -65,6 +73,7 @@ public class ChauffeurService {
     @Transactional
     public Chauffeur createChauffeur(ChauffeurRequest request) {
         ChauffeurEntity entity = chauffeurMapper.toEntity(request);
+        entity.setStatut(StatutChauffeurEnum.DISPONIBLE);
         resolveEmploye(request, entity);
 
         ChauffeurEntity saved = chauffeurRepository.save(entity);
@@ -81,6 +90,14 @@ public class ChauffeurService {
 
         ChauffeurEntity saved = chauffeurRepository.save(entity);
         return chauffeurMapper.toDto(saved);
+    }
+
+    @Transactional
+    public Chauffeur changerStatut(Long id, StatutChauffeurEnum statut) {
+        ChauffeurEntity entity = chauffeurRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Chauffeur", id));
+        entity.setStatut(statut);
+        return chauffeurMapper.toDto(chauffeurRepository.save(entity));
     }
 
     @Transactional

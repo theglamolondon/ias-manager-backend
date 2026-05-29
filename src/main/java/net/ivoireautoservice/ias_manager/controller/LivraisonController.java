@@ -103,6 +103,13 @@ public class LivraisonController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PostMapping("/fournisseurs/facture/{factureId}")
+    public ResponseEntity<LivraisonFournisseur> enregistrerLivraisonFournisseurFromFacture(
+            @PathVariable Long factureId) {
+        LivraisonFournisseur created = livraisonService.enregistrerLivraisonFournisseurFromFacture(factureId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
     @PatchMapping("/fournisseurs/{id}/valider")
     public ResponseEntity<LivraisonFournisseur> validerLivraisonFournisseur(
             @PathVariable Long id,

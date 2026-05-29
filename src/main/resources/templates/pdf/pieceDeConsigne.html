@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Pièce de Caisse</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        @page {
+            size: 148mm 210mm;
+            margin: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            color: #1a1a2e;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            width: 148mm;
+            height: 210mm;
+        }
+
+        .page {
+            width: 148mm;
+            height: 210mm;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ── Barre supérieure ── */
+        .top-band {
+            background: #1b2a6b;
+            height: 7px;
+            flex-shrink: 0;
+        }
+
+        /* ── Corps principal ── */
+        .body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 6mm 9mm 5mm 9mm;
+            gap: 0;
+        }
+
+        /* ── En-tête ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5mm;
+        }
+
+        .logo img {
+            width: 80px;
+            height: auto;
+        }
+
+        .header-right {
+            text-align: right;
+        }
+
+        .doc-title {
+            font-size: 17px;
+            font-weight: 900;
+            color: #1b2a6b;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+
+        .doc-company {
+            font-size: 8px;
+            color: #7a8aaa;
+            letter-spacing: 0.8px;
+            margin-top: 2px;
+        }
+
+        .doc-number {
+            font-size: 11px;
+            font-weight: 800;
+            color: #1b2a6b;
+            margin-top: 4px;
+        }
+
+        .doc-badge {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 2px 9px;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .badge-recette { background: #e8f5e9; color: #2e7d32; }
+        .badge-depense { background: #fce4ec; color: #c62828; }
+
+        /* ── Séparateur fin ── */
+        .divider {
+            height: 1px;
+            background: #dde2f0;
+            margin-bottom: 4mm;
+        }
+
+        /* ── Champs identité ── */
+        .info-section {
+            margin-bottom: 4mm;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: baseline;
+            padding: 2.5px 0;
+        }
+
+        .info-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #5a6a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            width: 28mm;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            font-size: 10px;
+            font-weight: 600;
+            color: #1a1a2e;
+            flex: 1;
+        }
+
+        /* ── Bloc montant ── */
+        .amount-block {
+            background: #f0f4fb;
+            border-left: 4px solid #1b2a6b;
+            border-radius: 0 4px 4px 0;
+            padding: 4mm 5mm;
+            margin-bottom: 4mm;
+        }
+
+        .amount-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .amount-label {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #5a6a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .amount-figure {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1b2a6b;
+            letter-spacing: 0.5px;
+        }
+
+        .amount-lettres {
+            margin-top: 3px;
+            font-size: 9px;
+            font-style: italic;
+            color: #4a5568;
+            line-height: 1.4;
+        }
+
+        /* ── Mode de règlement ── */
+        .reglement-section {
+            margin-bottom: 4mm;
+        }
+
+        .section-title {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #5a6a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2.5mm;
+        }
+
+        .reglement-row {
+            display: flex;
+            align-items: center;
+            gap: 6mm;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .checkbox {
+            width: 11px;
+            height: 11px;
+            border: 1.5px solid #1b2a6b;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .checkbox-filled {
+            width: 11px;
+            height: 11px;
+            border: 1.5px solid #1b2a6b;
+            border-radius: 2px;
+            background: #1b2a6b;
+            flex-shrink: 0;
+        }
+
+        .check-label {
+            font-size: 9.5px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .inline-field {
+            display: flex;
+            align-items: center;
+            gap: 2mm;
+            flex: 1;
+        }
+
+        .inline-field-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: #5a6a8a;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .field-line {
+            flex: 1;
+            border-bottom: 1px solid #b0bcd8;
+            height: 14px;
+        }
+
+        /* ── Signatures ── */
+        .sigs-section {
+            margin-top: auto;
+            display: flex;
+            gap: 8mm;
+        }
+
+        .sig-block {
+            flex: 1;
+        }
+
+        .sig-title {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #1b2a6b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sig-sub {
+            font-size: 7.5px;
+            color: #7a8aaa;
+            font-style: italic;
+            margin-top: 1px;
+            margin-bottom: 12mm;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #1a1a2e;
+        }
+
+        /* ── Barre inférieure + footer ── */
+        .bottom-area {
+            flex-shrink: 0;
+        }
+
+        .footer-text {
+            font-size: 7px;
+            color: #7a8aaa;
+            text-align: center;
+            padding: 2mm 9mm;
+            line-height: 1.5;
+        }
+
+        .bottom-band {
+            background: #1b2a6b;
+            height: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page">
+
+    <div class="top-band"></div>
+
+    <div class="body">
+
+        <!-- En-tête -->
+        <div class="header">
+            <div class="logo">
+                <img th:src="${logoUrl}" alt="IAS" />
+            </div>
+            <div class="header-right">
+                <div class="doc-title">Pièce de Caisse</div>
+                <div class="doc-company">Ivoire Auto Services Groupe SARL</div>
+                <div class="doc-number">N&#176; <span th:text="${facture.numFacture != null ? facture.numFacture : facture.numProforma}">DA/01/79/0001</span></div>
+                <span th:class="${isRecette ? 'doc-badge badge-recette' : 'doc-badge badge-depense'}"
+                      th:text="${isRecette ? 'Recette' : 'Dépense'}">Recette</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Informations -->
+        <div class="info-section">
+            <div class="info-row">
+                <span class="info-label">Reçu de</span>
+                <span class="info-value" th:text="${partenaire.raisonSociale}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date</span>
+                <span class="info-value" th:text="${#temporals.format(facture.createdAt, 'dd/MM/yyyy')}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Téléphone</span>
+                <span class="info-value" th:text="${partenaire.telephone1 != null ? partenaire.telephone1 : '—'}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Réf. facture</span>
+                <span class="info-value" th:text="${facture.numFacture != null ? facture.numFacture : facture.numProforma}">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Motif</span>
+                <span class="info-value" th:text="${facture.objet != null ? facture.objet : '—'}">—</span>
+            </div>
+        </div>
+
+        <!-- Montant -->
+        <div class="amount-block">
+            <div class="amount-row">
+                <div class="amount-label">Montant reçu</div>
+                <div class="amount-figure" th:text="${#numbers.formatInteger(facture.montantTtc, 1, 'WHITESPACE') + ' FCFA'}">0 FCFA</div>
+            </div>
+            <div class="amount-lettres">
+                <span>Arrêté la présente somme à : </span>
+                <span th:text="${montantEnLettres}">—</span>
+            </div>
+        </div>
+
+        <!-- Mode de règlement -->
+        <div class="reglement-section">
+            <div class="section-title">Mode de règlement</div>
+            <div class="reglement-row">
+                <div class="check-item">
+                    <div class="checkbox-filled"></div>
+                    <span class="check-label">Espèces</span>
+                </div>
+                <div class="check-item">
+                    <div class="checkbox"></div>
+                    <span class="check-label">Chèque</span>
+                </div>
+                <div class="inline-field">
+                    <span class="inline-field-label">N&#176;</span>
+                    <div class="field-line"></div>
+                </div>
+                <div class="inline-field">
+                    <span class="inline-field-label">Banque</span>
+                    <div class="field-line"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures -->
+        <div class="sigs-section">
+            <div class="sig-block">
+                <div class="sig-title">Pour acquit</div>
+                <div class="sig-sub">(Nom, date et signature)</div>
+                <div class="sig-line"></div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-title">Le Caissier</div>
+                <div class="sig-sub">&#160;</div>
+                <div class="sig-line"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="bottom-area">
+        <div class="footer-text">
+            Situé à Cocody Angré 8ème tranche, non loin du carrefour de la prière &#8212;
+            Tél : +225 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83 &#8212;
+            13 BP 1715 Abidjan 13 &#8212; N°CC : 1912797 L &#8212; N°RC : CI-ABJ-2019-B-02715
+        </div>
+        <div class="bottom-band"></div>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -4,5 +4,6 @@ public enum PieceJointeOwnerTypeEnum {
     BON_COMMANDE,
     LIVRAISON_FOURNISSEUR,
     LIVRAISON_CLIENT,
-    FACTURE
+    FACTURE,
+    PARTENAIRE
 }

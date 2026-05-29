@@ -19,6 +19,7 @@ public class Livraison {
 	private LocalDateTime dhmsLivraison;
 	private Long factureId;
 	private String factureNumProforma;
+	private String factureType;
 	private Long createdById;
 	private String createdByNom;
 }

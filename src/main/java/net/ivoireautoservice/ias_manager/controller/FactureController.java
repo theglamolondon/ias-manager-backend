@@ -134,6 +134,15 @@ public class FactureController {
 		return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
 	}
 
+	@GetMapping("/{id}/recu")
+	public ResponseEntity<byte[]> generateRecu(@PathVariable Long id) {
+		byte[] pdf = factureService.generatePieceDeConsigne(id);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_PDF);
+		headers.setContentDispositionFormData("inline", "recu-" + id + ".pdf");
+		return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+	}
+
 	@PatchMapping("/{id}/statut")
 	public ResponseEntity<?> changerStatut(
 			@PathVariable Long id,

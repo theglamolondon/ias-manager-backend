@@ -9,6 +9,7 @@ import net.ivoireautoservice.ias_manager.entity.FactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LivraisonClientEntity;
 import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
 import net.ivoireautoservice.ias_manager.entity.MediaEntity;
+import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.PieceJointeEntity;
 import net.ivoireautoservice.ias_manager.enums.PieceJointeOwnerTypeEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
@@ -19,6 +20,7 @@ import net.ivoireautoservice.ias_manager.repository.FactureRepository;
 import net.ivoireautoservice.ias_manager.repository.LivraisonClientRepository;
 import net.ivoireautoservice.ias_manager.repository.LivraisonFournisseurRepository;
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
+import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
 import net.ivoireautoservice.ias_manager.repository.PieceJointeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ public class PieceJointeService {
     private final LivraisonFournisseurRepository livraisonFournisseurRepository;
     private final LivraisonClientRepository livraisonClientRepository;
     private final FactureRepository factureRepository;
+    private final PartenaireRepository partenaireRepository;
 
     private Path uploadPath;
 
@@ -145,6 +148,9 @@ public class PieceJointeService {
             case FACTURE -> factureRepository.findById(ownerId)
                     .map(FactureEntity::getId)
                     .orElseThrow(() -> new ResourceNotFoundException("Facture", ownerId));
+            case PARTENAIRE -> partenaireRepository.findById(ownerId)
+                    .map(PartenaireEntity::getId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Partenaire", ownerId));
         }
     }
 

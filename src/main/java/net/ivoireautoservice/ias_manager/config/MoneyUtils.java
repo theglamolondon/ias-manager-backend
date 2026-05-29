@@ -12,6 +12,8 @@ public class MoneyUtils {
 			new RuleBasedNumberFormat(Locale.FRENCH, RuleBasedNumberFormat.SPELLOUT);
 
 	public String montantEnLettre(double montant) {
-		return formatter.format(montant).toUpperCase() + " FRANCS CFA";
+		String lettres = formatter.format(montant);
+		lettres = lettres.substring(0, 1).toUpperCase() + lettres.substring(1).toLowerCase();
+		return lettres + " Francs CFA";
 	}
 }

@@ -34,6 +34,9 @@ public class VehiculeRequest {
 	private Long kilometrage;
 	private LocalDate finValiditeVisite;
 	private LocalDate finValiditeAssurance;
+	private LocalDate finValiditePatente;
+	private LocalDate finValiditeCarteStationnement;
+	private LocalDate finValiditeCarteTransport;
 	private LocalDate dateMiseCirculation;
 	private LocalDate dateFinGarantie;
 	private String concessionnaire;

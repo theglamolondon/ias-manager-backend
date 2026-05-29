@@ -33,6 +33,6 @@ public class LivraisonFournisseurEntity extends BaseLivraisonEntity {
 	private LocalDateTime dateAnnulation;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "bon_commande_id", referencedColumnName = "id", nullable = false)
+	@JoinColumn(name = "bon_commande_id", referencedColumnName = "id", nullable = true)
 	private BonCommandeEntity bonCommande;
 }

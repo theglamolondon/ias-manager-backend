@@ -17,6 +17,7 @@ public interface LivraisonClientMapper {
 
     @Mapping(source = "facture.id", target = "factureId")
     @Mapping(source = "facture.numProforma", target = "factureNumProforma")
+    @Mapping(source = "facture.type", target = "factureType")
     @Mapping(source = "createdBy.id", target = "createdById")
     @Mapping(source = "createdBy", target = "createdByNom", qualifiedByName = "livraisonClientUtilisateurNom")
     @Mapping(target = "sorties", ignore = true)

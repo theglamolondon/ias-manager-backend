@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
+import net.ivoireautoservice.ias_manager.dto.request.AffecterChauffeurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
@@ -16,6 +17,7 @@ import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
+import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import java.util.Objects;
@@ -147,14 +149,10 @@ public class MissionService {
 
 	@Transactional
 	public Mission createMission(MissionRequest request) {
-		// Validation sous-traitance / chauffeur
+		// Validation sous-traitance
 		if (Boolean.TRUE.equals(request.getIsSousTraitee())) {
 			if (request.getDetailsVehiculeSousTraitance() == null || request.getDetailsVehiculeSousTraitance().isBlank()) {
 				throw new BadRequestException("Les détails du véhicule de sous-traitance sont obligatoires pour une mission sous-traitée");
-			}
-		} else {
-			if (Boolean.TRUE.equals(request.getWithChauffeur()) && request.getChauffeurId() == null) {
-				throw new BadRequestException("Le chauffeur est obligatoire pour une mission avec chauffeur");
 			}
 		}
 
@@ -215,8 +213,6 @@ public class MissionService {
 			if (request.getDetailsVehiculeSousTraitance() == null || request.getDetailsVehiculeSousTraitance().isBlank()) {
 				throw new BadRequestException("Les détails du véhicule de sous-traitance sont obligatoires pour une mission sous-traitée");
 			}
-		} else if (Boolean.TRUE.equals(request.getWithChauffeur()) && request.getChauffeurId() == null) {
-			throw new BadRequestException("Le chauffeur est obligatoire pour une mission avec chauffeur");
 		}
 
 		// 3. Détection des changements "comptables" (impactent la facture).
@@ -308,6 +304,17 @@ public class MissionService {
 		vehicule.setStatut(VehiculeStatusEnum.MISSION);
 		vehiculeRepository.save(vehicule);
 
+		// Passer le chauffeur en statut MISSION s'il est affecté et disponible.
+		ChauffeurEntity chauffeur = entity.getChauffeur();
+		if (chauffeur != null && Boolean.TRUE.equals(entity.getWithChauffeur())) {
+			if (chauffeur.getStatut() != StatutChauffeurEnum.DISPONIBLE) {
+				throw new BadRequestException("Le chauffeur " + chauffeur.getEmploye().getNom()
+						+ " n'est pas disponible (statut : " + chauffeur.getStatut() + ")");
+			}
+			chauffeur.setStatut(StatutChauffeurEnum.MISSION);
+			chauffeurRepository.save(chauffeur);
+		}
+
 		MissionEntity saved = missionRepository.save(entity);
 		return missionMapper.toDto(saved);
 	}
@@ -326,14 +333,21 @@ public class MissionService {
 
 		entity.setDhmsFinReel(date);
 
-		// Restituer le véhicule : DISPONIBLE par défaut, PANNE s'il a une intervention en cours.
-		// Si son statut a été changé en externe (REFORME, INDISPONIBLE…), on ne l'écrase pas.
+		// Restituer le véhicule : DISPONIBLE par défaut, GARAGE s'il a une intervention en cours.
+		// Si son statut a été changé en externe (SINISTRE, REFORME, INDISPONIBLE…), on ne l'écrase pas.
 		VehiculeEntity vehicule = entity.getVehicule();
 		if (vehicule.getStatut() == VehiculeStatusEnum.MISSION) {
 			boolean interventionActive = interventionRepository.existsByVehiculeIdAndStatut(
 					vehicule.getId(), InterventionStatut.EN_COURS);
-			vehicule.setStatut(interventionActive ? VehiculeStatusEnum.PANNE : VehiculeStatusEnum.DISPONIBLE);
+			vehicule.setStatut(interventionActive ? VehiculeStatusEnum.GARAGE : VehiculeStatusEnum.DISPONIBLE);
 			vehiculeRepository.save(vehicule);
+		}
+
+		// Remettre le chauffeur DISPONIBLE s'il était en MISSION.
+		ChauffeurEntity chauffeur = entity.getChauffeur();
+		if (chauffeur != null && chauffeur.getStatut() == StatutChauffeurEnum.MISSION) {
+			chauffeur.setStatut(StatutChauffeurEnum.DISPONIBLE);
+			chauffeurRepository.save(chauffeur);
 		}
 
 		MissionEntity saved = missionRepository.save(entity);
@@ -471,9 +485,13 @@ public class MissionService {
 			ancienneMission.setTotalPerdiem(ancienneMission.getPerdiem().multiply(BigDecimal.valueOf(dureeReelleJours)));
 		}
 
-		// Libérer l'ancien véhicule
+		// Mettre l'ancien véhicule dans le statut choisi par l'utilisateur (GARAGE ou SINISTRE)
 		VehiculeEntity ancienVehicule = ancienneMission.getVehicule();
-		ancienVehicule.setStatut(VehiculeStatusEnum.DISPONIBLE);
+		VehiculeStatusEnum statutAncienVehicule = request.getNouveauStatutAncienVehicule();
+		if (statutAncienVehicule != VehiculeStatusEnum.GARAGE && statutAncienVehicule != VehiculeStatusEnum.SINISTRE) {
+			statutAncienVehicule = VehiculeStatusEnum.GARAGE; // valeur par défaut sécurisée
+		}
+		ancienVehicule.setStatut(statutAncienVehicule);
 		vehiculeRepository.save(ancienVehicule);
 
 		missionRepository.save(ancienneMission);
@@ -517,10 +535,9 @@ public class MissionService {
 		// - UNIQUE : forfait reporté tel quel (montantTotalHT = tarif)
 		// - INDEFINIE : pas de calcul si pas de fin prévi
 		if (typeAncienne == TypeTarificationEnum.UNIQUE) {
+			// P2 : forfait déjà facturé sur l'ancienne mission → montant = 0 sur la nouvelle
 			nouvelleMission.setDureeLocation(dureeRestanteJours);
-			if (nouvelleMission.getTarif() != null) {
-				nouvelleMission.setMontantTotalHT(nouvelleMission.getTarif());
-			}
+			nouvelleMission.setMontantTotalHT(BigDecimal.ZERO);
 		} else if (typeAncienne == TypeTarificationEnum.INDEFINIE && finPrevi == null) {
 			nouvelleMission.setDureeLocation(null);
 			nouvelleMission.setMontantTotalHT(null);
@@ -599,6 +616,51 @@ public class MissionService {
 		photoMissionRepository.save(photo);
 
 		return media;
+	}
+
+	// ==================== AFFECTATION CHAUFFEUR ====================
+
+	@Transactional
+	public Mission affecterChauffeur(Long id, AffecterChauffeurRequest request) {
+		MissionEntity entity = missionRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Mission", id));
+
+		if (entity.getDhmsAnnulation() != null) {
+			throw new BadRequestException("Une mission annulée ne peut pas être modifiée");
+		}
+		if (entity.getDhmsDebutReel() != null) {
+			throw new BadRequestException("La mission a déjà démarré. Utilisez le changement de véhicule pour modifier l'affectation.");
+		}
+
+		if (request.getChauffeurId() != null) {
+			ChauffeurEntity chauffeur = chauffeurRepository.findById(request.getChauffeurId())
+					.orElseThrow(() -> new ResourceNotFoundException("Chauffeur", request.getChauffeurId()));
+			if (chauffeur.getStatut() != StatutChauffeurEnum.DISPONIBLE) {
+				throw new BadRequestException("Le chauffeur " + chauffeur.getEmploye().getNom()
+						+ " n'est pas disponible (statut : " + chauffeur.getStatut() + ")");
+			}
+			entity.setChauffeur(chauffeur);
+			entity.setWithChauffeur(true);
+			entity.setPerdiem(request.getPerdiem());
+
+			// Recalculer le total perdiem si les dates sont connues.
+			if (request.getPerdiem() != null && entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
+				long nbJours = java.time.temporal.ChronoUnit.DAYS.between(
+						entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
+				if (nbJours < 1) nbJours = 1;
+				entity.setTotalPerdiem(request.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
+			} else {
+				entity.setTotalPerdiem(null);
+			}
+		} else {
+			entity.setChauffeur(null);
+			entity.setWithChauffeur(false);
+			entity.setPerdiem(null);
+			entity.setTotalPerdiem(null);
+		}
+
+		MissionEntity saved = missionRepository.save(entity);
+		return missionMapper.toDto(saved);
 	}
 
 	// ==================== SIMULATION ====================
@@ -723,6 +785,14 @@ public class MissionService {
 			// Le perdiem reste toujours journalier, quelle que soit la tarification du véhicule.
 			if (entity.getPerdiem() != null) {
 				entity.setTotalPerdiem(entity.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
+			}
+		}
+
+		// Filet de sécurité : durée minimale = 1 (quelle que soit la présence des dates).
+		if (entity.getDureeLocation() == null || entity.getDureeLocation() < 1) {
+			entity.setDureeLocation(1L);
+			if (entity.getTarif() != null) {
+				entity.setMontantTotalHT(entity.getTarif());
 			}
 		}
 	}

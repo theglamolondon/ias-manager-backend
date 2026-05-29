@@ -37,6 +37,7 @@ public class ImportService {
         "Coût Achat (FCFA)", "Coût Assurance (FCFA)", "Carte Grise",
         "Type Commercial", "Puissance Fiscale", "Kilométrage",
         "Fin Validité Visite", "Fin Validité Assurance",
+        "Fin Validité Patente", "Fin Validité Carte Stationnement", "Fin Validité Carte Transport",
         "Date Mise Circulation", "Concessionnaire", "Date Fin Garantie"
     };
 
@@ -142,6 +143,9 @@ public class ImportService {
                     .kilometrage(parseLong(cell(formatter, row, colIndex, "Kilométrage")))
                     .finValiditeVisite(parseDate(cell(formatter, row, colIndex, "Fin Validité Visite")))
                     .finValiditeAssurance(parseDate(cell(formatter, row, colIndex, "Fin Validité Assurance")))
+                    .finValiditePatente(parseDate(cell(formatter, row, colIndex, "Fin Validité Patente")))
+                    .finValiditeCarteStationnement(parseDate(cell(formatter, row, colIndex, "Fin Validité Carte Stationnement")))
+                    .finValiditeCarteTransport(parseDate(cell(formatter, row, colIndex, "Fin Validité Carte Transport")))
                     .dateMiseCirculation(parseDate(cell(formatter, row, colIndex, "Date Mise Circulation")))
                     .concessionnaire(cell(formatter, row, colIndex, "Concessionnaire"))
                     .dateFinGarantie(parseDate(cell(formatter, row, colIndex, "Date Fin Garantie")))
@@ -199,9 +203,12 @@ public class ImportService {
             sample.createCell(14).setCellValue(25000);
             sample.createCell(15).setCellValue("2025-12-31");
             sample.createCell(16).setCellValue("2025-06-30");
-            sample.createCell(17).setCellValue("2020-02-01");
-            sample.createCell(18).setCellValue("CFAO Motors");
-            sample.createCell(19).setCellValue("2023-12-31");
+            sample.createCell(17).setCellValue("2025-12-31");
+            sample.createCell(18).setCellValue("2025-12-31");
+            sample.createCell(19).setCellValue("2025-12-31");
+            sample.createCell(20).setCellValue("2020-02-01");
+            sample.createCell(21).setCellValue("CFAO Motors");
+            sample.createCell(22).setCellValue("2023-12-31");
 
             // ── Feuille Référentiel (masquée) avec valeurs valides ──────────
             XSSFSheet ref = wb.createSheet("Référentiel");

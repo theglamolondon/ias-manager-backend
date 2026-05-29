@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
+import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
@@ -179,6 +180,70 @@ public class StatistiqueService {
 				.permisExpirentBientot(chauffeurRepository.countByExpDatePermisBetween(aujourdhui, finAnnee))
 				.permisExpires(chauffeurRepository.countByExpDatePermisBefore(aujourdhui))
 				.build();
+	}
+
+	@Transactional(readOnly = true)
+	public VehiculeAlertesStats getVehiculeAlertesStats() {
+		LocalDate aujourd_hui = LocalDate.now();
+		LocalDate dans30Jours = aujourd_hui.plusDays(30);
+
+		List<VehiculeEntity> assurancesExpirees             = vehiculeRepository.findAssurancesExpirees(aujourd_hui);
+		List<VehiculeEntity> assurancesExpireBientot        = vehiculeRepository.findAssurancesExpirentBientot(aujourd_hui, dans30Jours);
+		List<VehiculeEntity> visitesExpirees                = vehiculeRepository.findVisitesExpirees(aujourd_hui);
+		List<VehiculeEntity> visitesExpireBientot           = vehiculeRepository.findVisitesExpirentBientot(aujourd_hui, dans30Jours);
+		List<VehiculeEntity> patentesExpirees               = vehiculeRepository.findPatentesExpirees(aujourd_hui);
+		List<VehiculeEntity> patentesExpireBientot          = vehiculeRepository.findPatentesExpirentBientot(aujourd_hui, dans30Jours);
+		List<VehiculeEntity> cartesStatioExpirees           = vehiculeRepository.findCartesStationnementExpirees(aujourd_hui);
+		List<VehiculeEntity> cartesStatioExpireBientot      = vehiculeRepository.findCartesStationnementExpirentBientot(aujourd_hui, dans30Jours);
+		List<VehiculeEntity> cartesTransportExpirees        = vehiculeRepository.findCartesTransportExpirees(aujourd_hui);
+		List<VehiculeEntity> cartesTransportExpireBientot   = vehiculeRepository.findCartesTransportExpirentBientot(aujourd_hui, dans30Jours);
+
+		return VehiculeAlertesStats.builder()
+				.assurancesExpirees(assurancesExpirees.size())
+				.assurancesExpirentBientot(assurancesExpireBientot.size())
+				.vehiculesAssuranceExpiree(toAlertes(assurancesExpirees, aujourd_hui))
+				.vehiculesAssuranceExpireBientot(toAlertes(assurancesExpireBientot, aujourd_hui))
+				.visitesExpirees(visitesExpirees.size())
+				.visitesExpirentBientot(visitesExpireBientot.size())
+				.vehiculesVisiteExpiree(toAlertes(visitesExpirees, aujourd_hui))
+				.vehiculesVisiteExpireBientot(toAlertes(visitesExpireBientot, aujourd_hui))
+				.patentesExpirees(patentesExpirees.size())
+				.patentesExpirentBientot(patentesExpireBientot.size())
+				.vehiculesPatentExpiree(toAlertes(patentesExpirees, aujourd_hui))
+				.vehiculesPatentExpireBientot(toAlertes(patentesExpireBientot, aujourd_hui))
+				.cartesStationnementExpirees(cartesStatioExpirees.size())
+				.cartesStationnementExpirentBientot(cartesStatioExpireBientot.size())
+				.vehiculesCarteStationnementExpiree(toAlertes(cartesStatioExpirees, aujourd_hui))
+				.vehiculesCarteStationnementExpireBientot(toAlertes(cartesStatioExpireBientot, aujourd_hui))
+				.cartesTransportExpirees(cartesTransportExpirees.size())
+				.cartesTransportExpirentBientot(cartesTransportExpireBientot.size())
+				.vehiculesCarteTransportExpiree(toAlertes(cartesTransportExpirees, aujourd_hui))
+				.vehiculesCarteTransportExpireBientot(toAlertes(cartesTransportExpireBientot, aujourd_hui))
+				.build();
+	}
+
+	private List<AlerteVehicule> toAlertes(List<VehiculeEntity> vehicules, LocalDate aujourd_hui) {
+		return vehicules.stream().map(v -> AlerteVehicule.builder()
+				.id(v.getId())
+				.immatriculation(v.getImmatriculation())
+				.marque(v.getMarque() != null ? v.getMarque().getLibelle() : null)
+				.photoAvantId(v.getPhotoAvant() != null ? v.getPhotoAvant().getId() : null)
+				.finValiditeAssurance(v.getFinValiditeAssurance())
+				.finValiditeVisite(v.getFinValiditeVisite())
+				.finValiditePatente(v.getFinValiditePatente())
+				.finValiditeCarteStationnement(v.getFinValiditeCarteStationnement())
+				.finValiditeCarteTransport(v.getFinValiditeCarteTransport())
+				.joursRestantsAssurance(jours(aujourd_hui, v.getFinValiditeAssurance()))
+				.joursRestantsVisite(jours(aujourd_hui, v.getFinValiditeVisite()))
+				.joursRestantsPatente(jours(aujourd_hui, v.getFinValiditePatente()))
+				.joursRestantsCarteStationnement(jours(aujourd_hui, v.getFinValiditeCarteStationnement()))
+				.joursRestantsCarteTransport(jours(aujourd_hui, v.getFinValiditeCarteTransport()))
+				.build()
+		).collect(Collectors.toList());
+	}
+
+	private static long jours(LocalDate aujourd_hui, LocalDate date) {
+		return date != null ? aujourd_hui.until(date, java.time.temporal.ChronoUnit.DAYS) : 0;
 	}
 
 	@Transactional(readOnly = true)

@@ -73,7 +73,7 @@ public class InterventionService {
                 entity.setStatut(InterventionStatut.EN_COURS);
                 VehiculeEntity vehicule = entity.getVehicule();
                 if (vehicule.getStatut() != VehiculeStatusEnum.MISSION) {
-                    vehicule.setStatut(VehiculeStatusEnum.PANNE);
+                    vehicule.setStatut(VehiculeStatusEnum.GARAGE);
                     vehiculeRepository.save(vehicule);
                 }
             }
@@ -115,7 +115,7 @@ public class InterventionService {
 
         VehiculeEntity vehicule = entity.getVehicule();
         if (vehicule.getStatut() != VehiculeStatusEnum.MISSION) {
-            vehicule.setStatut(VehiculeStatusEnum.PANNE);
+            vehicule.setStatut(VehiculeStatusEnum.GARAGE);
             vehiculeRepository.save(vehicule);
         }
 
@@ -149,7 +149,8 @@ public class InterventionService {
 
         VehiculeEntity vehicule = entity.getVehicule();
         if (vehicule.getStatut() != VehiculeStatusEnum.MISSION) {
-            vehicule.setStatut(vehiculeDisponible ? VehiculeStatusEnum.DISPONIBLE : VehiculeStatusEnum.INDISPONIBLE);
+            // DISPONIBLE si réparation terminée, GARAGE si d'autres travaux restent à faire
+            vehicule.setStatut(vehiculeDisponible ? VehiculeStatusEnum.DISPONIBLE : VehiculeStatusEnum.GARAGE);
             vehiculeRepository.save(vehicule);
         }
 

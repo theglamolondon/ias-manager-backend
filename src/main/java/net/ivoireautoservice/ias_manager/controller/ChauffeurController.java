@@ -5,9 +5,8 @@ import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Chauffeur;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.ChauffeurRequest;
+import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 import net.ivoireautoservice.ias_manager.services.ChauffeurService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -15,26 +14,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/chauffeurs")
 @RequiredArgsConstructor
 public class ChauffeurController {
 
     private final ChauffeurService chauffeurService;
-    private final Logger logger = LoggerFactory.getLogger(ChauffeurController.class);
 
     @GetMapping
     public ResponseEntity<PagedResponse<Chauffeur>> getAllChauffeurs(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) StatutChauffeurEnum statut,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int taille,
             @RequestParam(defaultValue = "id") String tri,
             @RequestParam(defaultValue = "asc") String ordre) {
         Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
         Pageable pageable = PageRequest.of(page, taille, sort);
-        return ResponseEntity.ok(chauffeurService.getAllChauffeurs(keyword, pageable));
+        return ResponseEntity.ok(chauffeurService.getAllChauffeurs(keyword, statut, pageable));
     }
 
     @GetMapping("/{id}")
@@ -54,8 +51,7 @@ public class ChauffeurController {
 
     @PostMapping
     public ResponseEntity<Chauffeur> createChauffeur(@Valid @RequestBody ChauffeurRequest request) {
-        Chauffeur created = chauffeurService.createChauffeur(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(chauffeurService.createChauffeur(request));
     }
 
     @PutMapping("/{id}")
@@ -63,6 +59,13 @@ public class ChauffeurController {
             @PathVariable Long id,
             @Valid @RequestBody ChauffeurRequest request) {
         return ResponseEntity.ok(chauffeurService.updateChauffeur(id, request));
+    }
+
+    @PatchMapping("/{id}/statut")
+    public ResponseEntity<Chauffeur> changerStatut(
+            @PathVariable Long id,
+            @RequestParam StatutChauffeurEnum statut) {
+        return ResponseEntity.ok(chauffeurService.changerStatut(id, statut));
     }
 
     @DeleteMapping("/{id}")
