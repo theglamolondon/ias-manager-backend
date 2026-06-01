@@ -8,6 +8,7 @@ import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseur;
 import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulationLivraisonRequest;
+import net.ivoireautoservice.ias_manager.dto.request.LivraisonClientRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.services.LivraisonService;
 import org.springframework.data.domain.PageRequest;
@@ -29,8 +30,10 @@ public class LivraisonController {
     // ==================== LIVRAISONS CLIENT ====================
 
     @PostMapping("/clients/facture/{factureId}")
-    public ResponseEntity<LivraisonClient> enregistrerLivraisonClient(@PathVariable Long factureId) {
-        LivraisonClient created = livraisonService.enregistrerLivraisonClient(factureId);
+    public ResponseEntity<LivraisonClient> enregistrerLivraisonClient(
+            @PathVariable Long factureId,
+            @RequestBody(required = false) LivraisonClientRequest request) {
+        LivraisonClient created = livraisonService.enregistrerLivraisonClient(factureId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

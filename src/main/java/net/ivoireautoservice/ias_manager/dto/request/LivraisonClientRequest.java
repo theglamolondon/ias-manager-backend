@@ -10,5 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public class LivraisonClientRequest {
 
+	private String objet;
+
 	private LocalDateTime dhmsLivraison;
 }

@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 import java.math.BigDecimal;
@@ -50,7 +51,9 @@ public class MissionEntity extends AuditableEntity {
 
 	private String destination;
 
-	private Boolean isInterieur;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "localisation")
+	private LocalisationMissionEnum localisation;
 
 	private Boolean withChauffeur;
 

@@ -13,7 +13,7 @@ import java.util.List;
 public interface MissionMapper {
 
 	@Mapping(target = "depenses", ignore = true)
-	@Mapping(target = "medias", ignore = true)
+	@Mapping(target = "photos", ignore = true)
 	@Mapping(target = "facture", ignore = true)
 	Mission toDto(MissionEntity entity);
 

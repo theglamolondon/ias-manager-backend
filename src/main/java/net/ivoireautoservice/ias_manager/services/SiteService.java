@@ -12,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
+
 import java.math.BigDecimal;
 
 @Service
@@ -71,13 +73,16 @@ public class SiteService {
 	}
 
 	/**
-	 * Retourne le supplément journalier configuré pour les missions selon leur localisation.
-	 * Valeurs par défaut : 10 000 FCFA en intérieur, 15 000 FCFA en extérieur.
+	 * Retourne le supplément journalier selon la localisation de la mission.
+	 * VILLE = 0, INTERIEUR = supIsInterieur (défaut 10 000), EXTERIEUR = supIsExterieur (défaut 15 000).
 	 */
 	@Transactional(readOnly = true)
-	public BigDecimal getSupplementJournalier(Boolean isInterieur) {
+	public BigDecimal getSupplementJournalier(LocalisationMissionEnum localisation) {
+		if (localisation == null || localisation == LocalisationMissionEnum.VILLE) {
+			return BigDecimal.ZERO;
+		}
 		SiteEntity site = siteRepository.findFirstByOrderByIdAsc().orElse(null);
-		if (Boolean.TRUE.equals(isInterieur)) {
+		if (localisation == LocalisationMissionEnum.INTERIEUR) {
 			return site != null && site.getSupIsInterieur() != null ? site.getSupIsInterieur() : DEFAULT_SUP_INTERIEUR;
 		}
 		return site != null && site.getSupIsExterieur() != null ? site.getSupIsExterieur() : DEFAULT_SUP_EXTERIEUR;

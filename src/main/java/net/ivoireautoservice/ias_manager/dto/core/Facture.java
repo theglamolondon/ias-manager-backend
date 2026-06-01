@@ -21,6 +21,8 @@ public class Facture {
 	private LocalDate delaiLivraison;
 	private LocalDate validite;
 	private String objet;
+	private String conditionsPaiement;
+	private String statutLivraison;
 	private Boolean factureClient;
 	private FactureStatusEnum statut;
 	private FactureNatureEnum nature;

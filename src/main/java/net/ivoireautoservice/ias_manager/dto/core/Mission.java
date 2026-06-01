@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 import java.math.BigDecimal;
@@ -23,7 +24,7 @@ public class Mission {
 	private LocalDateTime dhmsAnnulation;
 	private String motifAnnulation;
 	private String destination;
-	private Boolean isInterieur;
+	private LocalisationMissionEnum localisation;
 	private Boolean withChauffeur;
 	private Boolean isSousTraitee;
 	private String detailsVehiculeSousTraitance;
@@ -39,6 +40,6 @@ public class Mission {
 	private Chauffeur chauffeur;
 	private Partenaire client;
 	private List<DepenseMission> depenses;
-	private List<Media> medias;
+	private List<PhotoMission> photos;
 	private Facture facture;
 }

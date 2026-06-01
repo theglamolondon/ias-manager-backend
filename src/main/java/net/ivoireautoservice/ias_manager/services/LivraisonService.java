@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.dto.request.EntreeProduitRequest;
+import net.ivoireautoservice.ias_manager.dto.request.LivraisonClientRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurItemRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LivraisonFournisseurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.SortieProduitRequest;
@@ -83,7 +84,7 @@ public class LivraisonService {
     }
 
     @Transactional
-    public LivraisonClient enregistrerLivraisonClient(Long factureId) {
+    public LivraisonClient enregistrerLivraisonClient(Long factureId, LivraisonClientRequest request) {
         FactureEntity facture = factureRepository.findById(factureId)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture", factureId));
 
@@ -99,8 +100,14 @@ public class LivraisonService {
             throw new BadRequestException("Cette facture a déjà fait l'objet d'une livraison client");
         }
 
+        String refFacture = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
+        String objet = (request != null && request.getObjet() != null && !request.getObjet().isBlank())
+                ? request.getObjet()
+                : "Livraison " + refFacture;
+
         // Créer la livraison client
         LivraisonClientEntity livraison = LivraisonClientEntity.builder()
+                .objet(objet)
                 .dhmsLivraison(LocalDateTime.now())
                 .facture(facture)
                 .createdBy(securityService.getUtilisateurConnecteOrNull())
@@ -315,6 +322,7 @@ public class LivraisonService {
         // Création du BL au statut CREE — pas d'effet sur le stock, ni sur qteLivree, ni de facture.
         LivraisonFournisseurEntity livraison = LivraisonFournisseurEntity.builder()
                 .numero(request.getNumero() != null ? request.getNumero() : generateLivraisonNumero(bc))
+                .objet(request.getObjet() != null && !request.getObjet().isBlank() ? request.getObjet() : null)
                 .dhmsLivraison(request.getDhmsLivraison() != null ? request.getDhmsLivraison() : LocalDateTime.now())
                 .bonCommande(bc)
                 .statut(StatutBonLivraisonEnum.CREE)
@@ -711,6 +719,7 @@ public class LivraisonService {
         data.put("dateLivraison", livraison.getDhmsLivraison() != null
                 ? livraison.getDhmsLivraison().format(DATE_FORMATTER) : "");
         data.put("refFacture", "Non facturé (BC " + bc.getNumero() + ")");
+        data.put("objet", livraison.getObjet());
         data.put("partenaire", bc.getPartenaire());
         data.put("lignes", lignes);
         data.put("observations", "");
@@ -725,10 +734,14 @@ public class LivraisonService {
                 ? livraison.getDhmsLivraison().format(DATE_FORMATTER)
                 : "");
         data.put("refFacture", facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma());
+        data.put("objet", livraison.getObjet());
         data.put("partenaire", facture.getPartenaire());
         data.put("lignes", lignes);
         data.put("observations", "");
         data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+        data.put("conditionsPaiement", facture.getConditionsPaiement());
+        data.put("statutLivraison", facture.getStatutLivraison());
+        data.put("validite", facture.getValidite() != null ? facture.getValidite().format(DATE_FORMATTER) : null);
 
         return data;
     }

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 })
 public class Livraison {
 	private Long id;
+	private String objet;
 	private LocalDateTime dhmsLivraison;
 	private Long factureId;
 	private String factureNumProforma;

@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 import java.math.BigDecimal;
@@ -21,7 +22,7 @@ public class MissionRequest {
 	private LocalDateTime dhmsDebutReel;
 	private LocalDateTime dhmsFinReel;
 	private String destination;
-	private Boolean isInterieur;
+	private LocalisationMissionEnum localisation;
 	private Boolean withChauffeur;
 	private Boolean isSousTraitee;
 	private String detailsVehiculeSousTraitance;

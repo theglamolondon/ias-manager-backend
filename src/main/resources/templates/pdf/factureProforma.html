@@ -504,9 +504,12 @@
         <div class="left">
             <div class="conditions-title">Conditions commerciales</div>
             <ul class="conditions-list">
-                <li>Mode de paiement : Esp&#232;ces ou ch&#232;que</li>
+                <li th:if="${facture.conditionsPaiement != null and !#strings.isEmpty(facture.conditionsPaiement)}"
+                    th:text="'Conditions de paiement : ' + ${facture.conditionsPaiement}">Conditions de paiement</li>
                 <li th:if="${facture.validite != null}" th:text="'Validit&#233; de l\'offre : ' + ${#temporals.format(facture.validite, 'dd/MM/yyyy')}">Validit&#233; de l'offre : 30 jours</li>
-                <li th:if="${facture.delaiLivraison != null}" th:text="'D&#233;lai de livraison : ' + ${#temporals.format(facture.delaiLivraison, 'dd/MM/yyyy')}">Disponibilit&#233; : Imm&#233;diate</li>
+                <li th:if="${facture.delaiLivraison != null}" th:text="'D&#233;lai de livraison : ' + ${#temporals.format(facture.delaiLivraison, 'dd/MM/yyyy')}">D&#233;lai de livraison</li>
+                <li th:if="${facture.statutLivraison != null and !#strings.isEmpty(facture.statutLivraison)}"
+                    th:text="'Statut livraison : ' + ${facture.statutLivraison}">Statut livraison</li>
             </ul>
         </div>
         <div class="totals-inner right">

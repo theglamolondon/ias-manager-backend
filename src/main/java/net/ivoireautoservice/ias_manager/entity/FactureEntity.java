@@ -39,6 +39,10 @@ public class FactureEntity extends AuditableEntity {
 
 	private String objet;
 
+	private String conditionsPaiement;
+
+	private String statutLivraison;
+
 	private Boolean factureClient;
 
 	@Enumerated(EnumType.ORDINAL)

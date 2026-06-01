@@ -16,6 +16,8 @@ public abstract class BaseLivraisonEntity extends AuditableEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	private String objet;
+
 	private LocalDateTime dhmsLivraison;
 
 	@ManyToOne(fetch = FetchType.LAZY)

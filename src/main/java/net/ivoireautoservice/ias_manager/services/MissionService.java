@@ -16,7 +16,9 @@ import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
 import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
+import net.ivoireautoservice.ias_manager.enums.PhotoMissionTypeEnum;
 import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
@@ -131,11 +133,15 @@ public class MissionService {
 		List<DepenseMissionEntity> depenses = depenseMissionRepository.findByMissionId(id);
 		dto.setDepenses(depenseMissionMapper.toDtoList(depenses));
 
-		List<PhotoMissionEntity> photos = photoMissionRepository.findByMissionId(id);
-		List<Media> medias = photos.stream()
-				.map(photo -> mediaMapper.toDto(photo.getMedia()))
+		List<PhotoMissionEntity> photoEntities = photoMissionRepository.findByMissionId(id);
+		List<PhotoMission> photos = photoEntities.stream()
+				.map(p -> PhotoMission.builder()
+						.id(p.getId())
+						.type(p.getType())
+						.media(mediaMapper.toDto(p.getMedia()))
+						.build())
 				.toList();
-		dto.setMedias(medias);
+		dto.setPhotos(photos);
 
 		// La facture associée à une mission est retrouvée via LigneFacture.extraRef.
 		if (entity.getCodeMission() != null) {
@@ -515,7 +521,7 @@ public class MissionService {
 				.dhmsDebutReel(maintenant)
 				.dhmsFinReel(null)
 				.destination(ancienneMission.getDestination())
-				.isInterieur(ancienneMission.getIsInterieur())
+				.localisation(ancienneMission.getLocalisation())
 				.withChauffeur(ancienneMission.getWithChauffeur())
 				.isSousTraitee(ancienneMission.getIsSousTraitee())
 				.detailsVehiculeSousTraitance(ancienneMission.getDetailsVehiculeSousTraitance())
@@ -602,7 +608,7 @@ public class MissionService {
 	// ==================== PHOTOS MISSION ====================
 
 	@Transactional
-	public Media addPhoto(Long missionId, MultipartFile file) {
+	public PhotoMission addPhoto(Long missionId, MultipartFile file, PhotoMissionTypeEnum type) {
 		MissionEntity mission = missionRepository.findById(missionId)
 				.orElseThrow(() -> new ResourceNotFoundException("Mission", missionId));
 
@@ -612,10 +618,15 @@ public class MissionService {
 		PhotoMissionEntity photo = PhotoMissionEntity.builder()
 				.mission(mission)
 				.media(mediaEntity)
+				.type(type)
 				.build();
-		photoMissionRepository.save(photo);
+		PhotoMissionEntity saved = photoMissionRepository.save(photo);
 
-		return media;
+		return PhotoMission.builder()
+				.id(saved.getId())
+				.type(saved.getType())
+				.media(media)
+				.build();
 	}
 
 	// ==================== AFFECTATION CHAUFFEUR ====================
@@ -666,7 +677,7 @@ public class MissionService {
 	// ==================== SIMULATION ====================
 
 	@Transactional(readOnly = true)
-	public SimulationTarif simulerTarif(Long vehiculeId, TypeTarificationEnum typeTarification, LocalDateTime debut, LocalDateTime fin, Boolean isInterieur) {
+	public SimulationTarif simulerTarif(Long vehiculeId, TypeTarificationEnum typeTarification, LocalDateTime debut, LocalDateTime fin, LocalisationMissionEnum localisation) {
 		// Pour les tarifications UNIQUE et INDEFINIE, aucun tarif de référence n'est défini sur le type
 		// de véhicule. La simulation est donc neutre (pas de minimum à vérifier côté front).
 		if (typeTarification == TypeTarificationEnum.UNIQUE || typeTarification == TypeTarificationEnum.INDEFINIE) {
@@ -704,7 +715,7 @@ public class MissionService {
 			BigDecimal prixJournalier = typeVehicule.getPrixJournalier();
 			if (prixJournalier == null) prixJournalier = BigDecimal.ZERO;
 			// Supplément selon localisation, configurable depuis Paramètres > Général (Site).
-			BigDecimal supplement = siteService.getSupplementJournalier(isInterieur);
+			BigDecimal supplement = siteService.getSupplementJournalier(localisation);
 			BigDecimal prixJournalierMin = prixJournalier.add(supplement);
 			tarifMinimum = prixJournalierMin.multiply(BigDecimal.valueOf(dureeJours));
 			tarifUnitaire = prixJournalierMin;

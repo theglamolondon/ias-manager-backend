@@ -16,6 +16,8 @@ public class LivraisonFournisseurRequest {
 
 	private String numero;
 
+	private String objet;
+
 	private LocalDateTime dhmsLivraison;
 
 	@NotNull(message = "Le bon de commande est obligatoire")

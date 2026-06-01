@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.enums.MissionStatutFilter;
+import net.ivoireautoservice.ias_manager.enums.PhotoMissionTypeEnum;
+import net.ivoireautoservice.ias_manager.enums.LocalisationMissionEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.dto.request.AffecterChauffeurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
@@ -118,8 +120,8 @@ public class MissionController {
 			@RequestParam TypeTarificationEnum typeTarification,
 			@RequestParam LocalDateTime debut,
 			@RequestParam LocalDateTime fin,
-			@RequestParam(required = false) Boolean isInterieur) {
-		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin, isInterieur));
+			@RequestParam(required = false) LocalisationMissionEnum localisation) {
+		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin, localisation));
 	}
 
 	// ==================== DEPENSES ====================
@@ -135,10 +137,11 @@ public class MissionController {
 	// ==================== PHOTOS ====================
 
 	@PostMapping(value = "/{missionId}/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<Media> addPhoto(
+	public ResponseEntity<PhotoMission> addPhoto(
 			@PathVariable Long missionId,
-			@RequestParam MultipartFile file) {
-		Media media = missionService.addPhoto(missionId, file);
-		return ResponseEntity.status(HttpStatus.CREATED).body(media);
+			@RequestParam MultipartFile file,
+			@RequestParam(required = false) PhotoMissionTypeEnum type) {
+		PhotoMission photo = missionService.addPhoto(missionId, file, type);
+		return ResponseEntity.status(HttpStatus.CREATED).body(photo);
 	}
 }
