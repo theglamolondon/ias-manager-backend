@@ -66,6 +66,7 @@ public class MissionService {
 	private final FactureService factureService;
 	private final CompteService compteService;
 	private final SiteService siteService;
+	private final PrintService printService;
 
 	// ==================== MISSIONS ====================
 
@@ -122,6 +123,46 @@ public class MissionService {
 		MissionEntity mission = missionRepository.findById(missionId)
 				.orElseThrow(() -> new ResourceNotFoundException("Mission", missionId));
 		return factureService.getFacturesByCodeMission(mission.getCodeMission());
+	}
+
+	/**
+	 * Retourne toutes les missions affectées à un chauffeur donné, de la plus
+	 * récente à la plus ancienne. Utilisé dans la fiche détail du chauffeur.
+	 */
+	@Transactional(readOnly = true)
+	public List<Mission> getMissionsByChauffeur(Long chauffeurId) {
+		List<MissionEntity> missions = missionRepository.findByChauffeurIdOrderByDhmsDebutPreviDesc(chauffeurId);
+		return missionMapper.toDtoList(missions);
+	}
+
+	/**
+	 * Génère l'ordre de mission (PDF) du chauffeur affecté à la mission donnée.
+	 * Refuse de générer si aucun chauffeur n'est associé à la mission.
+	 */
+	@Transactional(readOnly = true)
+	public byte[] generateOrdreMissionPdf(Long missionId) {
+		MissionEntity entity = missionRepository.findById(missionId)
+				.orElseThrow(() -> new ResourceNotFoundException("Mission", missionId));
+		if (entity.getChauffeur() == null) {
+			throw new BadRequestException("Aucun chauffeur n'est affecté à cette mission.");
+		}
+		Mission mission = missionMapper.toDto(entity);
+
+		long duree = 0;
+		if (mission.getDhmsDebutPrevi() != null && mission.getDhmsFinPrevi() != null) {
+			duree = Math.max(0, ChronoUnit.DAYS.between(mission.getDhmsDebutPrevi(), mission.getDhmsFinPrevi()));
+		}
+
+		java.util.Map<String, Object> data = new java.util.HashMap<>();
+		data.put("mission", mission);
+		data.put("chauffeur", mission.getChauffeur());
+		data.put("vehicule", mission.getVehicule());
+		data.put("client", mission.getClient());
+		data.put("duree", duree);
+		data.put("dateEmission", LocalDate.now());
+		data.put("logoUrl", "classpath:/static/img/logo-ias.png");
+
+		return printService.generatePdf("pdf/OrdreMission", data);
 	}
 
 	@Transactional(readOnly = true)

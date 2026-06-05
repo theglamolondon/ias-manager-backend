@@ -45,6 +45,8 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
 
     List<MissionEntity> findByVehiculeIdOrderByDhmsDebutPreviDesc(Long vehiculeId);
 
+    List<MissionEntity> findByChauffeurIdOrderByDhmsDebutPreviDesc(Long chauffeurId);
+
     /**
      * Missions facturables manuellement pour un client donné : toutes les
      * missions non annulées qui ne sont pas déjà rattachées à une facture

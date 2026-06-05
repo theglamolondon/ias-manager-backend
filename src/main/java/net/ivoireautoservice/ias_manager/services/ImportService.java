@@ -3,8 +3,10 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.dto.response.ImportVehiculeResult;
+import net.ivoireautoservice.ias_manager.entity.MarqueEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
+import net.ivoireautoservice.ias_manager.repository.MarqueRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeVehiculeRepository;
 import net.ivoireautoservice.ias_manager.repository.VehiculeRepository;
@@ -29,6 +31,7 @@ public class ImportService {
     private final VehiculeRepository vehiculeRepository;
     private final TypeVehiculeRepository typeVehiculeRepository;
     private final TypeCarburantRepository typeCarburantRepository;
+    private final MarqueRepository marqueRepository;
     private final VehiculeService vehiculeService;
 
     private static final String[] HEADERS = {
@@ -41,14 +44,19 @@ public class ImportService {
         "Date Mise Circulation", "Concessionnaire", "Date Fin Garantie"
     };
 
+    private static final int COL_MARQUE       = 2;
     private static final int COL_TYPE_VEHICULE = 5;
-    private static final int COL_CARBURANT = 6;
+    private static final int COL_CARBURANT     = 6;
 
     // ==================== IMPORT ====================
 
     @Transactional
     public List<ImportVehiculeResult> importVehicules(MultipartFile file) {
         List<ImportVehiculeResult> results = new ArrayList<>();
+
+        Map<String, Long> marqueMap = new HashMap<>();
+        marqueRepository.findAll()
+                .forEach(m -> marqueMap.put(m.getLibelle().toLowerCase().trim(), m.getId()));
 
         Map<String, Long> typeMap = new HashMap<>();
         typeVehiculeRepository.findAll()
@@ -69,7 +77,7 @@ public class ImportService {
             for (int rowNum = 1; rowNum <= sheet.getLastRowNum(); rowNum++) {
                 Row row = sheet.getRow(rowNum);
                 if (row == null) continue;
-                processRow(formatter, row, colIndex, rowNum + 1, typeMap, energieMap, results);
+                processRow(formatter, row, colIndex, rowNum + 1, marqueMap, typeMap, energieMap, results);
             }
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la lecture du fichier Excel : " + e.getMessage(), e);
@@ -78,18 +86,18 @@ public class ImportService {
     }
 
     private void processRow(DataFormatter formatter, Row row, Map<String, Integer> colIndex,
-                            int ligne, Map<String, Long> typeMap, Map<String, Long> energieMap,
-                            List<ImportVehiculeResult> results) {
+                            int ligne, Map<String, Long> marqueMap, Map<String, Long> typeMap,
+                            Map<String, Long> energieMap, List<ImportVehiculeResult> results) {
 
         String immatriculation = cell(formatter, row, colIndex, "Immatriculation*");
         String numChassis      = cell(formatter, row, colIndex, "N° Châssis*");
-        String marque          = cell(formatter, row, colIndex, "Marque*");
+        String marqueLbl       = cell(formatter, row, colIndex, "Marque*");
         String couleur         = cell(formatter, row, colIndex, "Couleur*");
         String typeLbl         = cell(formatter, row, colIndex, "Type Véhicule*");
         String carburantLbl    = cell(formatter, row, colIndex, "Carburant*");
 
         // Required field check
-        if (immatriculation.isEmpty() || numChassis.isEmpty() || marque.isEmpty() || couleur.isEmpty()) {
+        if (immatriculation.isEmpty() || numChassis.isEmpty() || marqueLbl.isEmpty() || couleur.isEmpty()) {
             results.add(err(ligne, immatriculation, numChassis,
                     "Champs obligatoires manquants (immatriculation, châssis, marque, couleur)"));
             return;
@@ -108,6 +116,12 @@ public class ImportService {
         }
 
         // FK resolution by label (case-insensitive)
+        Long marqueId = marqueMap.get(marqueLbl.toLowerCase().trim());
+        if (marqueId == null) {
+            results.add(err(ligne, immatriculation, numChassis,
+                    "Marque introuvable : \"" + marqueLbl + "\""));
+            return;
+        }
         Long typeId = typeMap.get(typeLbl.toLowerCase().trim());
         if (typeId == null) {
             results.add(err(ligne, immatriculation, numChassis,
@@ -128,7 +142,7 @@ public class ImportService {
             VehiculeRequest req = VehiculeRequest.builder()
                     .immatriculation(immatriculation)
                     .numChassis(numChassis)
-                    .marque(marque)
+                    .marqueId(marqueId)
                     .couleur(couleur)
                     .nombrePlaces(nombrePlaces)
                     .typeId(typeId)
@@ -164,6 +178,7 @@ public class ImportService {
     // ==================== TEMPLATE ====================
 
     public byte[] generateImportTemplate() {
+        List<MarqueEntity> marques       = marqueRepository.findAll();
         List<TypeVehiculeEntity> types   = typeVehiculeRepository.findAll();
         List<TypeCarburantEntity> energies = typeCarburantRepository.findAll();
 
@@ -188,7 +203,7 @@ public class ImportService {
             Row sample = main.createRow(1);
             sample.createCell(0).setCellValue("AB-123-CD");
             sample.createCell(1).setCellValue("VF12345678901234");
-            sample.createCell(2).setCellValue("Toyota");
+            if (!marques.isEmpty())  sample.createCell(COL_MARQUE).setCellValue(marques.get(0).getLibelle());
             sample.createCell(3).setCellValue("Blanc");
             sample.createCell(4).setCellValue(5);
             if (!types.isEmpty())    sample.createCell(COL_TYPE_VEHICULE).setCellValue(types.get(0).getLibelle());
@@ -217,6 +232,7 @@ public class ImportService {
             Row refHeader = ref.createRow(0);
             refHeader.createCell(0).setCellValue("Type Véhicule");
             refHeader.createCell(1).setCellValue("Carburant");
+            refHeader.createCell(2).setCellValue("Marque");
 
             for (int i = 0; i < types.size(); i++) {
                 getOrCreate(ref, i + 1).createCell(0).setCellValue(types.get(i).getLibelle());
@@ -224,10 +240,20 @@ public class ImportService {
             for (int i = 0; i < energies.size(); i++) {
                 getOrCreate(ref, i + 1).createCell(1).setCellValue(energies.get(i).getLibelle());
             }
+            for (int i = 0; i < marques.size(); i++) {
+                getOrCreate(ref, i + 1).createCell(2).setCellValue(marques.get(i).getLibelle());
+            }
 
             // ── Listes déroulantes référencant la feuille Référentiel ───────
             DataValidationHelper dvh = main.getDataValidationHelper();
 
+            if (!marques.isEmpty()) {
+                addDropdown(main, dvh,
+                        "Référentiel!$C$2:$C$" + (marques.size() + 1),
+                        COL_MARQUE,
+                        "Marque invalide",
+                        "Sélectionnez une marque dans la liste déroulante.");
+            }
             if (!types.isEmpty()) {
                 addDropdown(main, dvh,
                         "Référentiel!$A$2:$A$" + (types.size() + 1),

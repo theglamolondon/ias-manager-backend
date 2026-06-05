@@ -18,6 +18,7 @@ import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +54,20 @@ public class MissionController {
 	@GetMapping("/facturables")
 	public ResponseEntity<List<Mission>> getMissionsFacturables(@RequestParam Long clientId) {
 		return ResponseEntity.ok(missionService.getMissionsFacturables(clientId));
+	}
+
+	@GetMapping("/chauffeur/{chauffeurId}")
+	public ResponseEntity<List<Mission>> getMissionsByChauffeur(@PathVariable Long chauffeurId) {
+		return ResponseEntity.ok(missionService.getMissionsByChauffeur(chauffeurId));
+	}
+
+	@GetMapping("/{id}/ordre-mission")
+	public ResponseEntity<byte[]> generateOrdreMission(@PathVariable Long id) {
+		byte[] pdf = missionService.generateOrdreMissionPdf(id);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_PDF);
+		headers.setContentDispositionFormData("inline", "ordre-mission-" + id + ".pdf");
+		return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
 	}
 
 	@GetMapping("/{id}/factures")

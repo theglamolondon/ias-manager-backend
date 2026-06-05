@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8"/>
+    <title>Ordre de mission - GIAS | Ivoire Auto Services Groupe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1a1a2e;
+            font-size: 12px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .doc-wrapper {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: #ffffff;
+            position: relative;
+        }
+
+        .top-bar {
+            height: 8px;
+            background-color: #1b2a6b;
+        }
+
+        /* Header */
+        .header-table {
+            width: 100%;
+            padding: 30px 40px 20px 40px;
+        }
+
+        .logo-section img {
+            width: 180px;
+            height: auto;
+        }
+
+        .doc-title-section {
+            text-align: right;
+        }
+
+        .doc-title {
+            font-size: 30px;
+            font-weight: 800;
+            color: #1b2a6b;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .title-underline {
+            width: 60px;
+            height: 4px;
+            background-color: #1b2a6b;
+            margin-left: auto;
+            margin-top: 4px;
+        }
+
+        .doc-number {
+            font-size: 11px;
+            color: #5a6a8a;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .doc-number span {
+            color: #1b2a6b;
+            font-weight: 700;
+        }
+
+        .brush-decoration {
+            width: 100%;
+            height: 3px;
+            background-color: #1b2a6b;
+            opacity: 0.15;
+        }
+
+        .left { float: left; }
+        .right { float: right; }
+        .clear { clear: both; }
+
+        /* Section blocks */
+        .section {
+            padding: 0 40px;
+            margin-top: 22px;
+        }
+
+        .section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1b2a6b;
+            font-weight: 700;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e8ecf1;
+        }
+
+        .info-card {
+            background-color: #f7f9fc;
+            border: 1px solid #e8ecf1;
+            border-left: 4px solid #1b2a6b;
+            padding: 14px 18px;
+        }
+
+        .kv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .kv-table td {
+            padding: 4px 0;
+            font-size: 12px;
+            line-height: 1.5;
+            vertical-align: top;
+        }
+
+        .kv-label {
+            color: #5a6a8a;
+            font-weight: 500;
+            width: 170px;
+        }
+
+        .kv-value {
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+
+        .two-col {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .two-col > tbody > tr > td {
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .two-col td.col-left { padding-right: 12px; }
+        .two-col td.col-right { padding-left: 12px; }
+
+        /* Mention */
+        .mention {
+            margin: 24px 40px 0;
+            padding: 12px 18px;
+            background-color: #f0f3fa;
+            font-size: 11px;
+            color: #1b2a6b;
+            font-style: italic;
+            border: 1px dashed #c0ccee;
+            line-height: 1.6;
+        }
+
+        /* Signatures */
+        .signature-table {
+            width: 100%;
+            padding: 40px 40px 20px 40px;
+        }
+
+        .signature-table > tbody > tr > td {
+            vertical-align: top;
+            width: 50%;
+            text-align: center;
+        }
+
+        .signature-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #1b2a6b;
+            font-weight: 700;
+            margin-bottom: 55px;
+        }
+
+        .signature-line {
+            width: 180px;
+            height: 1px;
+            background-color: #1b2a6b;
+            margin: 0 auto 8px auto;
+        }
+
+        .signature-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .signature-role {
+            font-size: 10px;
+            color: #5a6a8a;
+        }
+
+        /* Footer */
+        .doc-footer {
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            border-bottom: 8px solid #1b2a6b;
+            border-top: 1px solid #d0d5e0;
+            color: #5a6a8a;
+            padding: 16px 40px;
+            text-align: center;
+            font-size: 9.5px;
+            line-height: 1.8;
+        }
+
+        .doc-footer p { margin: 0; }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="doc-wrapper">
+    <div class="top-bar"></div>
+
+    <!-- Header -->
+    <div class="header-table">
+        <div class="logo-section left">
+            <img th:src="${logoUrl}" alt="GIAS - Ivoire Auto Services Groupe SARL"/>
+        </div>
+        <div class="doc-title-section right">
+            <div class="doc-title">Ordre de mission</div>
+            <div class="title-underline"></div>
+            <div class="doc-number">
+                R&#233;f. : <span th:text="${mission.codeMission != null ? mission.codeMission : ('#' + mission.id)}">M-0001</span>
+            </div>
+            <div class="doc-number">
+                &#201;mis le : <span th:text="${#temporals.format(dateEmission, 'dd/MM/yyyy')}">14/02/2026</span>
+            </div>
+        </div>
+        <div class="clear"></div>
+    </div>
+
+    <div class="brush-decoration"></div>
+
+    <!-- Chauffeur + Véhicule -->
+    <div class="section">
+        <table class="two-col">
+            <tr>
+                <td class="col-left">
+                    <div class="section-title">Chauffeur d&#233;sign&#233;</div>
+                    <div class="info-card">
+                        <table class="kv-table">
+                            <tr>
+                                <td class="kv-label">Nom &amp; pr&#233;noms</td>
+                                <td class="kv-value" th:text="${chauffeur.employeNom + ' ' + (chauffeur.employePrenoms != null ? chauffeur.employePrenoms : '')}">-</td>
+                            </tr>
+                            <tr th:if="${chauffeur.employeMatricule != null}">
+                                <td class="kv-label">Matricule</td>
+                                <td class="kv-value" th:text="${chauffeur.employeMatricule}">-</td>
+                            </tr>
+                            <tr>
+                                <td class="kv-label">N&#176; permis</td>
+                                <td class="kv-value" th:text="${chauffeur.numeroPermis}">-</td>
+                            </tr>
+                            <tr th:if="${chauffeur.typePermis != null}">
+                                <td class="kv-label">Type permis</td>
+                                <td class="kv-value" th:text="${chauffeur.typePermis}">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+                <td class="col-right">
+                    <div class="section-title">V&#233;hicule</div>
+                    <div class="info-card">
+                        <table class="kv-table">
+                            <tr>
+                                <td class="kv-label">Immatriculation</td>
+                                <td class="kv-value" th:text="${vehicule != null ? vehicule.immatriculation : 'Sous-traitance'}">-</td>
+                            </tr>
+                            <tr th:if="${vehicule != null and vehicule.marque != null}">
+                                <td class="kv-label">Marque</td>
+                                <td class="kv-value" th:text="${vehicule.marque.libelle}">-</td>
+                            </tr>
+                            <tr th:if="${vehicule != null and vehicule.typeCommercial != null}">
+                                <td class="kv-label">Mod&#232;le</td>
+                                <td class="kv-value" th:text="${vehicule.typeCommercial}">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Détails de la mission -->
+    <div class="section">
+        <div class="section-title">D&#233;tails de la mission</div>
+        <div class="info-card">
+            <table class="kv-table">
+                <tr>
+                    <td class="kv-label">Destination</td>
+                    <td class="kv-value" th:text="${mission.destination != null ? mission.destination : '-'}">-</td>
+                </tr>
+                <tr>
+                    <td class="kv-label">D&#233;but pr&#233;visionnel</td>
+                    <td class="kv-value" th:text="${mission.dhmsDebutPrevi != null ? #temporals.format(mission.dhmsDebutPrevi, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                </tr>
+                <tr>
+                    <td class="kv-label">Fin pr&#233;visionnelle</td>
+                    <td class="kv-value" th:text="${mission.dhmsFinPrevi != null ? #temporals.format(mission.dhmsFinPrevi, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
+                </tr>
+                <tr>
+                    <td class="kv-label">Dur&#233;e estim&#233;e</td>
+                    <td class="kv-value" th:text="${duree + ' jour(s)'}">-</td>
+                </tr>
+                <tr th:if="${mission.perdiem != null}">
+                    <td class="kv-label">Per diem (par jour)</td>
+                    <td class="kv-value" th:text="${#numbers.formatInteger(mission.perdiem, 1, 'WHITESPACE') + ' FCFA'}">-</td>
+                </tr>
+                <tr th:if="${client != null}">
+                    <td class="kv-label">Client</td>
+                    <td class="kv-value" th:text="${client.raisonSociale}">-</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mention -->
+    <div class="mention">
+        Le chauffeur d&#233;sign&#233; ci-dessus est mandat&#233; pour effectuer la mission d&#233;crite dans le pr&#233;sent ordre.
+        Il s&#8217;engage &#224; respecter le code de la route, &#224; veiller au bon &#233;tat du v&#233;hicule confi&#233; et &#224; rendre
+        compte de tout incident survenu pendant la mission.
+    </div>
+
+    <!-- Signatures -->
+    <table class="signature-table">
+        <tr>
+            <td>
+                <div class="signature-title">Le chauffeur</div>
+                <div class="signature-line"></div>
+                <div class="signature-name" th:text="${chauffeur.employeNom + ' ' + (chauffeur.employePrenoms != null ? chauffeur.employePrenoms : '')}">-</div>
+                <div class="signature-role">Lu et approuv&#233;</div>
+            </td>
+            <td>
+                <div class="signature-title">La direction</div>
+                <div class="signature-line"></div>
+                <div class="signature-name">GIAS SARL</div>
+                <div class="signature-role">Ivoire Auto Services Groupe</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+        <p>Situ&#233; &#224; Angr&#233; 8&#232;me tranche non loin du carrefour de la pri&#232;re.</p>
+        <p>Tel : +225 : 07 07 93 97 12 / 07 07 94 08 08 / 05 06 72 68 83 &#8212; 13 BP 1715 Abidjan 13</p>
+        <p>N&#176;CC : 1912797 L R&#233;el Normal d&#8217;Imposition Centre des Imp&#244;ts de la Djibi &#8212;
+            N&#176; RC : CI-ABJ-2019-B-02715 &#8212; NSIA N&#176; 035361963575</p>
+        <p>Email : commercial@ivoireautoservices.net</p>
+    </div>
+</div>
+
+</body>
+
+</html>

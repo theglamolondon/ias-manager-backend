@@ -32,8 +32,10 @@ import net.ivoireautoservice.ias_manager.mapper.VehiculeMapper;
 import net.ivoireautoservice.ias_manager.repository.DepenseMissionRepository;
 import net.ivoireautoservice.ias_manager.repository.DocumentVehiculeRepository;
 import net.ivoireautoservice.ias_manager.repository.InterventionRepository;
+import net.ivoireautoservice.ias_manager.entity.MarqueEntity;
 import net.ivoireautoservice.ias_manager.repository.AssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.LigneFactureRepository;
+import net.ivoireautoservice.ias_manager.repository.MarqueRepository;
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
 import net.ivoireautoservice.ias_manager.repository.MissionRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeAssuranceRepository;
@@ -66,6 +68,7 @@ public class VehiculeService {
     private final LigneFactureRepository ligneFactureRepository;
     private final DocumentVehiculeRepository documentVehiculeRepository;
     private final MediaRepository mediaRepository;
+    private final MarqueRepository marqueRepository;
     private final MediaService mediaService;
     private final SharedService sharedService;
     private final VehiculeMapper vehiculeMapper;
@@ -403,7 +406,11 @@ public class VehiculeService {
     }
 
     private void resolveMarque(VehiculeRequest request, VehiculeEntity entity) {
-        if (request.getMarque() != null && !request.getMarque().isBlank()) {
+        if (request.getMarqueId() != null) {
+            MarqueEntity marque = marqueRepository.findById(request.getMarqueId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Marque", request.getMarqueId()));
+            entity.setMarque(marque);
+        } else if (request.getMarque() != null && !request.getMarque().isBlank()) {
             entity.setMarque(sharedService.getOrCreateMarque(request.getMarque()));
         } else {
             entity.setMarque(null);

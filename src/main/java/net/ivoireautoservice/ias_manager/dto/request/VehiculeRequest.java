@@ -45,6 +45,7 @@ public class VehiculeRequest {
 	private VehiculeStatusEnum statut = VehiculeStatusEnum.DISPONIBLE;
 
 	private String marque;
+	private Long marqueId;
 
 	@NotNull(message = "Le type de véhicule est obligatoire")
 	private Long typeId;
