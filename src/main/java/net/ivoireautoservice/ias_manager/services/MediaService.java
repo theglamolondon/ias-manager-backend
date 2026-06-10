@@ -13,6 +13,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -56,17 +58,32 @@ public class MediaService {
     @Transactional
     public Media uploadMedia(MultipartFile file) {
         validateFileType(file);
+        return store(file);
+    }
 
+    @Transactional
+    public Media uploadDocument(MultipartFile file) {
+        validateFileType(file, ALLOWED_DOCUMENT_TYPES);
+        return store(file);
+    }
+
+    /**
+     * Copie le fichier sur le disque et persiste le média. Si le fichier est écrit dans le
+     * cadre d'une transaction qui finit par être rollback, il est supprimé automatiquement
+     * (via une synchronisation de transaction) afin de ne pas laisser de fichier orphelin.
+     */
+    private Media store(MultipartFile file) {
         String id = UUID.randomUUID().toString();
         String extension = getExtension(file.getOriginalFilename());
         String storedFilename = id + "." + extension;
 
+        Path targetPath = uploadPath.resolve(storedFilename).normalize();
         try {
-            Path targetPath = uploadPath.resolve(storedFilename).normalize();
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors du stockage du fichier : " + file.getOriginalFilename(), e);
         }
+        registerRollbackCleanup(targetPath);
 
         MediaEntity entity = MediaEntity.builder()
                 .id(id)
@@ -79,30 +96,23 @@ public class MediaService {
         return mediaMapper.toDto(mediaRepository.save(entity));
     }
 
-    @Transactional
-    public Media uploadDocument(MultipartFile file) {
-        validateFileType(file, ALLOWED_DOCUMENT_TYPES);
-
-        String id = UUID.randomUUID().toString();
-        String extension = getExtension(file.getOriginalFilename());
-        String storedFilename = id + "." + extension;
-
-        try {
-            Path targetPath = uploadPath.resolve(storedFilename).normalize();
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new RuntimeException("Erreur lors du stockage du fichier : " + file.getOriginalFilename(), e);
+    /** Supprime le fichier physique si la transaction courante est finalement rollback. */
+    private void registerRollbackCleanup(Path targetPath) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
         }
-
-        MediaEntity entity = MediaEntity.builder()
-                .id(id)
-                .originalFilename(file.getOriginalFilename())
-                .storedFilename(storedFilename)
-                .contentType(file.getContentType())
-                .size(file.getSize())
-                .build();
-
-        return mediaMapper.toDto(mediaRepository.save(entity));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    try {
+                        Files.deleteIfExists(targetPath);
+                    } catch (IOException ignored) {
+                        // Best-effort : on n'empêche pas la fin de transaction pour un nettoyage disque.
+                    }
+                }
+            }
+        });
     }
 
     @Transactional

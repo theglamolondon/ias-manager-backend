@@ -412,6 +412,54 @@ public class MissionService {
 		return missionMapper.toDto(saved);
 	}
 
+	// ==================== DEMARRAGE / CLOTURE AVEC MEDIAS (ATOMIQUE) ====================
+
+	/**
+	 * Démarre une mission et enregistre l'ensemble des médias (photos + signatures) dans
+	 * une seule transaction. En cas d'échec à n'importe quelle étape, tout est annulé :
+	 * affectation chauffeur, changement de statut mission/véhicule/chauffeur, médias en base
+	 * et fichiers déjà écrits sur le disque (nettoyés via la synchronisation de transaction
+	 * de MediaService).
+	 */
+	@Transactional
+	public Mission demarrerMissionAvecMedias(Long id, LocalDateTime date, Long chauffeurId, BigDecimal perdiem,
+			List<MultipartFile> files, List<PhotoMissionTypeEnum> types) {
+		if (chauffeurId != null) {
+			affecterChauffeur(id, AffecterChauffeurRequest.builder()
+					.chauffeurId(chauffeurId)
+					.perdiem(perdiem)
+					.build());
+		}
+		Mission mission = demarrerMission(id, date);
+		saveMedias(id, files, types);
+		return mission;
+	}
+
+	/**
+	 * Termine une mission et enregistre l'ensemble des médias de clôture dans une seule
+	 * transaction. Mêmes garanties d'atomicité que {@link #demarrerMissionAvecMedias}.
+	 */
+	@Transactional
+	public Mission terminerMissionAvecMedias(Long id, LocalDateTime date,
+			List<MultipartFile> files, List<PhotoMissionTypeEnum> types) {
+		Mission mission = terminerMission(id, date);
+		saveMedias(id, files, types);
+		return mission;
+	}
+
+	/** Enregistre les médias en lock-step (files.get(i) ↔ types.get(i)). */
+	private void saveMedias(Long missionId, List<MultipartFile> files, List<PhotoMissionTypeEnum> types) {
+		if (files == null || files.isEmpty()) {
+			return;
+		}
+		if (types == null || types.size() != files.size()) {
+			throw new BadRequestException("Le nombre de fichiers ne correspond pas au nombre de types de médias");
+		}
+		for (int i = 0; i < files.size(); i++) {
+			addPhoto(missionId, files.get(i), types.get(i));
+		}
+	}
+
 	// ==================== ANNULATION ====================
 
 	/**
