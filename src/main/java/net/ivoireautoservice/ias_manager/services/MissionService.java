@@ -210,6 +210,9 @@ public class MissionService {
 		entity.setVehicule(vehicule);
 		resolveRelations(request, entity);
 
+		// Blocage strict : tarif >= minimum (JOURNALIERE / MENSUELLE).
+		validateTarifMinimum(entity);
+
 		// Champs non renseignés à la création
 		entity.setDhmsDebutReel(null);
 		entity.setDhmsFinReel(null);
@@ -287,6 +290,9 @@ public class MissionService {
 		entity.setVehicule(vehicule);
 		resolveRelations(request, entity);
 
+		// Blocage strict : tarif >= minimum (JOURNALIERE / MENSUELLE).
+		validateTarifMinimum(entity);
+
 		// 6. Recalcul systématique des champs dérivés (montantTotalHT, totalPerdiem, dureeLocation).
 		computeCalculatedFields(entity);
 
@@ -338,6 +344,11 @@ public class MissionService {
 		}
 		if (entity.getDhmsDebutReel() != null) {
 			throw new BadRequestException("Cette mission a déjà été démarrée");
+		}
+
+		// Une mission avec chauffeur ne peut pas démarrer sans chauffeur affecté.
+		if (Boolean.TRUE.equals(entity.getWithChauffeur()) && entity.getChauffeur() == null) {
+			throw new BadRequestException("Cette mission est prévue avec chauffeur : affectez un chauffeur avant de la démarrer");
 		}
 
 		// Le véhicule doit être DISPONIBLE pour partir en mission (symétrie avec changerVehicule).
@@ -745,6 +756,8 @@ public class MissionService {
 		BigDecimal tarifMinimum;
 		BigDecimal tarifUnitaire;
 		if (typeTarification == TypeTarificationEnum.MENSUELLE) {
+			// Règle métier : aucune majoration de localisation (intérieur/extérieur) sur la
+			// tarification mensuelle. Le supplément n'est appliqué qu'en tarification journalière.
 			BigDecimal prixMensuel = typeVehicule.getPrixMensuel();
 			if (prixMensuel == null) prixMensuel = BigDecimal.ZERO;
 			long mois = dureeJours / 30;
@@ -772,6 +785,51 @@ public class MissionService {
 	}
 
 	// ==================== HELPERS ====================
+
+	/**
+	 * Blocage strict du tarif minimum pour les tarifications JOURNALIERE et MENSUELLE.
+	 * Le tarif unitaire saisi ne peut pas être inférieur au minimum du type de véhicule :
+	 *  - JOURNALIERE : prix journalier + supplément de localisation (intérieur/extérieur) ;
+	 *  - MENSUELLE   : prix mensuel (aucune majoration de localisation).
+	 * UNIQUE (forfait) et INDEFINIE ne sont pas concernés.
+	 */
+	private void validateTarifMinimum(MissionEntity entity) {
+		TypeTarificationEnum type = entity.getTypeTarification();
+		if (type != TypeTarificationEnum.JOURNALIERE && type != TypeTarificationEnum.MENSUELLE) {
+			return;
+		}
+
+		VehiculeEntity vehicule = entity.getVehicule();
+		TypeVehiculeEntity typeVehicule = vehicule != null ? vehicule.getType() : null;
+		if (typeVehicule == null) {
+			// Aucun tarif de référence connu : impossible de calculer un minimum.
+			return;
+		}
+
+		BigDecimal tarifUnitaireMin;
+		String unite;
+		if (type == TypeTarificationEnum.MENSUELLE) {
+			tarifUnitaireMin = typeVehicule.getPrixMensuel() != null ? typeVehicule.getPrixMensuel() : BigDecimal.ZERO;
+			unite = "mois";
+		} else {
+			BigDecimal prixJournalier = typeVehicule.getPrixJournalier() != null ? typeVehicule.getPrixJournalier() : BigDecimal.ZERO;
+			tarifUnitaireMin = prixJournalier.add(siteService.getSupplementJournalier(entity.getLocalisation()));
+			unite = "jour";
+		}
+
+		if (tarifUnitaireMin.signum() <= 0) {
+			// Aucun minimum défini pour ce type de véhicule.
+			return;
+		}
+
+		BigDecimal tarif = entity.getTarif();
+		if (tarif == null || tarif.compareTo(tarifUnitaireMin) < 0) {
+			throw new BadRequestException(String.format(
+					"Le tarif saisi (%s FCFA/%s) est inférieur au tarif minimum autorisé de %s FCFA/%s pour ce type de véhicule.",
+					tarif != null ? tarif.toPlainString() : "0", unite,
+					tarifUnitaireMin.toPlainString(), unite));
+		}
+	}
 
 	private void computeCalculatedFields(MissionEntity entity) {
 		TypeTarificationEnum type = entity.getTypeTarification();
