@@ -3,12 +3,16 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.config.MoneyUtils;
 import net.ivoireautoservice.ias_manager.dto.core.BonCommande;
+import net.ivoireautoservice.ias_manager.dto.core.Facture;
 import net.ivoireautoservice.ias_manager.dto.core.LigneBonCommande;
+import net.ivoireautoservice.ias_manager.dto.core.LivraisonFournisseurSummary;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.BonCommandeRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneBonCommandeRequest;
 import net.ivoireautoservice.ias_manager.entity.BonCommandeEntity;
+import net.ivoireautoservice.ias_manager.entity.FactureEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneBonCommandeEntity;
+import net.ivoireautoservice.ias_manager.entity.LivraisonFournisseurEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.entity.Utilisateur;
@@ -16,9 +20,12 @@ import net.ivoireautoservice.ias_manager.enums.BonCommandeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.BonCommandeMapper;
+import net.ivoireautoservice.ias_manager.mapper.FactureMapper;
 import net.ivoireautoservice.ias_manager.mapper.LigneBonCommandeMapper;
+import net.ivoireautoservice.ias_manager.mapper.LivraisonFournisseurMapper;
 import net.ivoireautoservice.ias_manager.repository.BonCommandeRepository;
 import net.ivoireautoservice.ias_manager.repository.LigneBonCommandeRepository;
+import net.ivoireautoservice.ias_manager.repository.LivraisonFournisseurRepository;
 import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
 import net.ivoireautoservice.ias_manager.repository.ProduitRepository;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,6 +49,9 @@ public class BonCommandeService {
     private final ProduitRepository produitRepository;
     private final BonCommandeMapper bonCommandeMapper;
     private final LigneBonCommandeMapper ligneBonCommandeMapper;
+    private final LivraisonFournisseurRepository livraisonFournisseurRepository;
+    private final LivraisonFournisseurMapper livraisonFournisseurMapper;
+    private final FactureMapper factureMapper;
     private final PrintService printService;
     private final MoneyUtils moneyUtils;
     private final SecurityService securityService;
@@ -58,7 +69,21 @@ public class BonCommandeService {
     public BonCommande getById(Long id) {
         BonCommandeEntity entity = bonCommandeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bon de commande", id));
-        return toDtoWithItems(entity);
+        BonCommande dto = toDtoWithItems(entity);
+
+        List<LivraisonFournisseurEntity> bls = livraisonFournisseurRepository.findByBonCommandeId(id);
+        dto.setLivraisons(bls.stream().map(livraisonFournisseurMapper::toSummary).toList());
+
+        // Factures émises sur ce BC : factures distinctes référencées par ses livraisons
+        Map<Long, FactureEntity> facturesById = new LinkedHashMap<>();
+        for (LivraisonFournisseurEntity bl : bls) {
+            FactureEntity facture = bl.getFacture();
+            if (facture != null) facturesById.putIfAbsent(facture.getId(), facture);
+        }
+        List<Facture> factures = facturesById.values().stream().map(factureMapper::toDto).toList();
+        dto.setFactures(factures);
+
+        return dto;
     }
 
     @Transactional(readOnly = true)

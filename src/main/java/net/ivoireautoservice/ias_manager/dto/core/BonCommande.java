@@ -24,4 +24,6 @@ public class BonCommande {
 	private Long createdById;
 	private String createdByNom;
 	private List<LigneBonCommande> items;
+	private List<LivraisonFournisseurSummary> livraisons;
+	private List<Facture> factures;
 }

@@ -43,7 +43,7 @@
         }
 
         .logo-section img {
-            width: 180px;
+            width: 150px;
             height: auto;
         }
 
@@ -52,8 +52,8 @@
         }
 
         .invoice-title {
-            font-size: 38px;
-            font-weight: 800;
+            font-size: 33px;
+            font-weight: 500;
             color: #1b2a6b;
             letter-spacing: 3px;
             text-transform: uppercase;
@@ -71,7 +71,7 @@
             font-size: 11px;
             color: #5a6a8a;
             margin-top: 8px;
-            font-weight: 500;
+            font-weight: 200;
         }
 
         .invoice-number span {
@@ -105,7 +105,7 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #1b2a6b;
-            font-weight: 700;
+            font-weight: 400;
             margin-bottom: 12px;
             padding-bottom: 6px;
             display: block;
@@ -123,7 +123,7 @@
             left: 50%;
             transform: translate(-60%, -50%) rotate(-35deg);
             font-size: 100px;
-            font-weight: 900;
+            font-weight: 500;
             color: #e4e4e4;
             letter-spacing: 10px;
             text-transform: uppercase;
@@ -146,7 +146,7 @@
 
         .info-label {
             color: #5a6a8a;
-            font-weight: 500;
+            font-weight: 300;
             width: 110px;
         }
 
@@ -168,7 +168,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #1b2a6b;
-            font-weight: 700;
+            font-weight: 400;
         }
 
         .object-section .info-value {
@@ -195,7 +195,7 @@
         .invoice-table thead th {
             padding: 10px 8px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 300;
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -226,7 +226,7 @@
 
         .invoice-table tbody td.text-right {
             text-align: right;
-            font-weight: 600;
+            font-weight: 300;
         }
 
         .invoice-table tbody tr:last-child td {
@@ -245,7 +245,7 @@
 
         .conditions-title {
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 400;
             color: #1a1a2e;
             margin-bottom: 10px;
         }
@@ -279,11 +279,11 @@
 
         .totals-label {
             color: #5a6a8a;
-            font-weight: 500;
+            font-weight: 200;
         }
 
         .totals-value {
-            font-weight: 600;
+            font-weight: 300;
             color: #1a1a2e;
             text-align: right;
         }
@@ -296,26 +296,25 @@
 
         .grand-total .totals-label {
             color: #1a1a2e;
-            font-weight: 800;
+            font-weight: 300;
             font-size: 13px;
         }
 
         .grand-total .totals-value {
             color: #1b2a6b;
-            font-weight: 800;
+            font-weight: 300;
             font-size: 14px;
         }
 
         /* Amount in words */
         .amount-words {
             margin: 16px 40px;
-            padding: 12px 20px;
-            background-color: #f0f3fa;
+            padding: 12px 0;
+            /* background-color: #f0f3fa; */
             font-size: 11px;
-            color: #1b2a6b;
-            font-style: italic;
-            font-weight: 500;
-            border: 1px dashed #c0ccee;
+            /* color: #1b2a6b; */
+            /* font-style: italic; */
+            /* font-weight: 300; */
         }
 
         .amount-words strong {
@@ -350,7 +349,7 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             color: #1b2a6b;
-            font-weight: 700;
+            font-weight: 400;
             margin-bottom: 50px;
         }
 
@@ -363,7 +362,7 @@
 
         .signature-name {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 300;
             color: #1a1a2e;
         }
 
@@ -382,8 +381,8 @@
             color: #5a6a8a;
             padding: 16px 40px;
             text-align: center;
-            font-size: 9.5px;
-            line-height: 1.8;
+            font-size: 8.5px;
+            line-height: 1.1;
             margin-top: 20px;
         }
 
@@ -423,7 +422,6 @@
         <div class="clear"></div>
     </div>
 
-    <div class="brush-decoration"></div>
 
     <!-- Info Section -->
     <table class="info-table">
@@ -464,12 +462,8 @@
 
     <!-- Object -->
     <div class="object-section" th:if="${facture.objet != null}">
-        <table class="info-row-table">
-            <tr>
-                <td class="info-label">Objet :</td>
-                <td class="info-value" th:text="${facture.objet}">Location de v&#233;hicule</td>
-            </tr>
-        </table>
+        <div class="info-label">Objet</div>
+        <div class="info-value" th:text="${facture.objet}">Location de v&#233;hicule</div>
     </div>
 
     <!-- Table -->
@@ -538,8 +532,8 @@
 
     <!-- Amount in words -->
     <div class="amount-words" th:if="${montantEnLettres != null}">
-        <strong>Arr&#234;t&#233; la pr&#233;sente facture &#224; la somme de : </strong>
-        <span th:text="${montantEnLettres}">Cent vingt mille francs CFA.</span>
+        Arr&#234;t&#233; la pr&#233;sente facture &#224; la somme de : 
+        <span th:text="${montantEnLettres}">-</span>
     </div>
 
     <!-- Contact + Signature -->
