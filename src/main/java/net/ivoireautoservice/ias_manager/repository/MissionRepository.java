@@ -74,6 +74,25 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
             "ORDER BY COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi) ASC")
     List<MissionEntity> findFacturablesByClient(@Param("clientId") Long clientId);
 
+    /**
+     * Missions annulées sur la période (bornée sur dhmsAnnulation).
+     * Retourne [nombre, somme montantTotalHT (CA perdu)].
+     */
+    @Query("SELECT COUNT(m), COALESCE(SUM(m.montantTotalHT), 0) FROM MissionEntity m " +
+            "WHERE m.dhmsAnnulation IS NOT NULL " +
+            "AND (:debut IS NULL OR m.dhmsAnnulation >= :debut) " +
+            "AND (:fin IS NULL OR m.dhmsAnnulation < :fin)")
+    List<Object[]> rapportMissionsAnnulees(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+
+    /**
+     * Nombre total de missions créées sur la période (bornée sur createdAt),
+     * dénominateur du taux d'annulation. :debut/:fin nullable = pas de borne.
+     */
+    @Query("SELECT COUNT(m) FROM MissionEntity m " +
+            "WHERE (:debut IS NULL OR m.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR m.createdAt < :fin)")
+    long countMissionsCreees(@Param("debut") LocalDateTime debut, @Param("fin") LocalDateTime fin);
+
     @Query("SELECT MONTH(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)), COUNT(DISTINCT m.vehicule.id) " +
             "FROM MissionEntity m " +
             "WHERE YEAR(COALESCE(m.dhmsDebutReel, m.dhmsDebutPrevi)) = :annee " +

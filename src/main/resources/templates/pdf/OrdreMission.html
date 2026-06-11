@@ -38,7 +38,7 @@
         }
 
         .logo-section img {
-            width: 180px;
+            width: 130px;
             height: auto;
         }
 
@@ -47,7 +47,7 @@
         }
 
         .doc-title {
-            font-size: 30px;
+            font-size: 22px;
             font-weight: 800;
             color: #1b2a6b;
             letter-spacing: 2px;
@@ -74,13 +74,6 @@
             font-weight: 700;
         }
 
-        .brush-decoration {
-            width: 100%;
-            height: 3px;
-            background-color: #1b2a6b;
-            opacity: 0.15;
-        }
-
         .left { float: left; }
         .right { float: right; }
         .clear { clear: both; }
@@ -88,7 +81,7 @@
         /* Section blocks */
         .section {
             padding: 0 40px;
-            margin-top: 22px;
+            margin-top: 15px;
         }
 
         .section-title {
@@ -99,14 +92,10 @@
             font-weight: 700;
             margin-bottom: 10px;
             padding-bottom: 6px;
-            border-bottom: 1px solid #e8ecf1;
         }
 
         .info-card {
-            background-color: #f7f9fc;
-            border: 1px solid #e8ecf1;
-            border-left: 4px solid #1b2a6b;
-            padding: 14px 18px;
+            padding: 1px 0;
         }
 
         .kv-table {
@@ -206,8 +195,8 @@
             color: #5a6a8a;
             padding: 16px 40px;
             text-align: center;
-            font-size: 9.5px;
-            line-height: 1.8;
+            font-size: 8.5px;
+            line-height: 1.5;
         }
 
         .doc-footer p { margin: 0; }
@@ -242,8 +231,6 @@
         <div class="clear"></div>
     </div>
 
-    <div class="brush-decoration"></div>
-
     <!-- Chauffeur + Véhicule -->
     <div class="section">
         <table class="two-col">
@@ -255,10 +242,6 @@
                             <tr>
                                 <td class="kv-label">Nom &amp; pr&#233;noms</td>
                                 <td class="kv-value" th:text="${chauffeur.employeNom + ' ' + (chauffeur.employePrenoms != null ? chauffeur.employePrenoms : '')}">-</td>
-                            </tr>
-                            <tr th:if="${chauffeur.employeMatricule != null}">
-                                <td class="kv-label">Matricule</td>
-                                <td class="kv-value" th:text="${chauffeur.employeMatricule}">-</td>
                             </tr>
                             <tr>
                                 <td class="kv-label">N&#176; permis</td>
@@ -304,16 +287,12 @@
                     <td class="kv-value" th:text="${mission.destination != null ? mission.destination : '-'}">-</td>
                 </tr>
                 <tr>
-                    <td class="kv-label">D&#233;but pr&#233;visionnel</td>
-                    <td class="kv-value" th:text="${mission.dhmsDebutPrevi != null ? #temporals.format(mission.dhmsDebutPrevi, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
-                </tr>
-                <tr>
-                    <td class="kv-label">Fin pr&#233;visionnelle</td>
-                    <td class="kv-value" th:text="${mission.dhmsFinPrevi != null ? #temporals.format(mission.dhmsFinPrevi, 'dd/MM/yyyy HH:mm') : '-'}">-</td>
-                </tr>
-                <tr>
-                    <td class="kv-label">Dur&#233;e estim&#233;e</td>
-                    <td class="kv-value" th:text="${duree + ' jour(s)'}">-</td>
+                    <td class="kv-label">P&#233;riode</td>
+                    <td class="kv-value">
+                        <span th:text="${mission.dhmsDebutPrevi != null ? #temporals.format(mission.dhmsDebutPrevi, 'dd/MM/yyyy') : '-'}"></span>
+                        au <span th:text="${mission.dhmsFinPrevi != null ? #temporals.format(mission.dhmsFinPrevi, 'dd/MM/yyyy') : '-'}"></span>
+                        (<span th:text="${duree + ' jour(s)'}"></span>)
+                    </td>
                 </tr>
                 <tr th:if="${mission.perdiem != null}">
                     <td class="kv-label">Per diem (par jour)</td>

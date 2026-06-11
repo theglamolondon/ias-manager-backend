@@ -3,6 +3,7 @@ package net.ivoireautoservice.ias_manager.services;
 import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
@@ -34,6 +35,7 @@ public class StatistiqueService {
 	private final LivraisonFournisseurRepository livraisonFournisseurRepository;
 	private final LivraisonClientRepository livraisonClientRepository;
 	private final CompteRepository compteRepository;
+	private final LigneCompteRepository ligneCompteRepository;
 	private final EntreeProduitRepository entreeProduitRepository;
 	private final SortieProduitRepository sortieProduitRepository;
 	private final PartenaireRepository partenaireRepository;
@@ -311,7 +313,7 @@ public class StatistiqueService {
 
 		// 1. KPIs principaux (1 requête)
 		List<Object[]> kpisList = factureRepository.rapportFinancierKpis(aujourdhui, debut, fin);
-		Object[] kpis = kpisList.isEmpty() ? new Object[]{0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L} : kpisList.get(0);
+		Object[] kpis = kpisList.isEmpty() ? new Object[]{0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L} : kpisList.get(0);
 		long chiffreAffaire = toLong(kpis[0]);
 		long montantEncaisse = toLong(kpis[1]);
 		long nombreEncaissees = toLong(kpis[2]);
@@ -320,10 +322,14 @@ public class StatistiqueService {
 		long montantEnRetard = toLong(kpis[5]);
 		long nombreEnRetard = toLong(kpis[6]);
 		long nombreTotal = toLong(kpis[7]);
+		long chiffreAffaireHt = toLong(kpis[8]);
 		double pourcentageRecouvrement = chiffreAffaire > 0
 				? Math.round(montantEncaisse * 10000.0 / chiffreAffaire) / 100.0 : 0.0;
 		double dsoGlobal = chiffreAffaire > 0
 				? Math.round((montantEnRetard + montantAVenir) * 365.0 / chiffreAffaire * 100.0) / 100.0 : 0.0;
+		long ticketMoyen = nombreTotal > 0 ? Math.round((double) chiffreAffaire / nombreTotal) : 0L;
+		double tauxImpayes = chiffreAffaire > 0
+				? Math.round((montantEnRetard + montantAVenir) * 10000.0 / chiffreAffaire) / 100.0 : 0.0;
 
 		// 2. Balance âgée (1 requête)
 		List<Object[]> baList = factureRepository.rapportBalanceAgee(aujourdhui, j30, j60, j90, debut, fin);
@@ -427,8 +433,86 @@ public class StatistiqueService {
 				.relance3Nombre(toLong(rel[7]))
 				.build();
 
+		// 8. Volet fournisseur / dettes (2 requêtes)
+		Object[] fk = factureRepository.rapportFournisseurKpis(aujourdhui, debut, fin)
+				.stream().findFirst().orElse(new Object[]{0L, 0L, 0L, 0L, 0L, 0L});
+		RapportFinancier.DettesFournisseur dettesFournisseur = RapportFinancier.DettesFournisseur.builder()
+				.totalFacture(toLong(fk[0]))
+				.totalPaye(toLong(fk[1]))
+				.totalDu(toLong(fk[2]))
+				.totalDuEchu(toLong(fk[3]))
+				.totalDuAVenir(toLong(fk[4]))
+				.nombre(toLong(fk[5]))
+				.build();
+
+		List<Object[]> baFList = factureRepository.rapportBalanceAgeeFournisseur(aujourdhui, j30, j60, j90, debut, fin);
+		Object[] baF = baFList.isEmpty() ? new Object[]{0L, 0L, 0L, 0L, 0L} : baFList.get(0);
+		RapportFinancier.BalanceAgee balanceAgeeFournisseur = RapportFinancier.BalanceAgee.builder()
+				.nonEchu(toLong(baF[0]))
+				.echu0a30(toLong(baF[1]))
+				.echu31a60(toLong(baF[2]))
+				.echu61a90(toLong(baF[3]))
+				.echuPlus90(toLong(baF[4]))
+				.build();
+
+		// 9. Trésorerie (instantané global) & flux de période (2 requêtes)
+		RapportFinancier.Tresorerie tresorerie = RapportFinancier.Tresorerie.builder()
+				.soldeTotal(compteRepository.sumBalance())
+				.soldesPositifs(compteRepository.sumSoldesPositifs())
+				.soldesNegatifs(compteRepository.sumSoldesNegatifs())
+				.build();
+
+		Map<CompteLigneType, Long> fluxParType = ligneCompteRepository.sumMontantParTypeBetween(debut, fin)
+				.stream()
+				.filter(r -> r[0] != null)
+				.collect(Collectors.toMap(r -> (CompteLigneType) r[0], r -> toLong(r[1])));
+		long encaissements = fluxParType.getOrDefault(CompteLigneType.APPROVISIONNEMENT, 0L);
+		long remboursements = fluxParType.getOrDefault(CompteLigneType.REMBOURSEMENT, 0L);
+		long decaissements = fluxParType.getOrDefault(CompteLigneType.DEPENSE, 0L) + remboursements;
+		RapportFinancier.FluxPeriode fluxPeriode = RapportFinancier.FluxPeriode.builder()
+				.encaissements(encaissements)
+				.decaissements(decaissements)
+				.remboursements(remboursements)
+				.fluxNet(encaissements - decaissements)
+				.build();
+
+		// 10. Avoirs & annulations (2 requêtes)
+		Object[] av = factureRepository.rapportAvoirs(debut, fin)
+				.stream().findFirst().orElse(new Object[]{0L, 0L});
+		Object[] ma = missionRepository.rapportMissionsAnnulees(debut, fin)
+				.stream().findFirst().orElse(new Object[]{0L, BigDecimal.ZERO});
+		long missionsAnnuleesNombre = toLong(ma[0]);
+		long totalMissions = missionRepository.countMissionsCreees(debut, fin);
+		double tauxAnnulation = totalMissions > 0
+				? Math.round(missionsAnnuleesNombre * 10000.0 / totalMissions) / 100.0 : 0.0;
+		RapportFinancier.AvoirsAnnulations avoirsAnnulations = RapportFinancier.AvoirsAnnulations.builder()
+				.avoirsNombre(toLong(av[0]))
+				.avoirsMontant(toLong(av[1]))
+				.caPerduAnnulations(ma[1] instanceof BigDecimal ? ((BigDecimal) ma[1]).longValue() : toLong(ma[1]))
+				.missionsAnnuleesNombre(missionsAnnuleesNombre)
+				.tauxAnnulation(tauxAnnulation)
+				.remboursementsMontant(remboursements)
+				.build();
+
+		// 11. TVA collectée / déductible (2 requêtes)
+		long tvaCollectee = Math.round(orZero(factureRepository.rapportSumTva(true, debut, fin)));
+		long tvaDeductible = Math.round(orZero(factureRepository.rapportSumTva(false, debut, fin)));
+		RapportFinancier.Tva tva = RapportFinancier.Tva.builder()
+				.collectee(tvaCollectee)
+				.deductible(tvaDeductible)
+				.aReverser(tvaCollectee - tvaDeductible)
+				.build();
+
+		// 12. Marge / résultat = CA client − (dettes fournisseur facturées + coûts interventions)
+		long coutInterventions = interventionRepository.sumCout(debut, fin);
+		long totalDepenses = dettesFournisseur.getTotalFacture() + coutInterventions;
+		long resultatNet = chiffreAffaire - totalDepenses;
+		double tauxMarge = chiffreAffaire > 0
+				? Math.round(resultatNet * 10000.0 / chiffreAffaire) / 100.0 : 0.0;
+
 		return RapportFinancier.builder()
 				.chiffreAffaire(chiffreAffaire)
+				.chiffreAffaireHt(chiffreAffaireHt)
 				.montantEncaisse(montantEncaisse)
 				.nombreFacturesEncaissees(nombreEncaissees)
 				.montantAVenir(montantAVenir)
@@ -438,7 +522,18 @@ public class StatistiqueService {
 				.pourcentageRecouvrement(pourcentageRecouvrement)
 				.nombreTotalFactures(nombreTotal)
 				.dsoJours(dsoGlobal)
+				.ticketMoyen(ticketMoyen)
+				.tauxImpayes(tauxImpayes)
+				.totalDepenses(totalDepenses)
+				.resultatNet(resultatNet)
+				.tauxMarge(tauxMarge)
 				.balanceAgee(balanceAgee)
+				.dettesFournisseur(dettesFournisseur)
+				.balanceAgeeFournisseur(balanceAgeeFournisseur)
+				.tresorerie(tresorerie)
+				.fluxPeriode(fluxPeriode)
+				.avoirsAnnulations(avoirsAnnulations)
+				.tva(tva)
 				.rentreesFonds(rentreesFonds)
 				.evolutionDso(evolutionDso)
 				.facturesEchues(facturesEchues)
@@ -550,5 +645,9 @@ public class StatistiqueService {
 
 	private static long toLong(Object value) {
 		return value instanceof Number ? ((Number) value).longValue() : 0L;
+	}
+
+	private static double orZero(Double value) {
+		return value != null ? value : 0.0;
 	}
 }

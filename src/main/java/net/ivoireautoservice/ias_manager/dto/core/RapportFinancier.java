@@ -12,6 +12,7 @@ public class RapportFinancier {
 
 	// KPIs principaux
 	private long chiffreAffaire;
+	private long chiffreAffaireHt;
 	private long montantEncaisse;
 	private long nombreFacturesEncaissees;
 	private long montantAVenir;
@@ -22,8 +23,31 @@ public class RapportFinancier {
 	private long nombreTotalFactures;
 	private double dsoJours;
 
-	// Balance âgée
+	// KPIs dérivés (bloc 4)
+	private long ticketMoyen;
+	private double tauxImpayes;
+
+	// Bloc 2 : marge / résultat
+	private long totalDepenses;
+	private long resultatNet;
+	private double tauxMarge;
+
+	// Balance âgée (clients)
 	private BalanceAgee balanceAgee;
+
+	// Bloc 1 : volet fournisseur / dettes
+	private DettesFournisseur dettesFournisseur;
+	private BalanceAgee balanceAgeeFournisseur;
+
+	// Bloc 2 : trésorerie & flux
+	private Tresorerie tresorerie;
+	private FluxPeriode fluxPeriode;
+
+	// Bloc 3 : avoirs & annulations
+	private AvoirsAnnulations avoirsAnnulations;
+
+	// Bloc 4 : TVA
+	private Tva tva;
 
 	// Rentrées de fonds réelles vs estimées (3 mois)
 	private List<RentreeFonds> rentreesFonds;
@@ -50,6 +74,63 @@ public class RapportFinancier {
 		private long echu31a60;
 		private long echu61a90;
 		private long echuPlus90;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class DettesFournisseur {
+		private long totalFacture;
+		private long totalPaye;
+		private long totalDu;
+		private long totalDuEchu;
+		private long totalDuAVenir;
+		private long nombre;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class Tresorerie {
+		private long soldeTotal;
+		private long soldesPositifs;
+		private long soldesNegatifs;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class FluxPeriode {
+		private long encaissements;
+		private long decaissements;
+		private long remboursements;
+		private long fluxNet;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class AvoirsAnnulations {
+		private long avoirsMontant;
+		private long avoirsNombre;
+		private long caPerduAnnulations;
+		private long missionsAnnuleesNombre;
+		private double tauxAnnulation;
+		private long remboursementsMontant;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Builder
+	public static class Tva {
+		private long collectee;
+		private long deductible;
+		private long aReverser;
 	}
 
 	@Data

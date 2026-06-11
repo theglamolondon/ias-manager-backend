@@ -148,7 +148,8 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             @Param("fin") java.time.LocalDateTime fin);
 
     @Query("SELECT COUNT(f), COALESCE(SUM(f.montantTtc), 0) FROM FactureEntity f " +
-            "WHERE f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, " +
+            "WHERE f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
+            "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, " +
             "net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE)")
     List<Object[]> countAndSumFacturesImpayees();
 
@@ -164,17 +165,20 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
      * [5] montantEnRetard (échues, statut PROFORMA/FACTUREE, validite <= today)
      * [6] nombreEnRetard
      * [7] nombreTotal
+     * [8] chiffreAffaireHt (total HT hors annulées/brouillon)
      */
     @Query("SELECT " +
-            "COALESCE(SUM(CASE WHEN f.statut != net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) THEN f.montantTtc ELSE 0 END), 0), " +
             "COALESCE(SUM(CASE WHEN f.statut = net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE THEN f.montantTtc ELSE 0 END), 0), " +
             "SUM(CASE WHEN f.statut = net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE THEN 1 ELSE 0 END), " +
             "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND (f.validite IS NULL OR f.validite > :aujourdhui) THEN f.montantTtc ELSE 0 END), 0), " +
             "SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND (f.validite IS NULL OR f.validite > :aujourdhui) THEN 1 ELSE 0 END), " +
             "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND f.validite IS NOT NULL AND f.validite <= :aujourdhui THEN f.montantTtc ELSE 0 END), 0), " +
             "SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND f.validite IS NOT NULL AND f.validite <= :aujourdhui THEN 1 ELSE 0 END), " +
-            "COUNT(f) " +
+            "COUNT(f), " +
+            "COALESCE(SUM(CASE WHEN f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) THEN f.montantHt ELSE 0 END), 0) " +
             "FROM FactureEntity f WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
             "AND (:fin IS NULL OR f.createdAt < :fin)")
     List<Object[]> rapportFinancierKpis(
@@ -193,6 +197,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :j60 AND f.validite > :j90 THEN f.montantTtc ELSE 0 END), 0), " +
             "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :j90 THEN f.montantTtc ELSE 0 END), 0) " +
             "FROM FactureEntity f WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
             "AND (:fin IS NULL OR f.createdAt < :fin)")
@@ -209,9 +214,10 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
      * Retourne [annee, mois, chiffreAffaire, encaissement]
      */
     @Query("SELECT YEAR(f.createdAt), MONTH(f.createdAt), " +
-            "COALESCE(SUM(CASE WHEN f.statut != net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) THEN f.montantTtc ELSE 0 END), 0), " +
             "COALESCE(SUM(CASE WHEN f.statut = net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE THEN f.montantTtc ELSE 0 END), 0) " +
             "FROM FactureEntity f WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
             "AND (:fin IS NULL OR f.createdAt < :fin) " +
             "GROUP BY YEAR(f.createdAt), MONTH(f.createdAt) " +
@@ -226,8 +232,9 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
      */
     @Query("SELECT YEAR(f.createdAt), MONTH(f.createdAt), " +
             "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) THEN f.montantTtc ELSE 0 END), 0), " +
-            "COALESCE(SUM(CASE WHEN f.statut != net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE THEN f.montantTtc ELSE 0 END), 0) " +
+            "COALESCE(SUM(CASE WHEN f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) THEN f.montantTtc ELSE 0 END), 0) " +
             "FROM FactureEntity f WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
             "AND (:fin IS NULL OR f.createdAt < :fin) " +
             "GROUP BY YEAR(f.createdAt), MONTH(f.createdAt) " +
@@ -242,6 +249,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     @Query("SELECT f.id, COALESCE(f.numFacture, f.numProforma), p.raisonSociale, f.validite, f.montantTtc " +
             "FROM FactureEntity f LEFT JOIN f.partenaire p " +
             "WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) " +
             "AND f.validite IS NOT NULL AND f.validite <= :aujourdhui " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
@@ -260,6 +268,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     @Query("SELECT p.id, p.raisonSociale, COALESCE(SUM(f.montantTtc), 0) " +
             "FROM FactureEntity f JOIN f.partenaire p " +
             "WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
             "AND (:fin IS NULL OR f.createdAt < :fin) " +
@@ -283,6 +292,7 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             "COALESCE(SUM(CASE WHEN f.validite <= :j60 THEN f.montantTtc ELSE 0 END), 0), " +
             "SUM(CASE WHEN f.validite <= :j60 THEN 1 ELSE 0 END) " +
             "FROM FactureEntity f WHERE f.factureClient = true " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
             "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) " +
             "AND f.validite IS NOT NULL AND f.validite <= :aujourdhui " +
             "AND (:debut IS NULL OR f.createdAt >= :debut) " +
@@ -291,6 +301,85 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             @Param("aujourdhui") LocalDate aujourdhui,
             @Param("j30") LocalDate j30,
             @Param("j60") LocalDate j60,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    // ── Rapport financier : volet fournisseur, avoirs et TVA ──
+
+    /**
+     * Agrégats fournisseur (dettes / comptes à payer) en une seule requête :
+     * [0] totalFacture (TTC hors annulées/brouillon)
+     * [1] totalPaye (TTC PAYEE)
+     * [2] totalDu (TTC PROFORMA/FACTUREE)
+     * [3] totalDuEchu (PROFORMA/FACTUREE, validite échue)
+     * [4] totalDuAVenir (PROFORMA/FACTUREE, non échue ou sans validité)
+     * [5] nombre (PROFORMA/FACTUREE)
+     */
+    @Query("SELECT " +
+            "COALESCE(SUM(CASE WHEN f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut = net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND f.validite IS NOT NULL AND f.validite <= :aujourdhui THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND (f.validite IS NULL OR f.validite > :aujourdhui) THEN f.montantTtc ELSE 0 END), 0), " +
+            "SUM(CASE WHEN f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) THEN 1 ELSE 0 END) " +
+            "FROM FactureEntity f WHERE f.factureClient = false " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin)")
+    List<Object[]> rapportFournisseurKpis(
+            @Param("aujourdhui") LocalDate aujourdhui,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    /**
+     * Balance âgée fournisseur : montants par tranche d'ancienneté pour factures
+     * fournisseur impayées. Retourne [nonEchu, echu0a30, echu31a60, echu61a90, echuPlus90].
+     */
+    @Query("SELECT " +
+            "COALESCE(SUM(CASE WHEN f.validite IS NULL OR f.validite > :aujourdhui THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :aujourdhui AND f.validite > :j30 THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :j30 AND f.validite > :j60 THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :j60 AND f.validite > :j90 THEN f.montantTtc ELSE 0 END), 0), " +
+            "COALESCE(SUM(CASE WHEN f.validite IS NOT NULL AND f.validite <= :j90 THEN f.montantTtc ELSE 0 END), 0) " +
+            "FROM FactureEntity f WHERE f.factureClient = false " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
+            "AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin)")
+    List<Object[]> rapportBalanceAgeeFournisseur(
+            @Param("aujourdhui") LocalDate aujourdhui,
+            @Param("j30") LocalDate j30,
+            @Param("j60") LocalDate j60,
+            @Param("j90") LocalDate j90,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    /**
+     * Avoirs clients émis sur la période. Retourne [nombre, montantTtc].
+     */
+    @Query("SELECT COUNT(f), COALESCE(SUM(f.montantTtc), 0) FROM FactureEntity f " +
+            "WHERE f.factureClient = true " +
+            "AND f.nature = net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
+            "AND f.statut <> net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin)")
+    List<Object[]> rapportAvoirs(
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
+
+    /**
+     * TVA agrégée sur la période pour un sens donné (client = collectée, fournisseur = déductible).
+     * Assiette : montantHt * tva / 100. Exclut avoirs, annulées et brouillons.
+     */
+    @Query("SELECT COALESCE(SUM(f.montantHt * f.tva / 100), 0) FROM FactureEntity f " +
+            "WHERE f.factureClient = :factureClient " +
+            "AND f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +
+            "AND f.statut NOT IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.ANNULEE, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.BROUILLON) " +
+            "AND f.tva IS NOT NULL AND f.montantHt IS NOT NULL " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin)")
+    Double rapportSumTva(
+            @Param("factureClient") Boolean factureClient,
             @Param("debut") LocalDateTime debut,
             @Param("fin") LocalDateTime fin);
 }

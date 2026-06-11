@@ -309,7 +309,11 @@ public class VehiculeService {
             List<DepenseMissionEntity> depenseEntities = depenseMissionRepository.findByMissionId(m.getId());
             List<DepenseMission> depenses = depenseMissionMapper.toDtoList(depenseEntities);
             long totalDepensesMission = depenseEntities.stream().mapToLong(d -> d.getMontant() != null ? d.getMontant() : 0).sum();
-            totalDepensesMissions += totalDepensesMission;
+            boolean missionAnnulee = m.getDhmsAnnulation() != null;
+            // Les missions annulées restent affichées mais sont exclues des agrégats.
+            if (!missionAnnulee) {
+                totalDepensesMissions += totalDepensesMission;
+            }
 
             // Facture liée
             List<LigneFactureEntity> lignesMission = lignesByCodeMission.getOrDefault(m.getCodeMission(), List.of());
@@ -333,7 +337,7 @@ public class VehiculeService {
                 float tva = facture.getTva() != null ? facture.getTva() : 0f;
                 montantFactureTtc = missionHt + Math.round(missionHt * tva / 100f);
 
-                if (facture.getStatut() == net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE) {
+                if (!missionAnnulee && facture.getStatut() == net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PAYEE) {
                     totalGains += montantFactureTtc;
                 }
             }
@@ -360,6 +364,7 @@ public class VehiculeService {
                     .totalPerdiem(m.getTotalPerdiem())
                     .clientNom(clientNom)
                     .chauffeurNom(chauffeurNom)
+                    .annulee(missionAnnulee)
                     .totalDepenses(totalDepensesMission)
                     .depenses(depenses)
                     .factureId(factureId)

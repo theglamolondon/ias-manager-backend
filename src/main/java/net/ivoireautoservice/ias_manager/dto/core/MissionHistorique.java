@@ -27,6 +27,9 @@ public class MissionHistorique {
     private String clientNom;
     private String chauffeurNom;
 
+    // Annulation : true si la mission a été annulée (dhmsAnnulation renseigné)
+    private boolean annulee;
+
     // Dépenses mission
     private long totalDepenses;
     private List<DepenseMission> depenses;
