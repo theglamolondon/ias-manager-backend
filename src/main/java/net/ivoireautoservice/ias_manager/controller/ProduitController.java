@@ -14,12 +14,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/produits")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('PRODUIT_READ')")
 public class ProduitController {
 
     private final ProduitService produitService;
@@ -59,6 +61,7 @@ public class ProduitController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('PRODUIT_CREATE')")
     public ResponseEntity<Produit> createProduit(
             @Valid @ModelAttribute ProduitRequest request,
             @RequestParam(required = false) MultipartFile image) {
@@ -67,6 +70,7 @@ public class ProduitController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('PRODUIT_UPDATE')")
     public ResponseEntity<Produit> updateProduit(
             @PathVariable Long id,
             @Valid @ModelAttribute ProduitRequest request,
@@ -75,12 +79,14 @@ public class ProduitController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('PRODUIT_DELETE')")
     public ResponseEntity<Void> deleteProduit(@PathVariable Long id) {
         produitService.deleteProduit(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/entrees")
+    @PreAuthorize("hasAuthority('PRODUIT_UPDATE')")
     public ResponseEntity<EntreeStock> enregistrerEntreeStock(@Valid @RequestBody EntreeStockRequest request) {
         EntreeStock created = produitService.enregistrerEntreeStock(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);

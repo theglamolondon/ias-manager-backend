@@ -15,12 +15,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/comptes")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('TRESORERIE_READ')")
 public class CompteController {
 
     private final CompteService compteService;
@@ -55,6 +57,7 @@ public class CompteController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('TRESORERIE_CREATE')")
     public ResponseEntity<Compte> createCompte(
             @RequestPart("request") @Valid CompteRequest request,
             @RequestPart(name = "logo", required = false) MultipartFile logo) {
@@ -63,6 +66,7 @@ public class CompteController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('TRESORERIE_UPDATE')")
     public ResponseEntity<Compte> updateCompte(
             @PathVariable Long id,
             @RequestPart("request") @Valid CompteRequest request,
@@ -83,6 +87,7 @@ public class CompteController {
     }
 
     @PostMapping("/{compteId}/lignes")
+    @PreAuthorize("hasAuthority('TRESORERIE_CREATE')")
     public ResponseEntity<LigneCompte> createLigne(
             @PathVariable Long compteId,
             @Valid @RequestBody LigneCompteRequest request) {
@@ -91,6 +96,7 @@ public class CompteController {
     }
 
     @PostMapping("/{compteId}/solder")
+    @PreAuthorize("hasAuthority('TRESORERIE_SOLDER')")
     public ResponseEntity<LigneCompte> solderCompte(@PathVariable Long compteId) {
         LigneCompte created = compteService.solderCompte(compteId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);

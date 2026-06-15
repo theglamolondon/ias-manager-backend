@@ -5,6 +5,7 @@ import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.services.StatistiqueService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/statistiques")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('DASHBOARD_READ')")
 public class StatistiqueController {
 
 	private final StatistiqueService statistiqueService;
@@ -93,6 +95,7 @@ public class StatistiqueController {
 	}
 
 	@GetMapping("/rapport-financier")
+	@PreAuthorize("hasAuthority('RAPPORT_READ')")
 	public ResponseEntity<RapportFinancier> getRapportFinancier(
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {

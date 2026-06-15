@@ -1,10 +1,15 @@
 package net.ivoireautoservice.ias_manager.auth.dto;
 
+import java.util.Set;
+
 public record AuthenticationResponse(
         String token,
         String nom,
         String prenoms,
         String email,
         String role,
-        Boolean hasChangePassword
+        Boolean hasChangePassword,
+        Set<String> roles,
+        Set<String> groupes,
+        Set<String> permissions
 ) {}

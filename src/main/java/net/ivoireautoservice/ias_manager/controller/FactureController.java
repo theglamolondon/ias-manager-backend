@@ -18,11 +18,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/factures")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyAuthority('FACTURE_CLIENT_READ','FACTURE_FOURNISSEUR_READ')")
 public class FactureController {
 
 	private final FactureService factureService;
@@ -45,6 +47,7 @@ public class FactureController {
 	}
 
 	@GetMapping("/clients")
+	@PreAuthorize("hasAuthority('FACTURE_CLIENT_READ')")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesClients(
 			@RequestParam(required = false) Long partenaireId,
 			@RequestParam(defaultValue = "0") int page,
@@ -57,6 +60,7 @@ public class FactureController {
 	}
 
 	@GetMapping("/fournisseurs")
+	@PreAuthorize("hasAuthority('FACTURE_FOURNISSEUR_READ')")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesFournisseurs(
 			@RequestParam(required = false) Long partenaireId,
 			@RequestParam(defaultValue = "0") int page,
@@ -93,12 +97,14 @@ public class FactureController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAnyAuthority('FACTURE_CLIENT_CREATE','FACTURE_FOURNISSEUR_CREATE')")
 	public ResponseEntity<Facture> createFacture(@Valid @RequestBody FactureRequest request) {
 		Facture created = factureService.createFacture(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
 	@PostMapping("/fournisseurs/groupee")
+	@PreAuthorize("hasAuthority('FACTURE_FOURNISSEUR_CREATE')")
 	public ResponseEntity<Facture> genererFactureFournisseurGroupee(
 			@Valid @RequestBody FactureFournisseurGroupeeRequest request) {
 		Facture created = factureService.genererFactureFournisseurGroupee(request);
@@ -106,6 +112,7 @@ public class FactureController {
 	}
 
 	@PostMapping("/missions/groupee")
+	@PreAuthorize("hasAuthority('FACTURE_CLIENT_CREATE')")
 	public ResponseEntity<Facture> genererFactureMissionGroupee(
 			@Valid @RequestBody FactureMissionGroupeeRequest request) {
 		Facture created = factureService.genererFactureMissionGroupee(request);
@@ -113,6 +120,7 @@ public class FactureController {
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAnyAuthority('FACTURE_CLIENT_CREATE','FACTURE_FOURNISSEUR_CREATE')")
 	public ResponseEntity<Facture> updateFacture(
 			@PathVariable Long id,
 			@Valid @RequestBody FactureRequest request) {
@@ -120,6 +128,7 @@ public class FactureController {
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasAnyAuthority('FACTURE_CLIENT_DELETE','FACTURE_FOURNISSEUR_DELETE')")
 	public ResponseEntity<Void> deleteFacture(@PathVariable Long id) {
 		factureService.deleteFacture(id);
 		return ResponseEntity.noContent().build();
@@ -144,6 +153,7 @@ public class FactureController {
 	}
 
 	@PatchMapping("/{id}/statut")
+	@PreAuthorize("hasAnyAuthority('FACTURE_CLIENT_VALIDER','FACTURE_FOURNISSEUR_VALIDER')")
 	public ResponseEntity<?> changerStatut(
 			@PathVariable Long id,
 			@RequestParam FactureStatusEnum statut,

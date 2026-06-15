@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/vehicules")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('VEHICULE_READ')")
 public class VehiculeController {
 
     private final VehiculeService vehiculeService;
@@ -79,12 +81,14 @@ public class VehiculeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('VEHICULE_CREATE')")
     public ResponseEntity<Vehicule> createVehicule(@Valid @RequestBody VehiculeRequest request) {
         Vehicule created = vehiculeService.createVehicule(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{vehiculeId}")
+    @PreAuthorize("hasAuthority('VEHICULE_UPDATE')")
     public ResponseEntity<Vehicule> updateVehicule(
             @PathVariable Long vehiculeId,
             @Valid @RequestBody VehiculeRequest request) {
@@ -92,6 +96,7 @@ public class VehiculeController {
     }
 
     @PatchMapping("/{vehiculeId}/statut")
+    @PreAuthorize("hasAuthority('VEHICULE_UPDATE')")
     public ResponseEntity<Vehicule> updateStatut(
             @PathVariable Long vehiculeId,
             @RequestParam VehiculeStatusEnum statut) {
@@ -120,6 +125,7 @@ public class VehiculeController {
     }
 
     @PostMapping("/{vehiculeId}/interventions")
+    @PreAuthorize("hasAuthority('INTERVENTION_CREATE')")
     public ResponseEntity<Intervention> createIntervention(
             @PathVariable Long vehiculeId,
             @Valid @RequestBody InterventionRequest request) {
@@ -130,6 +136,7 @@ public class VehiculeController {
     // ==================== PHOTOS ====================
 
     @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('VEHICULE_UPDATE')")
     public ResponseEntity<Vehicule> updatePhotos(
             @PathVariable Long id,
             @RequestParam(required = false) MultipartFile photoAvant,
@@ -147,6 +154,7 @@ public class VehiculeController {
     }
 
     @PostMapping(value = "/{vehiculeId}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('VEHICULE_UPDATE')")
     public ResponseEntity<DocumentVehicule> addDocument(
             @PathVariable Long vehiculeId,
             @RequestParam String label,
@@ -156,6 +164,7 @@ public class VehiculeController {
     }
 
     @DeleteMapping("/{vehiculeId}/documents/{documentId}")
+    @PreAuthorize("hasAuthority('VEHICULE_UPDATE')")
     public ResponseEntity<Void> deleteDocument(
             @PathVariable Long vehiculeId,
             @PathVariable Long documentId) {
@@ -164,6 +173,7 @@ public class VehiculeController {
     }
 
     @DeleteMapping("/{vehiculeId}")
+    @PreAuthorize("hasAuthority('VEHICULE_DELETE')")
     public ResponseEntity<Void> deleteVehicule(@PathVariable Long vehiculeId) {
         vehiculeService.deleteVehicule(vehiculeId);
         return ResponseEntity.noContent().build();
@@ -172,6 +182,7 @@ public class VehiculeController {
     // ==================== IMPORT EXCEL ====================
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('VEHICULE_CREATE')")
     public ResponseEntity<List<ImportVehiculeResult>> importVehicules(@RequestParam MultipartFile file) {
         List<ImportVehiculeResult> results = importService.importVehicules(file);
         return ResponseEntity.ok(results);

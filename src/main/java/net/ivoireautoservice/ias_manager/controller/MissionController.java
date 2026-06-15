@@ -23,12 +23,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/missions")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('MISSION_READ')")
 public class MissionController {
 
 	private final MissionService missionService;
@@ -77,12 +79,14 @@ public class MissionController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('MISSION_CREATE')")
 	public ResponseEntity<Mission> createMission(@Valid @RequestBody MissionRequest request) {
 		Mission created = missionService.createMission(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> updateMission(
 			@PathVariable Long id,
 			@Valid @RequestBody MissionRequest request) {
@@ -90,6 +94,7 @@ public class MissionController {
 	}
 
 	@PatchMapping("/{id}/demarrer")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> demarrerMission(
 			@PathVariable Long id,
 			@RequestParam LocalDateTime date) {
@@ -97,6 +102,7 @@ public class MissionController {
 	}
 
 	@PatchMapping("/{id}/terminer")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> terminerMission(
 			@PathVariable Long id,
 			@RequestParam LocalDateTime date) {
@@ -106,6 +112,7 @@ public class MissionController {
 	// ==================== DEMARRAGE / CLOTURE AVEC MEDIAS (ATOMIQUE) ====================
 
 	@PostMapping(value = "/{id}/demarrer-complet", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> demarrerMissionComplet(
 			@PathVariable Long id,
 			@RequestParam LocalDateTime date,
@@ -117,6 +124,7 @@ public class MissionController {
 	}
 
 	@PostMapping(value = "/{id}/terminer-complet", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> terminerMissionComplet(
 			@PathVariable Long id,
 			@RequestParam LocalDateTime date,
@@ -126,6 +134,7 @@ public class MissionController {
 	}
 
 	@PostMapping("/{id}/annuler")
+	@PreAuthorize("hasAuthority('MISSION_ANNULER')")
 	public ResponseEntity<Mission> annulerMission(
 			@PathVariable Long id,
 			@RequestBody(required = false) AnnulerMissionRequest request) {
@@ -135,6 +144,7 @@ public class MissionController {
 	// ==================== AFFECTATION CHAUFFEUR ====================
 
 	@PatchMapping("/{id}/affecter-chauffeur")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> affecterChauffeur(
 			@PathVariable Long id,
 			@RequestBody AffecterChauffeurRequest request) {
@@ -144,6 +154,7 @@ public class MissionController {
 	// ==================== CHANGEMENT DE VEHICULE ====================
 
 	@PatchMapping("/changer-vehicule")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<Mission> changerVehicule(
 			@Valid @RequestBody ChangerVehiculeMissionRequest request) {
 		Mission nouvelleMission = missionService.changerVehicule(request);
@@ -165,6 +176,7 @@ public class MissionController {
 	// ==================== DEPENSES ====================
 
 	@PostMapping("/{missionId}/depenses")
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<DepenseMission> addDepense(
 			@PathVariable Long missionId,
 			@Valid @RequestBody DepenseMissionRequest request) {
@@ -175,6 +187,7 @@ public class MissionController {
 	// ==================== PHOTOS ====================
 
 	@PostMapping(value = "/{missionId}/medias", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
 	public ResponseEntity<PhotoMission> addPhoto(
 			@PathVariable Long missionId,
 			@RequestParam MultipartFile file,

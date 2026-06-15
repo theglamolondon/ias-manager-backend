@@ -11,11 +11,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/interventions")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('INTERVENTION_READ')")
 public class InterventionController {
 
     private final InterventionService interventionService;
@@ -50,12 +52,14 @@ public class InterventionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('INTERVENTION_CREATE')")
     public ResponseEntity<Intervention> createIntervention(@Valid @RequestBody InterventionRequest request) {
         Intervention created = interventionService.createIntervention(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('INTERVENTION_UPDATE')")
     public ResponseEntity<Intervention> updateIntervention(
             @PathVariable Long id,
             @Valid @RequestBody InterventionRequest request) {
@@ -63,11 +67,13 @@ public class InterventionController {
     }
 
     @PatchMapping("/{id}/demarrer")
+    @PreAuthorize("hasAuthority('INTERVENTION_UPDATE')")
     public ResponseEntity<Intervention> demarrerIntervention(@PathVariable Long id) {
         return ResponseEntity.ok(interventionService.demarrerIntervention(id));
     }
 
     @PatchMapping("/{id}/cloturer")
+    @PreAuthorize("hasAuthority('INTERVENTION_UPDATE')")
     public ResponseEntity<Intervention> cloturerIntervention(
             @PathVariable Long id,
             @RequestParam(defaultValue = "true") boolean vehiculeDisponible,
@@ -76,6 +82,7 @@ public class InterventionController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('INTERVENTION_DELETE')")
     public ResponseEntity<Void> deleteIntervention(@PathVariable Long id) {
         interventionService.deleteIntervention(id);
         return ResponseEntity.noContent().build();

@@ -12,11 +12,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/chauffeurs")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('CHAUFFEUR_READ')")
 public class ChauffeurController {
 
     private final ChauffeurService chauffeurService;
@@ -50,11 +52,13 @@ public class ChauffeurController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('CHAUFFEUR_CREATE')")
     public ResponseEntity<Chauffeur> createChauffeur(@Valid @RequestBody ChauffeurRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(chauffeurService.createChauffeur(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CHAUFFEUR_UPDATE')")
     public ResponseEntity<Chauffeur> updateChauffeur(
             @PathVariable Long id,
             @Valid @RequestBody ChauffeurRequest request) {
@@ -62,6 +66,7 @@ public class ChauffeurController {
     }
 
     @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasAuthority('CHAUFFEUR_UPDATE')")
     public ResponseEntity<Chauffeur> changerStatut(
             @PathVariable Long id,
             @RequestParam StatutChauffeurEnum statut) {
@@ -69,6 +74,7 @@ public class ChauffeurController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CHAUFFEUR_DELETE')")
     public ResponseEntity<Void> deleteChauffeur(@PathVariable Long id) {
         chauffeurService.deleteChauffeur(id);
         return ResponseEntity.noContent().build();

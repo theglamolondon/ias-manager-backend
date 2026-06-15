@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +31,7 @@ public class LivraisonController {
     // ==================== LIVRAISONS CLIENT ====================
 
     @PostMapping("/clients/facture/{factureId}")
+    @PreAuthorize("hasAuthority('LIVRAISON_CLIENT_CREATE')")
     public ResponseEntity<LivraisonClient> enregistrerLivraisonClient(
             @PathVariable Long factureId,
             @RequestBody(required = false) LivraisonClientRequest request) {
@@ -38,6 +40,7 @@ public class LivraisonController {
     }
 
     @GetMapping("/clients")
+    @PreAuthorize("hasAuthority('LIVRAISON_CLIENT_READ')")
     public ResponseEntity<PagedResponse<LivraisonClientSummary>> getAllLivraisonsClient(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -50,17 +53,20 @@ public class LivraisonController {
     }
 
     @GetMapping("/clients/{id}")
+    @PreAuthorize("hasAuthority('LIVRAISON_CLIENT_READ')")
     public ResponseEntity<LivraisonClient> getLivraisonClientById(@PathVariable Long id) {
         return ResponseEntity.ok(livraisonService.getLivraisonClientById(id));
     }
 
     @DeleteMapping("/clients/{id}")
+    @PreAuthorize("hasAuthority('LIVRAISON_CLIENT_DELETE')")
     public ResponseEntity<Void> deleteLivraisonClient(@PathVariable Long id) {
         livraisonService.deleteLivraisonClient(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/clients/{id}/pdf")
+    @PreAuthorize("hasAuthority('LIVRAISON_CLIENT_READ')")
     public ResponseEntity<byte[]> generateBonLivraisonClientPdf(@PathVariable Long id) {
         byte[] pdf = livraisonService.generateBonLivraisonClientPdf(id);
         HttpHeaders headers = new HttpHeaders();
@@ -72,6 +78,7 @@ public class LivraisonController {
     // ==================== LIVRAISONS FOURNISSEUR ====================
 
     @GetMapping("/fournisseurs")
+    @PreAuthorize("hasAuthority('APPRO_READ')")
     public ResponseEntity<PagedResponse<LivraisonFournisseurSummary>> getAllLivraisonsFournisseur(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -84,22 +91,26 @@ public class LivraisonController {
     }
 
     @GetMapping("/fournisseurs/{id}")
+    @PreAuthorize("hasAuthority('APPRO_READ')")
     public ResponseEntity<LivraisonFournisseur> getLivraisonFournisseurById(@PathVariable Long id) {
         return ResponseEntity.ok(livraisonService.getLivraisonFournisseurById(id));
     }
 
     @GetMapping("/fournisseurs/facturables")
+    @PreAuthorize("hasAuthority('APPRO_READ')")
     public ResponseEntity<java.util.List<LivraisonFournisseurSummary>> getLivraisonsFournisseurFacturables(
             @RequestParam(required = false) Long partenaireId) {
         return ResponseEntity.ok(livraisonService.getLivraisonsFournisseurFacturables(partenaireId));
     }
 
     @GetMapping("/fournisseurs/numero/{numero}")
+    @PreAuthorize("hasAuthority('APPRO_READ')")
     public ResponseEntity<LivraisonFournisseur> getLivraisonFournisseurByNumero(@PathVariable String numero) {
         return ResponseEntity.ok(livraisonService.getLivraisonFournisseurByNumero(numero));
     }
 
     @PostMapping("/fournisseurs")
+    @PreAuthorize("hasAuthority('APPRO_CREATE')")
     public ResponseEntity<LivraisonFournisseur> createLivraisonFournisseur(
             @Valid @RequestBody LivraisonFournisseurRequest request) {
         LivraisonFournisseur created = livraisonService.createLivraisonFournisseur(request);
@@ -107,6 +118,7 @@ public class LivraisonController {
     }
 
     @PostMapping("/fournisseurs/facture/{factureId}")
+    @PreAuthorize("hasAuthority('APPRO_CREATE')")
     public ResponseEntity<LivraisonFournisseur> enregistrerLivraisonFournisseurFromFacture(
             @PathVariable Long factureId) {
         LivraisonFournisseur created = livraisonService.enregistrerLivraisonFournisseurFromFacture(factureId);
@@ -114,6 +126,7 @@ public class LivraisonController {
     }
 
     @PatchMapping("/fournisseurs/{id}/valider")
+    @PreAuthorize("hasAuthority('APPRO_UPDATE')")
     public ResponseEntity<LivraisonFournisseur> validerLivraisonFournisseur(
             @PathVariable Long id,
             @RequestParam(defaultValue = "false") boolean facturerMaintenant) {
@@ -121,6 +134,7 @@ public class LivraisonController {
     }
 
     @PatchMapping("/fournisseurs/{id}/annuler")
+    @PreAuthorize("hasAuthority('APPRO_UPDATE')")
     public ResponseEntity<LivraisonFournisseur> annulerLivraisonFournisseur(
             @PathVariable Long id,
             @Valid @RequestBody AnnulationLivraisonRequest request) {
@@ -128,6 +142,7 @@ public class LivraisonController {
     }
 
     @GetMapping("/fournisseurs/{id}/pdf")
+    @PreAuthorize("hasAuthority('APPRO_READ')")
     public ResponseEntity<byte[]> generateBonLivraisonFournisseurPdf(@PathVariable Long id) {
         byte[] pdf = livraisonService.generateBonLivraisonFournisseurPdf(id);
         HttpHeaders headers = new HttpHeaders();

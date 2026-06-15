@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -42,12 +43,14 @@ public class SiteController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
 	public ResponseEntity<Site> createSite(@Valid @RequestBody SiteRequest request) {
 		Site created = siteService.createSite(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
 	public ResponseEntity<Site> updateSite(
 			@PathVariable Long id,
 			@Valid @RequestBody SiteRequest request) {
@@ -55,6 +58,7 @@ public class SiteController {
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
 	public ResponseEntity<Void> deleteSite(@PathVariable Long id) {
 		siteService.deleteSite(id);
 		return ResponseEntity.noContent().build();

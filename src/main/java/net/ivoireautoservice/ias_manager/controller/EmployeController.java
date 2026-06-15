@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/employes")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('EMPLOYE_READ')")
 public class EmployeController {
 
     private final EmployeService employeService;
@@ -45,12 +47,14 @@ public class EmployeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('EMPLOYE_CREATE')")
     public ResponseEntity<Employe> createEmploye(@Valid @RequestBody EmployeRequest request) {
         Employe created = employeService.createEmploye(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('EMPLOYE_UPDATE')")
     public ResponseEntity<Employe> updateEmploye(
             @PathVariable Long id,
             @Valid @RequestBody EmployeRequest request) {
@@ -58,6 +62,7 @@ public class EmployeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('EMPLOYE_DELETE')")
     public ResponseEntity<Void> deleteEmploye(@PathVariable Long id) {
         employeService.deleteEmploye(id);
         return ResponseEntity.noContent().build();

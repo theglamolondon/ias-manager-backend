@@ -15,8 +15,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Objects;
-
 
 @RestController
 @RequestMapping("/api/auth")
@@ -55,18 +53,17 @@ public class AuthController {
     }
 
     private AuthenticationResponse buildResponse(String token, Utilisateur user) {
-        String role = user.getAuthorities().stream()
-                .findFirst()
-                .map(a -> Objects.requireNonNull(a.getAuthority()).replace("ROLE_", ""))
-                .orElse(null);
         Boolean hasChanged = user.getHasChangePassword();
         return new AuthenticationResponse(
                 token,
                 user.getNom(),
                 user.getPrenom(),
                 user.getEmail(),
-                role,
-                hasChanged != null ? hasChanged : Boolean.TRUE
+                user.getPrimaryRoleName(),
+                hasChanged != null ? hasChanged : Boolean.TRUE,
+                user.getRoleNames(),
+                user.getGroupeNames(),
+                user.getPermissionNames()
         );
     }
 

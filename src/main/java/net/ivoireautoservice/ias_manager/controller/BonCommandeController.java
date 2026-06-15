@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bons-commande")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('BON_COMMANDE_READ')")
 public class BonCommandeController {
 
     private final BonCommandeService bonCommandeService;
@@ -52,29 +54,34 @@ public class BonCommandeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('BON_COMMANDE_CREATE')")
     public ResponseEntity<BonCommande> create(@Valid @RequestBody BonCommandeRequest request) {
         BonCommande created = bonCommandeService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<BonCommande> update(@PathVariable Long id,
                                               @Valid @RequestBody BonCommandeRequest request) {
         return ResponseEntity.ok(bonCommandeService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         bonCommandeService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/valider")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<BonCommande> valider(@PathVariable Long id) {
         return ResponseEntity.ok(bonCommandeService.valider(id));
     }
 
     @PatchMapping("/{id}/annuler")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<BonCommande> annuler(@PathVariable Long id) {
         return ResponseEntity.ok(bonCommandeService.annuler(id));
     }
@@ -96,6 +103,7 @@ public class BonCommandeController {
     }
 
     @PostMapping("/{id}/lignes")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<LigneBonCommande> createLigne(@PathVariable Long id,
                                                        @Valid @RequestBody LigneBonCommandeRequest request) {
         LigneBonCommande created = bonCommandeService.createLigne(id, request);
@@ -103,6 +111,7 @@ public class BonCommandeController {
     }
 
     @PutMapping("/{id}/lignes/{ligneId}")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<LigneBonCommande> updateLigne(@PathVariable Long id,
                                                         @PathVariable Long ligneId,
                                                         @Valid @RequestBody LigneBonCommandeRequest request) {
@@ -110,6 +119,7 @@ public class BonCommandeController {
     }
 
     @DeleteMapping("/{id}/lignes/{ligneId}")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_UPDATE')")
     public ResponseEntity<Void> deleteLigne(@PathVariable Long id, @PathVariable Long ligneId) {
         bonCommandeService.deleteLigne(id, ligneId);
         return ResponseEntity.noContent().build();

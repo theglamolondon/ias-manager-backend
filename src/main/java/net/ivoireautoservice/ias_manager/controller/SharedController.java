@@ -25,11 +25,19 @@ import net.ivoireautoservice.ias_manager.services.SharedService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+/**
+ * Référentiels partagés (catégories, types, marques, assurances...).
+ *
+ * <p>Les lectures (GET) restent ouvertes à tout utilisateur authentifié car elles
+ * alimentent les listes déroulantes des formulaires de tous les modules. Seules les
+ * écritures sont réservées à la gestion des paramètres ({@code PARAMETRE_MANAGE}).</p>
+ */
 @RestController
 @RequestMapping("/api/commons")
 @RequiredArgsConstructor
@@ -50,12 +58,14 @@ public class SharedController {
     }
 
     @PostMapping("/categories")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Categorie> createCategorie(@Valid @RequestBody CategorieRequest request) {
         Categorie created = sharedService.createCategorie(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/categories/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Categorie> updateCategorie(
             @PathVariable Long id,
             @Valid @RequestBody CategorieRequest request) {
@@ -63,6 +73,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/categories/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteCategorie(@PathVariable Long id) {
         sharedService.deleteCategorie(id);
         return ResponseEntity.noContent().build();
@@ -81,12 +92,14 @@ public class SharedController {
     }
 
     @PostMapping("/types-vehicule")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeVehicule> createTypeVehicule(@Valid @RequestBody TypeVehiculeRequest request) {
         TypeVehicule created = sharedService.createTypeVehicule(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/types-vehicule/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeVehicule> updateTypeVehicule(
             @PathVariable Long id,
             @Valid @RequestBody TypeVehiculeRequest request) {
@@ -94,6 +107,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/types-vehicule/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteTypeVehicule(@PathVariable Long id) {
         sharedService.deleteTypeVehicule(id);
         return ResponseEntity.noContent().build();
@@ -112,12 +126,14 @@ public class SharedController {
     }
 
     @PostMapping("/services")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Service> createService(@Valid @RequestBody ServiceRequest request) {
         Service created = sharedService.createService(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/services/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Service> updateService(
             @PathVariable Long id,
             @Valid @RequestBody ServiceRequest request) {
@@ -125,6 +141,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/services/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         sharedService.deleteService(id);
         return ResponseEntity.noContent().build();
@@ -143,12 +160,14 @@ public class SharedController {
     }
 
     @PostMapping("/types-intervention")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeIntervention> createTypeIntervention(@Valid @RequestBody TypeInterventionRequest request) {
         TypeIntervention created = sharedService.createTypeIntervention(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/types-intervention/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeIntervention> updateTypeIntervention(
             @PathVariable Long id,
             @Valid @RequestBody TypeInterventionRequest request) {
@@ -156,6 +175,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/types-intervention/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteTypeIntervention(@PathVariable Long id) {
         sharedService.deleteTypeIntervention(id);
         return ResponseEntity.noContent().build();
@@ -174,12 +194,14 @@ public class SharedController {
     }
 
     @PostMapping("/familles-produit")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<FamilleProduit> createFamilleProduit(@Valid @RequestBody FamilleProduitRequest request) {
         FamilleProduit created = sharedService.createFamilleProduit(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/familles-produit/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<FamilleProduit> updateFamilleProduit(
             @PathVariable Long id,
             @Valid @RequestBody FamilleProduitRequest request) {
@@ -187,6 +209,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/familles-produit/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteFamilleProduit(@PathVariable Long id) {
         sharedService.deleteFamilleProduit(id);
         return ResponseEntity.noContent().build();
@@ -205,12 +228,14 @@ public class SharedController {
     }
 
     @PostMapping("/types-depense")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeDepense> createTypeDepense(@Valid @RequestBody TypeDepenseRequest request) {
         TypeDepense created = sharedService.createTypeDepense(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/types-depense/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeDepense> updateTypeDepense(
             @PathVariable Long id,
             @Valid @RequestBody TypeDepenseRequest request) {
@@ -218,6 +243,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/types-depense/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteTypeDepense(@PathVariable Long id) {
         sharedService.deleteTypeDepense(id);
         return ResponseEntity.noContent().build();
@@ -231,6 +257,7 @@ public class SharedController {
     }
 
     @PostMapping("/types-carburant")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeCarburant> createTypeCarburant(@Valid @RequestBody TypeCarburantRequest request) {
         TypeCarburant created = sharedService.createTypeCarburant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -249,12 +276,14 @@ public class SharedController {
     }
 
     @PostMapping("/types-assurance")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeAssurance> createTypeAssurance(@Valid @RequestBody TypeAssuranceRequest request) {
         TypeAssurance created = sharedService.createTypeAssurance(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/types-assurance/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<TypeAssurance> updateTypeAssurance(
             @PathVariable Long id,
             @Valid @RequestBody TypeAssuranceRequest request) {
@@ -269,6 +298,7 @@ public class SharedController {
     }
 
     @PostMapping("/marques")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Marque> createMarque(@Valid @RequestBody MarqueRequest request) {
         Marque created = sharedService.createMarque(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -287,6 +317,7 @@ public class SharedController {
     }
 
     @PostMapping(value = "/assurances", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Assurance> createAssurance(
             @RequestParam String libelle,
             @RequestParam(required = false) MultipartFile logo) {
@@ -295,6 +326,7 @@ public class SharedController {
     }
 
     @PutMapping(value = "/assurances/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Assurance> updateAssurance(
             @PathVariable Long id,
             @RequestParam String libelle,
@@ -303,6 +335,7 @@ public class SharedController {
     }
 
     @DeleteMapping("/assurances/{id}")
+    @PreAuthorize("hasAuthority('PARAMETRE_MANAGE')")
     public ResponseEntity<Void> deleteAssurance(@PathVariable Long id) {
         sharedService.deleteAssurance(id);
         return ResponseEntity.noContent().build();

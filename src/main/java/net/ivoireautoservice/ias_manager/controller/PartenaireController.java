@@ -13,11 +13,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/partenaires")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority('PARTENAIRE_READ')")
 public class PartenaireController {
 
     private final PartenaireService partenaireService;
@@ -62,12 +64,14 @@ public class PartenaireController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('PARTENAIRE_CREATE')")
     public ResponseEntity<Partenaire> createPartenaire(@Valid @RequestBody PartenaireRequest request) {
         Partenaire created = partenaireService.createPartenaire(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PARTENAIRE_UPDATE')")
     public ResponseEntity<Partenaire> updatePartenaire(
             @PathVariable Long id,
             @Valid @RequestBody PartenaireRequest request) {
@@ -75,6 +79,7 @@ public class PartenaireController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('PARTENAIRE_DELETE')")
     public ResponseEntity<Void> deletePartenaire(@PathVariable Long id) {
         partenaireService.deletePartenaire(id);
         return ResponseEntity.noContent().build();
@@ -102,6 +107,7 @@ public class PartenaireController {
     }
 
     @PostMapping("/{partenaireId}/bons-commande")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_CREATE')")
     public ResponseEntity<BonCommande> createBonCommande(
             @PathVariable Long partenaireId,
             @Valid @RequestBody BonCommandeRequest request) {
@@ -110,6 +116,7 @@ public class PartenaireController {
     }
 
     @DeleteMapping("/{partenaireId}/bons-commande/{bonId}")
+    @PreAuthorize("hasAuthority('BON_COMMANDE_DELETE')")
     public ResponseEntity<Void> deleteBonCommande(
             @PathVariable Long partenaireId,
             @PathVariable Long bonId) {
