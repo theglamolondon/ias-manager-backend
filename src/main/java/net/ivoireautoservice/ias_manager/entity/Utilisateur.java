@@ -126,6 +126,32 @@ public class Utilisateur extends AuditableEntity implements UserDetails {
                 .collect(Collectors.toCollection(TreeSet::new));
     }
 
+    /**
+     * Identifiants des rôles attribués <b>directement</b> à l'utilisateur
+     * (hors rôles hérités des groupes). Permet à l'UI de gérer l'attribution
+     * sans avoir à reconstruire la distinction direct / hérité côté frontend.
+     */
+    @Transient
+    public Set<Long> getRoleIds() {
+        if (roles == null) {
+            return new HashSet<>();
+        }
+        return roles.stream()
+                .map(RoleEntity::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    /** Identifiants des groupes auxquels l'utilisateur appartient. */
+    @Transient
+    public Set<Long> getGroupeIds() {
+        if (groupes == null) {
+            return new HashSet<>();
+        }
+        return groupes.stream()
+                .map(GroupeEntity::getId)
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
     /** Permissions effectives (à plat) sous forme de chaînes. */
     @Transient
     public Set<String> getPermissionNames() {

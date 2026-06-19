@@ -26,4 +26,9 @@ public class UtilisateurDto {
 	private Set<String> groupes;
 	/** Permissions effectives, à plat. */
 	private Set<String> permissions;
+
+	/** Identifiants des rôles attribués directement (hors héritage de groupe). */
+	private Set<Long> roleIds;
+	/** Identifiants des groupes de l'utilisateur. */
+	private Set<Long> groupeIds;
 }

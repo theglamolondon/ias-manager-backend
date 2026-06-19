@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,11 +34,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                             "/api/auth/login",
-                            "/api/resources/**",
+                            "/api/auth/refresh",
                             "/swagger-ui/**",
                             "/v3/api-docs/**",
                             "/swagger-ui.html"
                         ).permitAll()
+                        // Lecture des médias en accès public : nécessaire pour l'affichage
+                        // des images via les balises <img src> (qui ne portent pas le header
+                        // Authorization). Les ids sont des UUID aléatoires (non énumérables).
+                        .requestMatchers(HttpMethod.GET, "/api/resources/**").permitAll()
+                        // En revanche l'upload et la suppression de médias exigent une
+                        // authentification (S1 : plus d'écriture/suppression anonyme).
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

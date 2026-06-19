@@ -22,6 +22,10 @@ import net.ivoireautoservice.ias_manager.repository.LivraisonFournisseurReposito
 import net.ivoireautoservice.ias_manager.repository.MediaRepository;
 import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
 import net.ivoireautoservice.ias_manager.repository.PieceJointeRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -67,6 +71,7 @@ public class PieceJointeService {
     @Transactional(readOnly = true)
     public List<PieceJointe> getByOwner(PieceJointeOwnerTypeEnum ownerType, Long ownerId) {
         verifierOwnerExiste(ownerType, ownerId);
+        verifierPermission(ownerType, ownerId, false);
         return pieceJointeMapper.toDtoList(
                 pieceJointeRepository.findByOwnerTypeAndOwnerId(ownerType, ownerId));
     }
@@ -75,6 +80,7 @@ public class PieceJointeService {
     public PieceJointe upload(PieceJointeOwnerTypeEnum ownerType, Long ownerId, MultipartFile file) {
         validerFichier(file);
         verifierOwnerExiste(ownerType, ownerId);
+        verifierPermission(ownerType, ownerId, true);
 
         String id = UUID.randomUUID().toString();
         String extension = getExtension(file.getOriginalFilename());
@@ -108,6 +114,8 @@ public class PieceJointeService {
     public void delete(Long id) {
         PieceJointeEntity pj = pieceJointeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pièce jointe", id));
+
+        verifierPermission(pj.getOwnerType(), pj.getOwnerId(), true);
 
         MediaEntity media = pj.getMedia();
         pieceJointeRepository.delete(pj);
@@ -152,6 +160,51 @@ public class PieceJointeService {
                     .map(PartenaireEntity::getId)
                     .orElseThrow(() -> new ResourceNotFoundException("Partenaire", ownerId));
         }
+    }
+
+    /**
+     * Contrôle d'accès (S8) : une pièce jointe hérite des droits de sa ressource
+     * propriétaire. Lire les pièces d'une facture client exige {@code FACTURE_CLIENT_READ},
+     * en ajouter/supprimer exige {@code FACTURE_CLIENT_CREATE}, etc. Empêche tout
+     * utilisateur authentifié d'accéder aux pièces d'une ressource sur laquelle il
+     * n'a aucun droit (faille IDOR).
+     *
+     * @param ecriture {@code true} pour un upload/suppression, {@code false} pour une lecture.
+     */
+    private void verifierPermission(PieceJointeOwnerTypeEnum ownerType, Long ownerId, boolean ecriture) {
+        String permissionRequise = permissionRequise(ownerType, ownerId, ecriture);
+        if (!aAutorite(permissionRequise)) {
+            throw new AccessDeniedException(
+                    "Accès refusé : permission '" + permissionRequise + "' requise");
+        }
+    }
+
+    private String permissionRequise(PieceJointeOwnerTypeEnum ownerType, Long ownerId, boolean ecriture) {
+        return switch (ownerType) {
+            case BON_COMMANDE -> ecriture ? "BON_COMMANDE_UPDATE" : "BON_COMMANDE_READ";
+            case LIVRAISON_FOURNISSEUR -> ecriture ? "APPRO_UPDATE" : "APPRO_READ";
+            case LIVRAISON_CLIENT -> ecriture ? "LIVRAISON_CLIENT_UPDATE" : "LIVRAISON_CLIENT_READ";
+            case PARTENAIRE -> ecriture ? "PARTENAIRE_UPDATE" : "PARTENAIRE_READ";
+            case FACTURE -> {
+                FactureEntity facture = factureRepository.findById(ownerId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Facture", ownerId));
+                boolean client = Boolean.TRUE.equals(facture.getFactureClient());
+                if (client) {
+                    yield ecriture ? "FACTURE_CLIENT_CREATE" : "FACTURE_CLIENT_READ";
+                }
+                yield ecriture ? "FACTURE_FOURNISSEUR_CREATE" : "FACTURE_FOURNISSEUR_READ";
+            }
+        };
+    }
+
+    private boolean aAutorite(String permission) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(permission::equals);
     }
 
     private String getExtension(String filename) {

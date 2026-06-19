@@ -16,6 +16,8 @@ public interface UtilisateurMapper {
     @Mapping(target = "roles", expression = "java(entity.getRoleNames())")
     @Mapping(target = "groupes", expression = "java(entity.getGroupeNames())")
     @Mapping(target = "permissions", expression = "java(entity.getPermissionNames())")
+    @Mapping(target = "roleIds", expression = "java(entity.getRoleIds())")
+    @Mapping(target = "groupeIds", expression = "java(entity.getGroupeIds())")
     @Mapping(target = "employeId", expression = "java(entity.getEmploye() != null ? entity.getEmploye().getId() : null)")
     UtilisateurDto toDto(Utilisateur entity);
 

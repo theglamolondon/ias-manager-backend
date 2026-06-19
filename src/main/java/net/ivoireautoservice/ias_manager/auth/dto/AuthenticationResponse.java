@@ -4,6 +4,7 @@ import java.util.Set;
 
 public record AuthenticationResponse(
         String token,
+        String refreshToken,
         String nom,
         String prenoms,
         String email,

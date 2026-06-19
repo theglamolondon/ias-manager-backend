@@ -28,12 +28,35 @@ public class JwtService {
                 .issuer(this.props.getIssuer())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + this.props.getExpiration()))
+                .claim("type", "access")
                 .claim("roles", userDetails.getAuthorities()
                         .stream()
                         .map(GrantedAuthority::getAuthority)
                         .toList())
                 .signWith(getSignInKey())
                 .compact();
+    }
+
+    /**
+     * Refresh token (S4) : durée de vie plus longue que le token d'accès, sans
+     * autorités embarquées. Sert uniquement à obtenir un nouveau token d'accès
+     * via {@code /api/auth/refresh}.
+     */
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .subject(userDetails.getUsername())
+                .issuer(this.props.getIssuer())
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + this.props.getRefreshExpiration()))
+                .claim("type", "refresh")
+                .signWith(getSignInKey())
+                .compact();
+    }
+
+    /** Vrai si le token est un refresh token valide (signature, expiration et type). */
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
+        return isTokenValid(token, userDetails)
+                && "refresh".equals(extractClaim(token, claims -> claims.get("type", String.class)));
     }
 
     private SecretKey getSignInKey() {

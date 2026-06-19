@@ -56,17 +56,27 @@ public class RoleService {
     public Role updateRole(Long id, RoleRequest request) {
         RoleEntity entity = findOrThrow(id);
         String nom = normaliserNom(request.getNom());
+        boolean estRoleSysteme = Boolean.TRUE.equals(entity.getSystemRole());
 
-        if (Boolean.TRUE.equals(entity.getSystemRole()) && !entity.getNom().equals(nom)) {
+        if (estRoleSysteme && !entity.getNom().equals(nom)) {
             throw new BadRequestException("Le nom d'un rôle système ne peut pas être modifié");
         }
         if (!entity.getNom().equals(nom) && roleRepository.existsByNom(nom)) {
             throw new BadRequestException("Un rôle nommé '" + nom + "' existe déjà");
         }
 
+        // S3 : les permissions d'un rôle système sont figées (socle d'accès stable,
+        // protection contre l'escalade de privilèges via ROLE_MANAGE). Seuls le libellé
+        // et la description restent modifiables.
+        if (estRoleSysteme && !safePermissions(request).equals(entity.getPermissions())) {
+            throw new BadRequestException("Les permissions d'un rôle système ne peuvent pas être modifiées");
+        }
+
         roleMapper.updateEntity(request, entity);
         entity.setNom(nom);
-        entity.setPermissions(safePermissions(request));
+        if (!estRoleSysteme) {
+            entity.setPermissions(safePermissions(request));
+        }
         return roleMapper.toDto(roleRepository.save(entity));
     }
 

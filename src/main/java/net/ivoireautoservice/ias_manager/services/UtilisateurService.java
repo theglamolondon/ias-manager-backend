@@ -51,6 +51,7 @@ public class UtilisateurService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new BadRequestException("Le mot de passe est obligatoire à la création");
         }
+        validerPolitiqueMotDePasse(request.getPassword());
         Utilisateur entity = utilisateurMapper.toEntity(request);
         entity.setPassword(passwordEncoder.encode(request.getPassword()));
         entity.setEmploye(resolveEmploye(request.getEmployeId()));
@@ -69,6 +70,7 @@ public class UtilisateurService {
             entity.setEmploye(resolveEmploye(request.getEmployeId()));
         }
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            validerPolitiqueMotDePasse(request.getPassword());
             entity.setPassword(passwordEncoder.encode(request.getPassword()));
             // Un mot de passe défini par un admin via le module utilisateurs
             // est considéré comme un mot de passe initial / réinitialisé.
@@ -95,9 +97,7 @@ public class UtilisateurService {
         if (newPassword == null || newPassword.isBlank()) {
             throw new BadRequestException("Le nouveau mot de passe est obligatoire");
         }
-        if (newPassword.length() < 6) {
-            throw new BadRequestException("Le mot de passe doit contenir au moins 6 caractères");
-        }
+        validerPolitiqueMotDePasse(newPassword);
         Utilisateur entity = userRepository.findById(connected.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur", connected.getId()));
         entity.setPassword(passwordEncoder.encode(newPassword));
@@ -139,6 +139,22 @@ public class UtilisateurService {
         }
         user.setGroupes(groupes);
         return utilisateurMapper.toDto(userRepository.save(user));
+    }
+
+    /**
+     * Politique de mot de passe homogène (S6), appliquée à toutes les voies de
+     * définition : création et réinitialisation par un admin, et changement
+     * self-service. Exige au moins 8 caractères contenant lettres et chiffres.
+     */
+    private void validerPolitiqueMotDePasse(String motDePasse) {
+        if (motDePasse == null || motDePasse.length() < 8) {
+            throw new BadRequestException("Le mot de passe doit contenir au moins 8 caractères");
+        }
+        boolean aLettre = motDePasse.chars().anyMatch(Character::isLetter);
+        boolean aChiffre = motDePasse.chars().anyMatch(Character::isDigit);
+        if (!aLettre || !aChiffre) {
+            throw new BadRequestException("Le mot de passe doit contenir au moins une lettre et un chiffre");
+        }
     }
 
     private EmployeEntity resolveEmploye(Long employeId) {
