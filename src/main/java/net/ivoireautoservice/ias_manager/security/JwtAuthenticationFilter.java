@@ -1,5 +1,6 @@
 package net.ivoireautoservice.ias_manager.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +39,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        userEmail = jwtService.extractUsername(jwt);
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+        } catch (JwtException ex) {
+            // Token expiré/malformé/signature invalide : on poursuit en anonyme plutôt
+            // que de laisser l'exception fuiter hors du filtre. L'AuthenticationEntryPoint
+            // (cf. SecurityConfig) renverra alors un 401 propre sur la suite de la chaîne.
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);

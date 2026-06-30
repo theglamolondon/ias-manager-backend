@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.config;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.security.JwtAuthenticationEntryPoint;
 import net.ivoireautoservice.ias_manager.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -48,7 +50,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);;
+                // Sans ceci, Spring Security renvoie 403 (Http403ForbiddenEntryPoint) pour
+                // toute requête non authentifiée au lieu de 401 — le frontend ne peut alors
+                // pas distinguer "session expirée" de "droits insuffisants".
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
