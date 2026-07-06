@@ -293,7 +293,7 @@ public class MissionService {
 		// Blocage strict : tarif >= minimum (JOURNALIERE / MENSUELLE).
 		validateTarifMinimum(entity);
 
-		// 6. Recalcul systématique des champs dérivés (montantTotalHT, totalPerdiem, dureeLocation).
+		// 6. Recalcul systématique des champs dérivés (montantTotalHT, dureeLocation).
 		computeCalculatedFields(entity);
 
 		MissionEntity saved = missionRepository.save(entity);
@@ -314,7 +314,6 @@ public class MissionService {
 	private boolean isComptableChanged(MissionEntity entity, MissionRequest request) {
 		return entity.getTypeTarification() != request.getTypeTarification()
 				|| !Objects.equals(entity.getTarif(), request.getTarif())
-				|| !Objects.equals(entity.getPerdiem(), request.getPerdiem())
 				|| !Objects.equals(entity.getDhmsDebutPrevi(), request.getDhmsDebutPrevi())
 				|| !Objects.equals(entity.getDhmsFinPrevi(), request.getDhmsFinPrevi())
 				|| !Objects.equals(entity.getWithChauffeur(), request.getWithChauffeur())
@@ -422,12 +421,11 @@ public class MissionService {
 	 * de MediaService).
 	 */
 	@Transactional
-	public Mission demarrerMissionAvecMedias(Long id, LocalDateTime date, Long chauffeurId, BigDecimal perdiem,
+	public Mission demarrerMissionAvecMedias(Long id, LocalDateTime date, Long chauffeurId,
 			List<MultipartFile> files, List<PhotoMissionTypeEnum> types) {
 		if (chauffeurId != null) {
 			affecterChauffeur(id, AffecterChauffeurRequest.builder()
 					.chauffeurId(chauffeurId)
-					.perdiem(perdiem)
 					.build());
 		}
 		Mission mission = demarrerMission(id, date);
@@ -587,9 +585,6 @@ public class MissionService {
 		} else if (ancienneMission.getTarif() != null) {
 			ancienneMission.setMontantTotalHT(ancienneMission.getTarif().multiply(BigDecimal.valueOf(dureeReelleUnitaire)));
 		}
-		if (ancienneMission.getPerdiem() != null) {
-			ancienneMission.setTotalPerdiem(ancienneMission.getPerdiem().multiply(BigDecimal.valueOf(dureeReelleJours)));
-		}
 
 		// Mettre l'ancien véhicule dans le statut choisi par l'utilisateur (GARAGE ou SINISTRE)
 		VehiculeEntity ancienVehicule = ancienneMission.getVehicule();
@@ -625,7 +620,6 @@ public class MissionService {
 				.withChauffeur(ancienneMission.getWithChauffeur())
 				.isSousTraitee(ancienneMission.getIsSousTraitee())
 				.detailsVehiculeSousTraitance(ancienneMission.getDetailsVehiculeSousTraitance())
-				.perdiem(ancienneMission.getPerdiem())
 				.tarif(ancienneMission.getTarif())
 				.kilometrageDepart(null)
 				.kilometrageArrive(null)
@@ -658,10 +652,6 @@ public class MissionService {
 			if (nouvelleMission.getTarif() != null) {
 				nouvelleMission.setMontantTotalHT(nouvelleMission.getTarif().multiply(BigDecimal.valueOf(dureeRestanteUnitaire)));
 			}
-		}
-		// Perdiem chauffeur : toujours journalier.
-		if (nouvelleMission.getPerdiem() != null && dureeRestanteJours > 0) {
-			nouvelleMission.setTotalPerdiem(nouvelleMission.getPerdiem().multiply(BigDecimal.valueOf(dureeRestanteJours)));
 		}
 
 		// Mettre le nouveau véhicule en MISSION
@@ -752,22 +742,9 @@ public class MissionService {
 			}
 			entity.setChauffeur(chauffeur);
 			entity.setWithChauffeur(true);
-			entity.setPerdiem(request.getPerdiem());
-
-			// Recalculer le total perdiem si les dates sont connues.
-			if (request.getPerdiem() != null && entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
-				long nbJours = java.time.temporal.ChronoUnit.DAYS.between(
-						entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
-				if (nbJours < 1) nbJours = 1;
-				entity.setTotalPerdiem(request.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
-			} else {
-				entity.setTotalPerdiem(null);
-			}
 		} else {
 			entity.setChauffeur(null);
 			entity.setWithChauffeur(false);
-			entity.setPerdiem(null);
-			entity.setTotalPerdiem(null);
 		}
 
 		MissionEntity saved = missionRepository.save(entity);
@@ -892,9 +869,6 @@ public class MissionService {
 				long nbJours = ChronoUnit.DAYS.between(entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
 				if (nbJours < 1) nbJours = 1;
 				entity.setDureeLocation(nbJours);
-				if (entity.getPerdiem() != null) {
-					entity.setTotalPerdiem(entity.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
-				}
 			}
 			return;
 		}
@@ -911,13 +885,9 @@ public class MissionService {
 				if (entity.getTarif() != null) {
 					entity.setMontantTotalHT(entity.getTarif().multiply(BigDecimal.valueOf(nbMois)));
 				}
-				if (entity.getPerdiem() != null) {
-					entity.setTotalPerdiem(entity.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
-				}
 			} else {
 				entity.setDureeLocation(null);
 				entity.setMontantTotalHT(null);
-				entity.setTotalPerdiem(null);
 			}
 			return;
 		}
@@ -938,11 +908,6 @@ public class MissionService {
 
 			if (entity.getTarif() != null) {
 				entity.setMontantTotalHT(entity.getTarif().multiply(BigDecimal.valueOf(dureeUnitaire)));
-			}
-
-			// Le perdiem reste toujours journalier, quelle que soit la tarification du véhicule.
-			if (entity.getPerdiem() != null) {
-				entity.setTotalPerdiem(entity.getPerdiem().multiply(BigDecimal.valueOf(nbJours)));
 			}
 		}
 
@@ -975,9 +940,8 @@ public class MissionService {
 	}
 
 	/**
-	 * Construit les lignes de facture d'une mission (location + ligne perdiem
-	 * chauffeur si applicable). Utilisé à la création et à la resynchronisation
-	 * d'une facture en BROUILLON/PROFORMA après update de la mission.
+	 * Construit les lignes de facture d'une mission (location uniquement).
+	 * Utilisé à la création et à la resynchronisation d'une facture en BROUILLON/PROFORMA après update de la mission.
 	 */
 	private List<LigneFactureRequest> buildMissionFactureItems(MissionEntity mission) {
 		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -991,7 +955,6 @@ public class MissionService {
 		String uniteLabel = mensuelle ? " mois" : " jour(s)";
 		String duree = mission.getDureeLocation() != null ? (mission.getDureeLocation() + uniteLabel) : "";
 
-		// Nombre de jours réels (toujours), utilisé pour la ligne perdiem chauffeur.
 		long nbJours = hasDates
 				? Math.max(1, ChronoUnit.DAYS.between(mission.getDhmsDebutPrevi().toLocalDate(), mission.getDhmsFinPrevi().toLocalDate()))
 				: 0;
@@ -1018,19 +981,6 @@ public class MissionService {
 				.montantHt(montantLocationHt)
 				.extraRef(mission.getCodeMission())
 				.build());
-
-		if (Boolean.TRUE.equals(mission.getWithChauffeur()) && mission.getPerdiem() != null && mission.getPerdiem().compareTo(BigDecimal.ZERO) > 0 && nbJours > 0) {
-			long perdiemUnitaire = mission.getPerdiem().longValue();
-			long totalPerdiem = mission.getTotalPerdiem() != null ? mission.getTotalPerdiem().longValue() : perdiemUnitaire * nbJours;
-			items.add(LigneFactureRequest.builder()
-					.designation("Chauffeur - Perdiem " + immat + " " + nbJours + " jour(s)")
-					.qte(nbJours)
-					.prixUnitaire(perdiemUnitaire)
-					.remise(0f)
-					.montantHt(totalPerdiem)
-					.extraRef(mission.getCodeMission())
-					.build());
-		}
 
 		return items;
 	}

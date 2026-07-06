@@ -13,7 +13,6 @@ import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionReque
 import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.services.MissionService;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
@@ -117,10 +116,9 @@ public class MissionController {
 			@PathVariable Long id,
 			@RequestParam LocalDateTime date,
 			@RequestParam(required = false) Long chauffeurId,
-			@RequestParam(required = false) BigDecimal perdiem,
 			@RequestParam(required = false) List<MultipartFile> files,
 			@RequestParam(required = false) List<PhotoMissionTypeEnum> types) {
-		return ResponseEntity.ok(missionService.demarrerMissionAvecMedias(id, date, chauffeurId, perdiem, files, types));
+		return ResponseEntity.ok(missionService.demarrerMissionAvecMedias(id, date, chauffeurId, files, types));
 	}
 
 	@PostMapping(value = "/{id}/terminer-complet", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

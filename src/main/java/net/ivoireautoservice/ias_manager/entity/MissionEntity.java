@@ -61,10 +61,6 @@ public class MissionEntity extends AuditableEntity {
 
 	private String detailsVehiculeSousTraitance;
 
-	private BigDecimal perdiem;
-
-	private BigDecimal totalPerdiem;
-
 	@Column(name = "tarif_journalier")
 	private BigDecimal tarif;
 

@@ -290,7 +290,7 @@ public class VehiculeService {
         // 3. Trouver les lignes facture liées via extraRef (restreintes aux
         // factures de type MISSION pour éviter les faux positifs avec les
         // extraRef de lignes de factures fournisseur).
-        // On conserve TOUTES les lignes par codeMission (location + perdiem éventuel).
+        // On conserve toutes les lignes facture par codeMission.
         Map<String, List<LigneFactureEntity>> lignesByCodeMission = new java.util.HashMap<>();
         if (!codeMissions.isEmpty()) {
             List<LigneFactureEntity> lignesFacture = ligneFactureRepository.findByExtraRefInForMission(codeMissions);
@@ -328,7 +328,7 @@ public class VehiculeService {
                 numFacture = facture.getNumFacture() != null ? facture.getNumFacture() : facture.getNumProforma();
                 factureStatut = facture.getStatut();
 
-                // Somme du HT des lignes propres à cette mission (location + perdiem),
+                // Somme du HT des lignes propres à cette mission,
                 // puis application de la TVA de la facture — évite de compter le TTC
                 // total d'une facture groupée multi-véhicules.
                 long missionHt = lignesMission.stream()
@@ -361,7 +361,6 @@ public class VehiculeService {
                     .dhmsFinReel(m.getDhmsFinReel())
                     .dureeLocation(m.getDureeLocation())
                     .montantTotalHT(m.getMontantTotalHT())
-                    .totalPerdiem(m.getTotalPerdiem())
                     .clientNom(clientNom)
                     .chauffeurNom(chauffeurNom)
                     .annulee(missionAnnulee)

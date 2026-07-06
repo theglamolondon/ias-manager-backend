@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+
 /**
  * Item d'une facture mission groupée : une mission non encore facturée
  * à inclure dans la facture, avec ses coûts de location ajustables au
@@ -39,9 +40,4 @@ public class FactureMissionItemRequest {
 	@NotNull(message = "La durée de location est requise")
 	private Long dureeLocation;
 
-	/** Perdiem journalier (optionnel, ignoré si la mission n'a pas de chauffeur). */
-	private BigDecimal perdiem;
-
-	/** Nombre de jours de perdiem (optionnel). */
-	private Long dureePerdiem;
 }

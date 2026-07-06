@@ -392,7 +392,7 @@ public class FactureService {
 	 * Génère une facture client regroupant plusieurs missions non encore
 	 * facturées pour un même client, tous types de tarification confondus
 	 * (JOURNALIERE, MENSUELLE, UNIQUE, INDEFINIE). Les coûts de location
-	 * (tarif, perdiem, durée) sont passés explicitement par mission pour
+	 * (tarif, durée) sont passés explicitement par mission pour
 	 * permettre leur ajustement à la facturation.
 	 *
 	 * Validation : chaque mission doit appartenir au client sélectionné,
@@ -462,8 +462,7 @@ public class FactureService {
 				.build();
 		FactureEntity savedFacture = factureRepository.save(facture);
 
-		// Construction des lignes : pour chaque mission, une ligne location +
-		// éventuellement une ligne perdiem chauffeur (si applicable).
+		// Construction des lignes : une ligne location par mission.
 		long montantHt = 0L;
 		java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -522,30 +521,6 @@ public class FactureService {
 					.facture(savedFacture)
 					.build();
 			ligneFactureRepository.save(ligneLocation);
-
-			// Perdiem chauffeur si applicable.
-			if (Boolean.TRUE.equals(mission.getWithChauffeur())
-					&& item.getPerdiem() != null
-					&& item.getPerdiem().signum() > 0
-					&& item.getDureePerdiem() != null
-					&& item.getDureePerdiem() > 0) {
-				long prixPerdiem = item.getPerdiem().longValue();
-				long qtePerdiem = item.getDureePerdiem();
-				long montantPerdiem = prixPerdiem * qtePerdiem;
-				montantHt += montantPerdiem;
-
-				LigneFactureEntity lignePerdiem = LigneFactureEntity.builder()
-						.designation("Chauffeur - Perdiem " + immat + " " + qtePerdiem + " jour(s)")
-						.qte(qtePerdiem)
-						.prixUnitaire(prixPerdiem)
-						.remise(0f)
-						.montantHt(montantPerdiem)
-						.typeTarification(net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum.JOURNALIERE)
-						.extraRef(mission.getCodeMission())
-						.facture(savedFacture)
-						.build();
-				ligneFactureRepository.save(lignePerdiem);
-			}
 		}
 
 		savedFacture.setMontantHt(montantHt);

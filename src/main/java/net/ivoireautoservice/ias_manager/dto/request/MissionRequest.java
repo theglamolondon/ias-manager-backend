@@ -26,8 +26,6 @@ public class MissionRequest {
 	private Boolean withChauffeur;
 	private Boolean isSousTraitee;
 	private String detailsVehiculeSousTraitance;
-	private BigDecimal perdiem;
-	private BigDecimal totalPerdiem;
 	private BigDecimal tarif;
 	private BigDecimal montantTotalHT;
 	private Long dureeLocation;

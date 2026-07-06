@@ -23,7 +23,6 @@ public class MissionHistorique {
     private LocalDateTime dhmsFinReel;
     private Long dureeLocation;
     private BigDecimal montantTotalHT;
-    private BigDecimal totalPerdiem;
     private String clientNom;
     private String chauffeurNom;
 
