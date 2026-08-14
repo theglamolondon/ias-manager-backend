@@ -21,6 +21,8 @@ public interface VehiculeRepository extends JpaRepository<VehiculeEntity, Long> 
 
     List<VehiculeEntity> findByStatut(VehiculeStatusEnum statut);
 
+    List<VehiculeEntity> findByStatutNot(VehiculeStatusEnum statut);
+
     List<VehiculeEntity> findByTypeId(Long typeId);
 
     List<VehiculeEntity> findByTypeCategorieId(Long categorieId);

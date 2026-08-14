@@ -23,6 +23,7 @@ import net.ivoireautoservice.ias_manager.enums.StatutChauffeurEnum;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import java.util.Objects;
+import net.ivoireautoservice.ias_manager.event.MissionCreatedEvent;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
@@ -30,6 +31,7 @@ import net.ivoireautoservice.ias_manager.mapper.FactureMapper;
 import net.ivoireautoservice.ias_manager.mapper.MediaMapper;
 import net.ivoireautoservice.ias_manager.mapper.MissionMapper;
 import net.ivoireautoservice.ias_manager.repository.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -67,6 +69,7 @@ public class MissionService {
 	private final CompteService compteService;
 	private final SiteService siteService;
 	private final PrintService printService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	// ==================== MISSIONS ====================
 
@@ -244,6 +247,13 @@ public class MissionService {
 				factureService.changerStatut(facture.getId(), FactureStatusEnum.PAYEE, request.getCompteId());
 			}
 		}
+
+		// Consommé après commit par le module notification.
+		eventPublisher.publishEvent(new MissionCreatedEvent(
+				saved.getId(),
+				saved.getCodeMission(),
+				vehicule.getImmatriculation(),
+				saved.getClient() != null ? saved.getClient().getRaisonSociale() : null));
 
 		return missionMapper.toDto(saved);
 	}
