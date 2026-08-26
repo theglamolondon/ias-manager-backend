@@ -135,8 +135,7 @@ public class RbacSeeder implements ApplicationRunner {
                     PermissionEnum.PARTENAIRE_READ, PermissionEnum.PARTENAIRE_CREATE,
                     PermissionEnum.PARTENAIRE_UPDATE,
                     PermissionEnum.MISSION_READ,
-                    PermissionEnum.LIVRAISON_CLIENT_READ, PermissionEnum.LIVRAISON_CLIENT_CREATE,
-                    PermissionEnum.RAPPORT_READ);
+                    PermissionEnum.LIVRAISON_CLIENT_READ, PermissionEnum.LIVRAISON_CLIENT_CREATE);
             case RECOUVREMENT -> EnumSet.of(
                     PermissionEnum.DASHBOARD_READ,
                     PermissionEnum.FACTURE_CLIENT_READ, PermissionEnum.FACTURE_CLIENT_VALIDER,
