@@ -153,7 +153,7 @@ public class MissionService {
 
 		long duree = 0;
 		if (mission.getDhmsDebutPrevi() != null && mission.getDhmsFinPrevi() != null) {
-			duree = Math.max(0, ChronoUnit.DAYS.between(mission.getDhmsDebutPrevi(), mission.getDhmsFinPrevi()));
+			duree = dureeEnJours(mission.getDhmsDebutPrevi(), mission.getDhmsFinPrevi());
 		}
 
 		java.util.Map<String, Object> data = new java.util.HashMap<>();
@@ -577,6 +577,8 @@ public class MissionService {
 
 		// Recalculer durée et coûts de l'ancienne mission sur la durée réelle.
 		// Si la panne survient le 1er jour de mission, on ne facture pas le jour de départ (durée = 0).
+		// NB : décompte volontairement EXCLUSIF ici — ne pas l'aligner sur dureeEnJours(), qui est la
+		// règle inclusive appliquée aux durées prévisionnelles.
 		long dureeReelleJours = ChronoUnit.DAYS.between(
 				ancienneMission.getDhmsDebutReel().toLocalDate(), maintenant.toLocalDate());
 		if (dureeReelleJours < 0) dureeReelleJours = 0;
@@ -784,8 +786,7 @@ public class MissionService {
 			throw new BadRequestException("Ce véhicule n'a pas de type défini");
 		}
 
-		long dureeJours = ChronoUnit.DAYS.between(debut.toLocalDate(), fin.toLocalDate());
-		if (dureeJours < 1) dureeJours = 1;
+		long dureeJours = dureeEnJours(debut, fin);
 
 		long duree;
 		BigDecimal tarifMinimum;
@@ -820,6 +821,15 @@ public class MissionService {
 	}
 
 	// ==================== HELPERS ====================
+
+	/**
+	 * Durée d'une mission en jours calendaires, jour de départ inclus.
+	 * Ex. : du 03 au 04 → 2 jours ; du 03 au 03 → 1 jour. Plancher à 1.
+	 */
+	private long dureeEnJours(LocalDateTime debut, LocalDateTime fin) {
+		long jours = ChronoUnit.DAYS.between(debut.toLocalDate(), fin.toLocalDate()) + 1;
+		return Math.max(1, jours);
+	}
 
 	/**
 	 * Blocage strict du tarif minimum pour les tarifications JOURNALIERE et MENSUELLE.
@@ -876,9 +886,7 @@ public class MissionService {
 				entity.setMontantTotalHT(entity.getTarif());
 			}
 			if (entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
-				long nbJours = ChronoUnit.DAYS.between(entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
-				if (nbJours < 1) nbJours = 1;
-				entity.setDureeLocation(nbJours);
+				entity.setDureeLocation(dureeEnJours(entity.getDhmsDebutPrevi(), entity.getDhmsFinPrevi()));
 			}
 			return;
 		}
@@ -887,8 +895,7 @@ public class MissionService {
 		// Le tarif renseigné est mensuel ; la facturation se fera manuellement.
 		if (type == TypeTarificationEnum.INDEFINIE) {
 			if (entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
-				long nbJours = ChronoUnit.DAYS.between(entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
-				if (nbJours < 1) nbJours = 1;
+				long nbJours = dureeEnJours(entity.getDhmsDebutPrevi(), entity.getDhmsFinPrevi());
 				long nbMois = nbJours / 30;
 				if (nbMois < 1) nbMois = 1;
 				entity.setDureeLocation(nbMois);
@@ -904,8 +911,7 @@ public class MissionService {
 
 		// Cas JOURNALIERE / MENSUELLE : montant = tarif unitaire × durée.
 		if (entity.getDhmsDebutPrevi() != null && entity.getDhmsFinPrevi() != null) {
-			long nbJours = ChronoUnit.DAYS.between(entity.getDhmsDebutPrevi().toLocalDate(), entity.getDhmsFinPrevi().toLocalDate());
-			if (nbJours < 1) nbJours = 1;
+			long nbJours = dureeEnJours(entity.getDhmsDebutPrevi(), entity.getDhmsFinPrevi());
 
 			// dureeLocation = nombre d'unités de tarification (jours OU mois) — aligné sur simulerTarif.
 			long dureeUnitaire = nbJours;
@@ -964,10 +970,6 @@ public class MissionService {
 		boolean mensuelle = type == TypeTarificationEnum.MENSUELLE || type == TypeTarificationEnum.INDEFINIE;
 		String uniteLabel = mensuelle ? " mois" : " jour(s)";
 		String duree = mission.getDureeLocation() != null ? (mission.getDureeLocation() + uniteLabel) : "";
-
-		long nbJours = hasDates
-				? Math.max(1, ChronoUnit.DAYS.between(mission.getDhmsDebutPrevi().toLocalDate(), mission.getDhmsFinPrevi().toLocalDate()))
-				: 0;
 
 		String immat = mission.getVehicule() != null ? mission.getVehicule().getImmatriculation() : "";
 
