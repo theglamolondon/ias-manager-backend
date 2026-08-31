@@ -89,7 +89,9 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getLivraisonClientStats(dateDebut, dateFin));
 	}
 
+	/** Cards de la section Trésorerie : périmètre calculé côté service selon l'utilisateur connecté. */
 	@GetMapping("/comptes")
+	@PreAuthorize("hasAuthority('TRESORERIE_READ')")
 	public ResponseEntity<CompteStats> getCompteStats() {
 		return ResponseEntity.ok(statistiqueService.getCompteStats());
 	}

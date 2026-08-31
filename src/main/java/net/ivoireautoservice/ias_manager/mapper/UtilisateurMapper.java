@@ -29,6 +29,7 @@ public interface UtilisateurMapper {
     @Mapping(target = "hasChangePassword", ignore = true)
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "groupes", ignore = true)
+    @Mapping(target = "rattacheACompte", ignore = true)
     Utilisateur toEntity(UtilisateurRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -37,5 +38,6 @@ public interface UtilisateurMapper {
     @Mapping(target = "hasChangePassword", ignore = true)
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "groupes", ignore = true)
+    @Mapping(target = "rattacheACompte", ignore = true)
     void updateEntity(UtilisateurRequest request, @MappingTarget Utilisateur entity);
 }

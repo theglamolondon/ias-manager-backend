@@ -1,6 +1,8 @@
 package net.ivoireautoservice.ias_manager.services;
 
+import net.ivoireautoservice.ias_manager.auth.PermissionEnum;
 import net.ivoireautoservice.ias_manager.dto.core.*;
+import net.ivoireautoservice.ias_manager.entity.Utilisateur;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -46,6 +49,7 @@ class StatistiqueServiceTest {
 	@Mock private EntreeProduitRepository entreeProduitRepository;
 	@Mock private SortieProduitRepository sortieProduitRepository;
 	@Mock private PartenaireRepository partenaireRepository;
+	@Mock private SecurityService securityService;
 
 	@InjectMocks
 	private StatistiqueService service;
@@ -400,12 +404,11 @@ class StatistiqueServiceTest {
 	class AutresAgregats {
 
 		@Test
-		@DisplayName("les statistiques de trésorerie reprennent les impayés en nombre et montant")
+		@DisplayName("le trésorier en chef obtient les agrégats de tous les comptes et les impayés")
 		void compteStats() {
-			when(compteRepository.count()).thenReturn(3L);
-			when(compteRepository.sumBalance()).thenReturn(1_500_000L);
-			when(compteRepository.sumSoldesPositifs()).thenReturn(2_000_000L);
-			when(compteRepository.sumSoldesNegatifs()).thenReturn(-500_000L);
+			when(securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)).thenReturn(true);
+			when(compteRepository.statistiques(null))
+					.thenReturn(List.<Object[]>of(new Object[]{3L, 1_500_000L, 2_000_000L, -500_000L}));
 			when(factureRepository.countAndSumFacturesImpayees())
 					.thenReturn(List.<Object[]>of(new Object[]{4L, 900_000L}));
 
@@ -413,6 +416,8 @@ class StatistiqueServiceTest {
 
 			assertThat(stats.getTotal()).isEqualTo(3L);
 			assertThat(stats.getBalanceTotale()).isEqualTo(1_500_000L);
+			assertThat(stats.getTotalSoldesPositifs()).isEqualTo(2_000_000L);
+			assertThat(stats.getTotalSoldesNegatifs()).isEqualTo(-500_000L);
 			assertThat(stats.getFacturesImpayeesNombre()).isEqualTo(4L);
 			assertThat(stats.getFacturesImpayeesMontant()).isEqualTo(900_000L);
 		}
@@ -420,12 +425,33 @@ class StatistiqueServiceTest {
 		@Test
 		@DisplayName("l'absence d'impayés retombe sur des compteurs à zéro")
 		void compteStatsSansImpaye() {
+			when(securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)).thenReturn(true);
+			when(compteRepository.statistiques(null))
+					.thenReturn(List.<Object[]>of(new Object[]{0L, 0L, 0L, 0L}));
 			when(factureRepository.countAndSumFacturesImpayees()).thenReturn(List.of());
 
 			CompteStats stats = service.getCompteStats();
 
 			assertThat(stats.getFacturesImpayeesNombre()).isZero();
 			assertThat(stats.getFacturesImpayeesMontant()).isZero();
+		}
+
+		@Test
+		@DisplayName("sans TRESORERIE_ADMIN, les agrégats sont limités aux comptes de l'utilisateur et les impayés masqués")
+		void compteStatsPerimetreUtilisateur() {
+			when(securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)).thenReturn(false);
+			when(securityService.getUtilisateurConnecte())
+					.thenReturn(Utilisateur.builder().id(7L).build());
+			when(compteRepository.statistiques(7L))
+					.thenReturn(List.<Object[]>of(new Object[]{1L, 250_000L, 250_000L, 0L}));
+
+			CompteStats stats = service.getCompteStats();
+
+			assertThat(stats.getTotal()).isEqualTo(1L);
+			assertThat(stats.getBalanceTotale()).isEqualTo(250_000L);
+			assertThat(stats.getFacturesImpayeesNombre()).isZero();
+			assertThat(stats.getFacturesImpayeesMontant()).isZero();
+			verify(factureRepository, never()).countAndSumFacturesImpayees();
 		}
 
 		@Test

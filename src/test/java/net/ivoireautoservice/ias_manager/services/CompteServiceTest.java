@@ -1,5 +1,6 @@
 package net.ivoireautoservice.ias_manager.services;
 
+import net.ivoireautoservice.ias_manager.auth.PermissionEnum;
 import net.ivoireautoservice.ias_manager.dto.core.Compte;
 import net.ivoireautoservice.ias_manager.dto.core.LigneCompte;
 import net.ivoireautoservice.ias_manager.dto.request.CompteRequest;
@@ -86,6 +87,17 @@ class CompteServiceTest {
 				.id(1L).intitule("Caisse principale").numero("C-001")
 				.balance(balance).canAppro(canAppro).canBeNegative(canBeNegative)
 				.build();
+	}
+
+	/** L'utilisateur courant n'est pas trésorier en chef : son périmètre est son propre id. */
+	private void perimetreUtilisateur() {
+		when(securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)).thenReturn(false);
+		when(securityService.getUtilisateurConnecte()).thenReturn(utilisateur);
+	}
+
+	/** Trésorier en chef : périmètre nul, c'est-à-dire tous les comptes. */
+	private void perimetreTresorierEnChef() {
+		when(securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)).thenReturn(true);
 	}
 
 	private CompteUtilisateurEntity habilitation(CompteEntity compte, boolean canAppro, boolean canSettle) {
@@ -470,7 +482,8 @@ class CompteServiceTest {
 		@Test
 		@DisplayName("getCompteById lève 404 sur un id inconnu")
 		void parId() {
-			when(compteRepository.findById(99L)).thenReturn(Optional.empty());
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleById(99L, 7L)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> service.getCompteById(99L))
 					.isInstanceOf(ResourceNotFoundException.class);
@@ -479,7 +492,8 @@ class CompteServiceTest {
 		@Test
 		@DisplayName("getCompteByNumero lève 404 sur un numéro inconnu")
 		void parNumero() {
-			when(compteRepository.findByNumero("C-404")).thenReturn(Optional.empty());
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleByNumero("C-404", 7L)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> service.getCompteByNumero("C-404"))
 					.isInstanceOf(ResourceNotFoundException.class)
@@ -489,6 +503,8 @@ class CompteServiceTest {
 		@Test
 		@DisplayName("une ligne appartenant à un autre compte est traitée comme introuvable")
 		void ligneDUnAutreCompte() {
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleById(1L, 7L)).thenReturn(Optional.of(compte(0L, false, false)));
 			LigneCompteEntity ligne = LigneCompteEntity.builder()
 					.id(5L).compte(CompteEntity.builder().id(2L).build()).build();
 			when(ligneCompteRepository.findById(5L)).thenReturn(Optional.of(ligne));
@@ -502,7 +518,8 @@ class CompteServiceTest {
 		@DisplayName("lister les lignes d'un compte inconnu lève 404")
 		void lignesCompteInconnu() {
 			var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
-			when(compteRepository.existsById(99L)).thenReturn(false);
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleById(99L, 7L)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> service.getLignesByCompte(99L, pageable))
 					.isInstanceOf(ResourceNotFoundException.class);
@@ -516,6 +533,72 @@ class CompteServiceTest {
 			assertThatThrownBy(() -> service.deleteCompte(99L))
 					.isInstanceOf(ResourceNotFoundException.class);
 			verify(compteRepository, never()).deleteById(any());
+		}
+	}
+
+	@Nested
+	@DisplayName("Périmètre de visibilité des comptes")
+	class Perimetre {
+
+		private final org.springframework.data.domain.Pageable pageable =
+				org.springframework.data.domain.PageRequest.of(0, 10);
+
+		@Test
+		@DisplayName("sans TRESORERIE_ADMIN, la liste est filtrée sur les comptes de l'utilisateur")
+		void listeFiltreeSurLUtilisateur() {
+			perimetreUtilisateur();
+			when(compteRepository.search(null, 7L, pageable))
+					.thenReturn(org.springframework.data.domain.Page.empty(pageable));
+
+			service.getAllComptes(null, pageable);
+
+			verify(compteRepository).search(null, 7L, pageable);
+		}
+
+		@Test
+		@DisplayName("avec TRESORERIE_ADMIN, la liste porte sur tous les comptes")
+		void listeCompleteSiTresorierEnChef() {
+			perimetreTresorierEnChef();
+			when(compteRepository.search(null, null, pageable))
+					.thenReturn(org.springframework.data.domain.Page.empty(pageable));
+
+			service.getAllComptes(null, pageable);
+
+			verify(compteRepository).search(null, null, pageable);
+			verify(securityService, never()).getUtilisateurConnecte();
+		}
+
+		@Test
+		@DisplayName("le mot-clé de recherche est normalisé, null quand il est vide")
+		void motCleNormalise() {
+			perimetreTresorierEnChef();
+			when(compteRepository.search("caisse", null, pageable))
+					.thenReturn(org.springframework.data.domain.Page.empty(pageable));
+
+			service.getAllComptes("  caisse  ", pageable);
+
+			verify(compteRepository).search("caisse", null, pageable);
+		}
+
+		@Test
+		@DisplayName("un compte hors périmètre est traité comme inexistant (404, pas 403)")
+		void compteHorsPerimetre() {
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleById(42L, 7L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> service.getCompteById(42L))
+					.isInstanceOf(ResourceNotFoundException.class);
+		}
+
+		@Test
+		@DisplayName("les lignes d'un compte hors périmètre ne sont pas lisibles")
+		void lignesHorsPerimetre() {
+			perimetreUtilisateur();
+			when(compteRepository.findVisibleById(42L, 7L)).thenReturn(Optional.empty());
+
+			assertThatThrownBy(() -> service.getLignesByCompte(42L, pageable))
+					.isInstanceOf(ResourceNotFoundException.class);
+			verify(ligneCompteRepository, never()).findByCompteId(any(), any());
 		}
 	}
 

@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.auth.PermissionEnum;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Formula;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -79,6 +80,21 @@ public class Utilisateur extends AuditableEntity implements UserDetails {
     @Builder.Default
     private Set<GroupeEntity> groupes = new HashSet<>();
 
+    /**
+     * Vrai si l'utilisateur est rattaché à au moins un compte de trésorerie —
+     * soit comme utilisateur affecté (COMPTE_UTILISATEURS), soit comme manager
+     * du compte (COMPTES.utilisateur_id).
+     *
+     * <p>Champ <b>dérivé</b> (lecture seule, aucune colonne en base) : il pilote
+     * l'octroi automatique de {@link PermissionEnum#TRESORERIE_READ} (cf.
+     * {@link #getPermissionNames()}), qui est donc accordée puis retirée sans
+     * aucune synchronisation à maintenir. L'effet est immédiat : le filtre JWT
+     * recharge l'utilisateur depuis la base à chaque requête.</p>
+     */
+    @Formula("(case when exists (select 1 from COMPTE_UTILISATEURS cu where cu.utilisateur_id = id) "
+            + "or exists (select 1 from COMPTES c where c.utilisateur_id = id) then true else false end)")
+    private boolean rattacheACompte;
+
     // ------------------------------------------------------------------
     // RBAC : dérivation des rôles / permissions effectifs
     // ------------------------------------------------------------------
@@ -152,14 +168,25 @@ public class Utilisateur extends AuditableEntity implements UserDetails {
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
-    /** Permissions effectives (à plat) sous forme de chaînes. */
+    /**
+     * Permissions effectives (à plat) sous forme de chaînes : permissions des rôles
+     * effectifs, plus les permissions <b>dérivées</b> de l'état de l'utilisateur
+     * ({@link #rattacheACompte} ⇒ {@link PermissionEnum#TRESORERIE_READ}).
+     *
+     * <p>Source unique de vérité : {@link #getAuthorities()} en découle, ainsi que
+     * le tableau {@code permissions} renvoyé au frontend.</p>
+     */
     @Transient
     public Set<String> getPermissionNames() {
-        return getEffectiveRoles().stream()
+        Set<String> permissions = getEffectiveRoles().stream()
                 .filter(role -> role.getPermissions() != null)
                 .flatMap(role -> role.getPermissions().stream())
                 .map(PermissionEnum::name)
                 .collect(Collectors.toCollection(TreeSet::new));
+        if (rattacheACompte) {
+            permissions.add(PermissionEnum.TRESORERIE_READ.name());
+        }
+        return permissions;
     }
 
     /**
@@ -174,13 +201,11 @@ public class Utilisateur extends AuditableEntity implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> authorities = new HashSet<>();
-        for (RoleEntity role : getEffectiveRoles()) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getNom()));
-            if (role.getPermissions() != null) {
-                for (PermissionEnum permission : role.getPermissions()) {
-                    authorities.add(new SimpleGrantedAuthority(permission.name()));
-                }
-            }
+        for (String role : getRoleNames()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+        }
+        for (String permission : getPermissionNames()) {
+            authorities.add(new SimpleGrantedAuthority(permission));
         }
         return authorities;
     }

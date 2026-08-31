@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.auth.PermissionEnum;
 import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
@@ -39,6 +40,7 @@ public class StatistiqueService {
 	private final EntreeProduitRepository entreeProduitRepository;
 	private final SortieProduitRepository sortieProduitRepository;
 	private final PartenaireRepository partenaireRepository;
+	private final SecurityService securityService;
 
 	@Transactional(readOnly = true)
 	public StatistiqueDashboard getDashboard(int annee) {
@@ -290,18 +292,36 @@ public class StatistiqueService {
 				.build();
 	}
 
+	/**
+	 * Cards de la section Trésorerie, restreintes au périmètre de l'utilisateur :
+	 * tous les comptes pour un trésorier en chef ({@code TRESORERIE_ADMIN}),
+	 * sinon uniquement ceux auxquels il est rattaché. Les quatre agrégats sont
+	 * calculés en une seule requête.
+	 *
+	 * <p>Les factures impayées sont une donnée globale (hors comptes) : elles ne
+	 * sont renseignées que pour un trésorier en chef, la card étant masquée pour
+	 * les autres.</p>
+	 */
 	@Transactional(readOnly = true)
 	public CompteStats getCompteStats() {
-		Object[] impayees = factureRepository.countAndSumFacturesImpayees()
-				.stream().findFirst().orElse(new Object[]{0L, 0L});
-		return CompteStats.builder()
-				.total(compteRepository.count())
-				.balanceTotale(compteRepository.sumBalance())
-				.totalSoldesPositifs(compteRepository.sumSoldesPositifs())
-				.totalSoldesNegatifs(compteRepository.sumSoldesNegatifs())
-				.facturesImpayeesNombre(((Number) impayees[0]).longValue())
-				.facturesImpayeesMontant(((Number) impayees[1]).longValue())
-				.build();
+		boolean tresorierEnChef = securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN);
+		Long perimetre = tresorierEnChef ? null : securityService.getUtilisateurConnecte().getId();
+
+		Object[] agregats = compteRepository.statistiques(perimetre)
+				.stream().findFirst().orElse(new Object[]{0L, 0L, 0L, 0L});
+		CompteStats.CompteStatsBuilder stats = CompteStats.builder()
+				.total(toLong(agregats[0]))
+				.balanceTotale(toLong(agregats[1]))
+				.totalSoldesPositifs(toLong(agregats[2]))
+				.totalSoldesNegatifs(toLong(agregats[3]));
+
+		if (tresorierEnChef) {
+			Object[] impayees = factureRepository.countAndSumFacturesImpayees()
+					.stream().findFirst().orElse(new Object[]{0L, 0L});
+			stats.facturesImpayeesNombre(toLong(impayees[0]))
+					.facturesImpayeesMontant(toLong(impayees[1]));
+		}
+		return stats.build();
 	}
 
 	@Transactional(readOnly = true)

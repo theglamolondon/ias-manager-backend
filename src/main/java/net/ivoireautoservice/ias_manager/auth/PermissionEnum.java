@@ -74,6 +74,7 @@ public enum PermissionEnum {
     TRESORERIE_UPDATE("FINANCES", "Trésorerie", "Modifier une opération de trésorerie"),
     TRESORERIE_APPROUVER("FINANCES", "Trésorerie", "Approuver une opération de trésorerie"),
     TRESORERIE_SOLDER("FINANCES", "Trésorerie", "Solder une opération de trésorerie"),
+    TRESORERIE_ADMIN("FINANCES", "Trésorerie", "Administrer la trésorerie (tous les comptes)"),
 
     FACTURE_FOURNISSEUR_READ("FINANCES", "Factures fournisseur", "Voir les factures fournisseur"),
     FACTURE_FOURNISSEUR_CREATE("FINANCES", "Factures fournisseur", "Créer une facture fournisseur"),

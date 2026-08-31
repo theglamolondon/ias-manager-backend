@@ -155,6 +155,61 @@ class UtilisateurRbacTest {
 	}
 
 	@Nested
+	@DisplayName("Permission dérivée du rattachement à un compte de trésorerie")
+	class TresorerieDerivee {
+
+		@Test
+		@DisplayName("un utilisateur rattaché à un compte obtient TRESORERIE_READ sans aucun rôle")
+		void rattachementAccordeLaLecture() {
+			Utilisateur user = Utilisateur.builder().rattacheACompte(true).build();
+
+			assertThat(user.getPermissionNames()).containsExactly("TRESORERIE_READ");
+			assertThat(user.getAuthorities()).extracting(GrantedAuthority::getAuthority)
+					.containsExactly("TRESORERIE_READ");
+		}
+
+		@Test
+		@DisplayName("sans rattachement, la permission n'est pas accordée")
+		void sansRattachementAucuneLecture() {
+			Utilisateur user = Utilisateur.builder().rattacheACompte(false).build();
+
+			assertThat(user.getPermissionNames()).doesNotContain("TRESORERIE_READ");
+		}
+
+		@Test
+		@DisplayName("la permission dérivée s'ajoute à celles des rôles sans les écraser")
+		void cumulAvecLesRoles() {
+			Utilisateur user = Utilisateur.builder()
+					.roles(Set.of(role(1L, "ACHAT", PermissionEnum.PRODUIT_READ)))
+					.rattacheACompte(true)
+					.build();
+
+			assertThat(user.getPermissionNames())
+					.containsExactly("PRODUIT_READ", "TRESORERIE_READ");
+		}
+
+		@Test
+		@DisplayName("un rattachement ne confère pas les droits du trésorier en chef")
+		void pasDeDroitsAdministrateur() {
+			Utilisateur user = Utilisateur.builder().rattacheACompte(true).build();
+
+			assertThat(user.getPermissionNames())
+					.doesNotContain("TRESORERIE_ADMIN", "TRESORERIE_CREATE", "TRESORERIE_SOLDER");
+		}
+
+		@Test
+		@DisplayName("la permission reste accordée si elle vient aussi d'un rôle")
+		void pasDeDoublonAvecUnRole() {
+			Utilisateur user = Utilisateur.builder()
+					.roles(Set.of(role(1L, "RECOUVREMENT", PermissionEnum.TRESORERIE_READ)))
+					.rattacheACompte(true)
+					.build();
+
+			assertThat(user.getPermissionNames()).containsExactly("TRESORERIE_READ");
+		}
+	}
+
+	@Nested
 	@DisplayName("Contrat UserDetails")
 	class ContratUserDetails {
 

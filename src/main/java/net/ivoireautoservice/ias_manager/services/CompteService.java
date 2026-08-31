@@ -1,6 +1,7 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
+import net.ivoireautoservice.ias_manager.auth.PermissionEnum;
 import net.ivoireautoservice.ias_manager.dto.core.Compte;
 import net.ivoireautoservice.ias_manager.dto.core.CompteUtilisateur;
 import net.ivoireautoservice.ias_manager.dto.core.LigneCompte;
@@ -44,6 +45,30 @@ public class CompteService {
     private final CompteUtilisateurMapper compteUtilisateurMapper;
     private final LigneCompteMapper ligneCompteMapper;
 
+    // ==================== PÉRIMÈTRE DE VISIBILITÉ ====================
+
+    /**
+     * Périmètre de lecture de l'utilisateur courant : {@code null} pour un trésorier
+     * en chef ({@code TRESORERIE_ADMIN}, qui voit tous les comptes), sinon son id —
+     * il ne voit alors que les comptes auxquels il est rattaché. Ce seul paramètre
+     * est passé tel quel aux requêtes (aucun branchement à dupliquer).
+     *
+     * <p>Ne concerne que la <b>lecture</b> : les mouvements (approvisionnement,
+     * dépense, solde) restent conditionnés à une affectation explicite sur le
+     * compte, y compris pour un trésorier en chef.</p>
+     */
+    private Long perimetre() {
+        return securityService.hasAuthority(PermissionEnum.TRESORERIE_ADMIN)
+                ? null
+                : securityService.getUtilisateurConnecte().getId();
+    }
+
+    /** Charge un compte du périmètre de l'utilisateur, ou 404 (on ne divulgue pas son existence). */
+    private CompteEntity getCompteVisible(Long id) {
+        return compteRepository.findVisibleById(id, perimetre())
+                .orElseThrow(() -> new ResourceNotFoundException("Compte", id));
+    }
+
     // ==================== COMPTES ====================
 
     @Transactional(readOnly = true)
@@ -53,22 +78,19 @@ public class CompteService {
 
     @Transactional(readOnly = true)
     public PagedResponse<Compte> getAllComptes(String keyword, Pageable pageable) {
-        var page = (keyword != null && !keyword.isBlank())
-                ? compteRepository.searchByKeyword(keyword.trim(), pageable)
-                : compteRepository.findAll(pageable);
-        return PagedResponse.of(page.map(compteMapper::toDto));
+        String recherche = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        return PagedResponse.of(compteRepository.search(recherche, perimetre(), pageable)
+                .map(compteMapper::toDto));
     }
 
     @Transactional(readOnly = true)
     public Compte getCompteById(Long id) {
-        CompteEntity entity = compteRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Compte", id));
-        return compteMapper.toDto(entity);
+        return compteMapper.toDto(getCompteVisible(id));
     }
 
     @Transactional(readOnly = true)
     public Compte getCompteByNumero(String numero) {
-        CompteEntity entity = compteRepository.findByNumero(numero)
+        CompteEntity entity = compteRepository.findVisibleByNumero(numero, perimetre())
                 .orElseThrow(() -> new ResourceNotFoundException("Compte avec numéro " + numero + " non trouvé"));
         return compteMapper.toDto(entity);
     }
@@ -219,15 +241,14 @@ public class CompteService {
 
     @Transactional(readOnly = true)
     public PagedResponse<LigneCompte> getLignesByCompte(Long compteId, Pageable pageable) {
-        if (!compteRepository.existsById(compteId)) {
-            throw new ResourceNotFoundException("Compte", compteId);
-        }
+        getCompteVisible(compteId);
         return PagedResponse.of(ligneCompteRepository.findByCompteId(compteId, pageable)
                 .map(ligneCompteMapper::toDto));
     }
 
     @Transactional(readOnly = true)
     public LigneCompte getLigneById(Long compteId, Long ligneId) {
+        getCompteVisible(compteId);
         LigneCompteEntity entity = ligneCompteRepository.findById(ligneId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ligne de compte", ligneId));
         if (!entity.getCompte().getId().equals(compteId)) {

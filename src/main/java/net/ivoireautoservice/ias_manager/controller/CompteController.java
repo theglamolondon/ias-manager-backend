@@ -25,6 +25,19 @@ import org.springframework.web.multipart.MultipartFile;
 @PreAuthorize("hasAuthority('TRESORERIE_READ')")
 public class CompteController {
 
+    /*
+     * Lecture : TRESORERIE_READ suffit à entrer, mais le service restreint le
+     * périmètre aux comptes rattachés à l'utilisateur — sauf pour un trésorier
+     * en chef (TRESORERIE_ADMIN) qui voit l'intégralité des comptes.
+     *
+     * Administration des comptes (création, modification, affectation des
+     * utilisateurs) : réservée à TRESORERIE_ADMIN.
+     *
+     * Mouvements (opération, solde) : TRESORERIE_CREATE / TRESORERIE_SOLDER,
+     * plus une affectation explicite sur le compte concerné (vérifiée dans le
+     * service) — un trésorier en chef non affecté ne peut que consulter.
+     */
+
     private final CompteService compteService;
 
 
@@ -57,7 +70,7 @@ public class CompteController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('TRESORERIE_CREATE')")
+    @PreAuthorize("hasAuthority('TRESORERIE_ADMIN')")
     public ResponseEntity<Compte> createCompte(
             @RequestPart("request") @Valid CompteRequest request,
             @RequestPart(name = "logo", required = false) MultipartFile logo) {
@@ -66,7 +79,7 @@ public class CompteController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('TRESORERIE_UPDATE')")
+    @PreAuthorize("hasAuthority('TRESORERIE_ADMIN')")
     public ResponseEntity<Compte> updateCompte(
             @PathVariable Long id,
             @RequestPart("request") @Valid CompteRequest request,
