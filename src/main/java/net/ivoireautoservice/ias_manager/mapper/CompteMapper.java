@@ -17,6 +17,7 @@ public interface CompteMapper {
     List<Compte> toDtoList(List<CompteEntity> entities);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "balance", ignore = true)
     @Mapping(target = "manager", ignore = true)
     @Mapping(target = "utilisateurs", ignore = true)
     @Mapping(target = "logo", ignore = true)

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -514,6 +516,77 @@ class CompteServiceTest {
 			assertThatThrownBy(() -> service.deleteCompte(99L))
 					.isInstanceOf(ResourceNotFoundException.class);
 			verify(compteRepository, never()).deleteById(any());
+		}
+	}
+
+	@Nested
+	@DisplayName("Création d'un compte : montant initial")
+	class CreationCompte {
+
+		private CompteRequest requete(Long balance) {
+			return CompteRequest.builder()
+					.intitule("Caisse principale").numero("C-001")
+					.balance(balance).canAppro(true).canBeNegative(false)
+					.build();
+		}
+
+		private void stubCreation() {
+			when(compteMapper.toEntity(any(CompteRequest.class)))
+					.thenAnswer(i -> CompteEntity.builder().id(1L).build());
+			when(compteRepository.save(any(CompteEntity.class))).thenAnswer(i -> i.getArgument(0));
+		}
+
+		@Test
+		@DisplayName("sans montant, le compte est créé à 0 sans opération")
+		void sansMontant() {
+			stubCreation();
+
+			service.createCompte(requete(null), null);
+
+			ArgumentCaptor<CompteEntity> captor = ArgumentCaptor.forClass(CompteEntity.class);
+			verify(compteRepository, atLeastOnce()).save(captor.capture());
+			assertThat(captor.getValue().getBalance()).isZero();
+			verify(ligneCompteRepository, never()).save(any(LigneCompteEntity.class));
+		}
+
+		@Test
+		@DisplayName("un montant à 0 est traité comme une absence de montant")
+		void montantZero() {
+			stubCreation();
+
+			service.createCompte(requete(0L), null);
+
+			verify(ligneCompteRepository, never()).save(any(LigneCompteEntity.class));
+		}
+
+		@Test
+		@DisplayName("un montant renseigné crée une ligne d'approvisionnement initial")
+		void avecMontant() {
+			stubCreation();
+			when(securityService.getUtilisateurConnecte()).thenReturn(utilisateur);
+			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+			service.createCompte(requete(500_000L), null);
+
+			ArgumentCaptor<LigneCompteEntity> ligneCaptor = ArgumentCaptor.forClass(LigneCompteEntity.class);
+			verify(ligneCompteRepository).save(ligneCaptor.capture());
+			LigneCompteEntity ligne = ligneCaptor.getValue();
+			assertThat(ligne.getType()).isEqualTo(CompteLigneType.APPROVISIONNEMENT);
+			assertThat(ligne.getObjet()).isEqualTo("APPROVISIONNEMENT INITIAL");
+			assertThat(ligne.getMontant()).isEqualTo(500_000L);
+			assertThat(ligne.getBalanceAvant()).isZero();
+			assertThat(ligne.getUtilisateur()).isSameAs(utilisateur);
+			assertThat(ligne.getCompte().getBalance()).isEqualTo(500_000L);
+		}
+
+		@Test
+		@DisplayName("un montant négatif est refusé si le compte n'autorise pas le découvert")
+		void montantNegatifInterdit() {
+			stubCreation();
+
+			assertThatThrownBy(() -> service.createCompte(requete(-1_000L), null))
+					.isInstanceOf(BadRequestException.class);
+			verify(ligneCompteRepository, never()).save(any(LigneCompteEntity.class));
 		}
 	}
 }

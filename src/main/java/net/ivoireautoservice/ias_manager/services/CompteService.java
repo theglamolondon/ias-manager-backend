@@ -77,6 +77,11 @@ public class CompteService {
     public Compte createCompte(CompteRequest request, org.springframework.web.multipart.MultipartFile logo) {
         CompteEntity entity = compteMapper.toEntity(request);
 
+        // Le compte démarre toujours à 0 : un montant initial renseigné donne lieu
+        // à une ligne d'approvisionnement (voir approvisionnementInitial plus bas)
+        long montantInitial = request.getBalance() != null ? request.getBalance() : 0L;
+        entity.setBalance(0L);
+
         // Résoudre le manager
         if (request.getManagerId() != null) {
             Utilisateur manager = userRepository.findById(request.getManagerId())
@@ -93,7 +98,35 @@ public class CompteService {
         // Gérer les utilisateurs du compte
         syncCompteUtilisateurs(saved, request);
 
+        if (montantInitial != 0) {
+            approvisionnementInitial(saved, montantInitial);
+        }
+
         return compteMapper.toDto(saved);
+    }
+
+    /**
+     * Trace le montant renseigné à la création sous forme d'une ligne d'approvisionnement,
+     * pour que la balance du compte reste la somme de ses opérations.
+     */
+    private void approvisionnementInitial(CompteEntity compte, long montant) {
+        if (montant < 0 && !Boolean.TRUE.equals(compte.getCanBeNegative())) {
+            throw new BadRequestException("Solde insuffisant. Ce compte n'autorise pas un solde négatif");
+        }
+
+        LigneCompteEntity ligne = LigneCompteEntity.builder()
+                .utilisateur(securityService.getUtilisateurConnecte())
+                .compte(compte)
+                .type(montant >= 0 ? CompteLigneType.APPROVISIONNEMENT : CompteLigneType.DEPENSE)
+                .dhmsOperation(LocalDateTime.now())
+                .objet("APPROVISIONNEMENT INITIAL")
+                .montant(Math.abs(montant))
+                .balanceAvant(0L)
+                .build();
+        ligneCompteRepository.save(ligne);
+
+        compte.setBalance(montant);
+        compteRepository.save(compte);
     }
 
     @Transactional
