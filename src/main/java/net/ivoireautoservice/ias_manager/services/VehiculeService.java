@@ -22,7 +22,9 @@ import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
+import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
+import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.dto.core.DocumentVehicule;
 import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
@@ -87,6 +89,13 @@ public class VehiculeService {
                 keyword != null && !keyword.isBlank() ? keyword.trim() : null,
                 statut, typeId, assuranceId, pageable);
         return PagedResponse.of(page.map(vehiculeMapper::toDto));
+    }
+
+    @Transactional(readOnly = true)
+    public Vehicule getVehiculeById(Long id) {
+        VehiculeEntity entity = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule", id));
+        return vehiculeMapper.toDto(entity);
     }
 
     @Transactional(readOnly = true)
@@ -156,10 +165,47 @@ public class VehiculeService {
         return vehiculeMapper.toDto(saved);
     }
 
+    /**
+     * Changement de statut manuel d'un véhicule.
+     *
+     * <p>C'est la soupape qui permet de sortir un véhicule d'un statut où aucun workflow
+     * ne viendrait le chercher (immobilisé au GARAGE après une intervention clôturée,
+     * SINISTRE, REFORME, INDISPONIBLE, ou bloqué en MISSION suite à une désynchronisation).
+     * Deux garde-fous seulement, pour ne pas désaligner le statut d'un véhicule réellement
+     * engagé sur une mission ou une intervention en cours.</p>
+     */
     @Transactional
     public Vehicule updateStatut(Long id, VehiculeStatusEnum statut) {
         VehiculeEntity entity = vehiculeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule", id));
+
+        if (statut == null) {
+            throw new BadRequestException("Le statut est obligatoire");
+        }
+        if (entity.getStatut() == statut) {
+            return vehiculeMapper.toDto(entity);
+        }
+
+        // MISSION n'est jamais posé à la main : il découle du démarrage d'une mission.
+        if (statut == VehiculeStatusEnum.MISSION) {
+            throw new BadRequestException("Le statut MISSION ne se pose pas manuellement : "
+                    + "il est appliqué au démarrage d'une mission.");
+        }
+
+        // Un véhicule réellement engagé sur une mission ne peut pas en être sorti à la main.
+        // En revanche s'il est en MISSION sans mission active (donnée orpheline), on débloque.
+        if (entity.getStatut() == VehiculeStatusEnum.MISSION
+                && missionRepository.existsMissionEnCoursPourVehicule(id)) {
+            throw new BadRequestException("Ce véhicule est engagé sur une mission en cours. "
+                    + "Terminez la mission pour libérer le véhicule.");
+        }
+
+        // Le déclarer disponible alors qu'il est encore au garage contredirait l'intervention.
+        if (statut == VehiculeStatusEnum.DISPONIBLE
+                && interventionRepository.existsByVehiculeIdAndStatut(id, InterventionStatut.EN_COURS)) {
+            throw new BadRequestException("Ce véhicule a une intervention en cours. "
+                    + "Clôturez l'intervention pour le rendre disponible.");
+        }
 
         entity.setStatut(statut);
         VehiculeEntity saved = vehiculeRepository.save(entity);

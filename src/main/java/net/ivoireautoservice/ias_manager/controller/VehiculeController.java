@@ -55,6 +55,11 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.getAllVehicules(keyword, statutEnum, typeId, assuranceId, pageable));
     }
 
+    @GetMapping("/id/{id}")
+    public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long id) {
+        return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
+    }
+
     @GetMapping("/{numChassis}")
     public ResponseEntity<Vehicule> getVehiculeByNumChassis(@PathVariable String numChassis) {
         return ResponseEntity.ok(vehiculeService.getVehiculeByNumChassis(numChassis));

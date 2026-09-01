@@ -32,6 +32,10 @@ public interface VehiculeMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "numChassis", ignore = true)
     @Mapping(target = "type", ignore = true)
+    // Le statut ne transite jamais par un update « fiche véhicule » : il n'est déplacé que
+    // par les workflows mission/intervention ou par VehiculeService.updateStatut(), qui
+    // applique les règles de transition.
+    @Mapping(target = "statut", ignore = true)
     @Mapping(target = "marque", ignore = true)
     @Mapping(target = "energie", ignore = true)
     @Mapping(target = "typeAssurance", ignore = true)

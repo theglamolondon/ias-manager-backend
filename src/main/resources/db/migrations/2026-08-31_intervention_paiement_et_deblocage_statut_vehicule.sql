@@ -1,0 +1,84 @@
+-- Dissociation clôture / paiement d'une intervention, et déblocage du statut véhicule.
+--
+-- SCHÉMA : les deux nouvelles colonnes sont créées automatiquement par Hibernate
+-- (ddl-auto=update). Le DDL ci-dessous n'est là que pour référence / environnement
+-- où l'auto-update est désactivé.
+--
+-- ---------------------------------------------------------------------------
+-- 1) INTERVENTIONS : traçabilité du règlement
+-- ---------------------------------------------------------------------------
+-- `dhms_paiement` non nulle = la dépense a été passée en trésorerie.
+-- `paiement_compte_id` = compte débité.
+--
+-- ALTER TABLE INTERVENTIONS ADD COLUMN dhms_paiement DATE NULL;
+-- ALTER TABLE INTERVENTIONS ADD COLUMN paiement_compte_id BIGINT NULL;
+-- ALTER TABLE INTERVENTIONS ADD CONSTRAINT fk_intervention_paiement_compte
+--     FOREIGN KEY (paiement_compte_id) REFERENCES COMPTES (id);
+--
+-- Historique : avant ce changement, la dépense était créée par la clôture
+-- (PATCH /interventions/{id}/cloturer?compteId=...) sans être tracée sur
+-- l'intervention. Les interventions clôturées avant cette version ont donc
+-- dhms_paiement NULL même lorsqu'un compte avait été débité — elles
+-- réapparaîtront comme « non payées » dans l'UI. Pour repérer celles qui ont
+-- bien généré une écriture et les rapprocher à la main :
+--
+--   SELECT i.id, i.objet, i.cout, v.immatriculation, l.id AS ligne_compte_id, l.compte_id
+--   FROM INTERVENTIONS i
+--   JOIN VEHICULES v ON v.id = i.vehicule_id
+--   JOIN LIGNES_COMPTE l ON l.objet LIKE CONCAT('INTERVENTION %— ', v.immatriculation)
+--                       AND l.montant = i.cout
+--                       AND l.type = 'DEPENSE'
+--   WHERE i.statut = 'CLOTUREE' AND i.dhms_paiement IS NULL;
+--
+-- puis, après vérification :
+--   UPDATE INTERVENTIONS SET dhms_paiement = <date>, paiement_compte_id = <compte>
+--   WHERE id = <id>;
+--
+-- ---------------------------------------------------------------------------
+-- 2) RBAC : nouvelle permission INTERVENTION_PAYER
+-- ---------------------------------------------------------------------------
+-- Le paiement n'est plus couvert par INTERVENTION_UPDATE. RbacSeeder accorde
+-- INTERVENTION_PAYER à ADMIN, LOGISTIQUE et RECOUVREMENT au démarrage
+-- (idempotent) ; ADMIN est resynchronisé sur la totalité du catalogue.
+-- Les rôles personnalisés créés en base doivent recevoir la permission via
+-- l'UI d'administration des rôles.
+--
+-- Vérification :
+--   SELECT r.libelle, p.permission
+--   FROM roles r JOIN role_permissions p ON p.role_id = r.id
+--   WHERE p.permission = 'INTERVENTION_PAYER';
+--
+-- ---------------------------------------------------------------------------
+-- 3) Véhicules bloqués dans un statut sans issue
+-- ---------------------------------------------------------------------------
+-- Le changement de statut manuel (PATCH /vehicules/{id}/statut) est désormais
+-- exposé dans l'UI (fiche véhicule > Actions > Changer le statut), ce qui suffit
+-- à débloquer les véhicules existants. Pour les inventorier :
+--
+-- a) Immobilisés au GARAGE sans aucune intervention en cours :
+--   SELECT v.id, v.immatriculation, v.statut
+--   FROM VEHICULES v
+--   WHERE v.statut = 'GARAGE'
+--     AND NOT EXISTS (SELECT 1 FROM INTERVENTIONS i
+--                     WHERE i.vehicule_id = v.id AND i.statut = 'EN_COURS');
+--
+-- b) Bloqués en MISSION sans mission réellement en cours (désynchronisation
+--    causée par un changement de véhicule sur une mission déjà démarrée via
+--    PUT /missions/{id}, désormais refusé) :
+--   SELECT v.id, v.immatriculation, v.statut
+--   FROM VEHICULES v
+--   WHERE v.statut = 'MISSION'
+--     AND NOT EXISTS (SELECT 1 FROM MISSIONS m
+--                     WHERE m.vehicule_id = v.id
+--                       AND m.dhms_annulation IS NULL
+--                       AND m.dhms_debut_reel IS NOT NULL
+--                       AND m.dhms_fin_reel IS NULL);
+--
+-- Le cas (b) peut aussi être corrigé en masse :
+--   UPDATE VEHICULES v SET v.statut = 'DISPONIBLE'
+--   WHERE v.statut = 'MISSION'
+--     AND NOT EXISTS (SELECT 1 FROM MISSIONS m
+--                     WHERE m.vehicule_id = v.id
+--                       AND m.dhms_annulation IS NULL
+--                       AND m.dhms_debut_reel IS NOT NULL
+--                       AND m.dhms_fin_reel IS NULL);

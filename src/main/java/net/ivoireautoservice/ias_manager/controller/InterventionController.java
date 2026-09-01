@@ -81,6 +81,14 @@ public class InterventionController {
         return ResponseEntity.ok(interventionService.cloturerIntervention(id, vehiculeDisponible, compteId));
     }
 
+    @PatchMapping("/{id}/payer")
+    @PreAuthorize("hasAuthority('INTERVENTION_PAYER')")
+    public ResponseEntity<Intervention> payerIntervention(
+            @PathVariable Long id,
+            @RequestParam Long compteId) {
+        return ResponseEntity.ok(interventionService.payerIntervention(id, compteId));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('INTERVENTION_DELETE')")
     public ResponseEntity<Void> deleteIntervention(@PathVariable Long id) {

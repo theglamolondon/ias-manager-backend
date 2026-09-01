@@ -6,6 +6,7 @@ import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
 import net.ivoireautoservice.ias_manager.entity.InterventionEntity;
+import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
 import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
@@ -20,6 +21,7 @@ import net.ivoireautoservice.ias_manager.repository.PartenaireRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.VehiculeRepository;
 import java.time.LocalDate;
+import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -87,6 +89,26 @@ public class InterventionService {
     public Intervention updateIntervention(Long id, InterventionRequest request) {
         InterventionEntity entity = interventionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Intervention", id));
+
+        if (entity.getStatut() == InterventionStatut.CLOTUREE) {
+            throw new BadRequestException("Une intervention clôturée ne peut plus être modifiée");
+        }
+
+        // Déplacer une intervention EN_COURS vers un autre véhicule laisserait l'ancien
+        // immobilisé au GARAGE sans intervention pour l'en sortir.
+        Long vehiculeActuelId = entity.getVehicule() != null ? entity.getVehicule().getId() : null;
+        if (entity.getStatut() == InterventionStatut.EN_COURS
+                && vehiculeActuelId != null
+                && !vehiculeActuelId.equals(request.getVehiculeId())) {
+            throw new BadRequestException("Le véhicule d'une intervention en cours ne peut pas être changé. "
+                    + "Clôturez cette intervention puis créez-en une nouvelle sur l'autre véhicule.");
+        }
+
+        // Le coût est figé une fois la dépense passée en trésorerie, sinon les écritures divergent.
+        if (entity.getDhmsPaiement() != null && !Objects.equals(entity.getCout(), request.getCout())) {
+            throw new BadRequestException("Le coût d'une intervention déjà payée ne peut plus être modifié");
+        }
+
         interventionMapper.updateEntity(request, entity);
         resolveRelations(request, entity);
         InterventionEntity saved = interventionRepository.save(entity);
@@ -95,10 +117,22 @@ public class InterventionService {
 
     @Transactional
     public void deleteIntervention(Long id) {
-        if (!interventionRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Intervention", id);
+        InterventionEntity entity = interventionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention", id));
+
+        // Supprimer une intervention EN_COURS laisserait son véhicule au GARAGE sans
+        // aucune trace pour l'en sortir : il faut la clôturer, ce qui rend le véhicule.
+        if (entity.getStatut() == InterventionStatut.EN_COURS) {
+            throw new BadRequestException("Une intervention en cours ne peut pas être supprimée. "
+                    + "Clôturez-la d'abord afin de rendre le véhicule à la flotte.");
         }
-        interventionRepository.deleteById(id);
+
+        if (entity.getDhmsPaiement() != null) {
+            throw new BadRequestException("Une intervention déjà payée ne peut pas être supprimée "
+                    + "(la dépense correspondante est enregistrée en trésorerie)");
+        }
+
+        interventionRepository.delete(entity);
     }
 
     @Transactional
@@ -122,6 +156,15 @@ public class InterventionService {
         return interventionMapper.toDto(interventionRepository.save(entity));
     }
 
+    /**
+     * Clôture l'intervention et rend le véhicule à la flotte.
+     *
+     * <p>Le paramètre {@code compteId} est optionnel : lorsqu'il est fourni et que le coût
+     * est renseigné, la dépense est imputée sur ce compte de trésorerie dans la foulée de
+     * la clôture. Cette imputation ne vaut pas règlement du garage — celui-ci reste une
+     * action distincte ({@link #payerIntervention}) qui horodate {@code dhmsPaiement} et
+     * trace le compte débité.</p>
+     */
     @Transactional
     public Intervention cloturerIntervention(Long id, boolean vehiculeDisponible, Long compteId) {
         InterventionEntity entity = interventionRepository.findById(id)
@@ -129,19 +172,6 @@ public class InterventionService {
 
         if (entity.getStatut() != InterventionStatut.EN_COURS) {
             throw new BadRequestException("Seule une intervention au statut EN_COURS peut être clôturée");
-        }
-
-        // Si un coût est défini et un compte fourni, enregistrer la dépense
-        if (entity.getCout() != null && entity.getCout() > 0 && compteId != null) {
-            String vehiculeInfo = entity.getVehicule().getImmatriculation();
-            String typeInfo = entity.getTypeIntervention() != null ? entity.getTypeIntervention().getLibelle() : "Intervention";
-            LigneCompteRequest ligneRequest = LigneCompteRequest.builder()
-                    .type(CompteLigneType.DEPENSE)
-                    .montant(entity.getCout())
-                    .objet("INTERVENTION " + typeInfo + " — " + vehiculeInfo)
-                    .observation(entity.getObjet())
-                    .build();
-            compteService.createLigne(compteId, ligneRequest);
         }
 
         entity.setStatut(InterventionStatut.CLOTUREE);
@@ -153,6 +183,53 @@ public class InterventionService {
             vehicule.setStatut(vehiculeDisponible ? VehiculeStatusEnum.DISPONIBLE : VehiculeStatusEnum.GARAGE);
             vehiculeRepository.save(vehicule);
         }
+
+        // Pas de compte ou pas de coût : la clôture reste purement opérationnelle
+        if (compteId != null && entity.getCout() != null && entity.getCout() > 0) {
+            compteService.createLigne(compteId, ligneDepense(entity));
+        }
+
+        return interventionMapper.toDto(interventionRepository.save(entity));
+    }
+
+    /** Mouvement de trésorerie correspondant au coût de l'intervention. */
+    private LigneCompteRequest ligneDepense(InterventionEntity entity) {
+        String vehiculeInfo = entity.getVehicule().getImmatriculation();
+        String typeInfo = entity.getTypeIntervention() != null
+                ? entity.getTypeIntervention().getLibelle()
+                : "Intervention";
+        return LigneCompteRequest.builder()
+                .type(CompteLigneType.DEPENSE)
+                .montant(entity.getCout())
+                .objet("INTERVENTION " + typeInfo + " — " + vehiculeInfo)
+                .observation(entity.getObjet())
+                .build();
+    }
+
+    /**
+     * Enregistre le règlement de l'intervention : passe la dépense sur le compte choisi
+     * et horodate le paiement. Indépendant du statut de l'intervention.
+     */
+    @Transactional
+    public Intervention payerIntervention(Long id, Long compteId) {
+        InterventionEntity entity = interventionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Intervention", id));
+
+        if (entity.getDhmsPaiement() != null) {
+            throw new BadRequestException("Cette intervention a déjà été payée le "
+                    + entity.getDhmsPaiement());
+        }
+        if (entity.getCout() == null || entity.getCout() <= 0) {
+            throw new BadRequestException("Renseignez le coût de l'intervention avant de la payer");
+        }
+        if (compteId == null) {
+            throw new BadRequestException("Le compte à débiter est obligatoire");
+        }
+
+        LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneDepense(entity));
+
+        entity.setDhmsPaiement(LocalDate.now());
+        entity.setComptePaiement(ligne.getCompte());
 
         return interventionMapper.toDto(interventionRepository.save(entity));
     }

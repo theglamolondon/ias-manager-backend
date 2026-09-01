@@ -78,6 +78,7 @@ public interface VehiculeRepository extends JpaRepository<VehiculeEntity, Long> 
 
     @Query("SELECT v FROM VehiculeEntity v LEFT JOIN v.marque m LEFT JOIN v.type t LEFT JOIN v.assurance a " +
             "WHERE (:keyword IS NULL OR LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(v.numChassis) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(m.libelle) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(t.libelle) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (:statut IS NULL OR v.statut = :statut) " +

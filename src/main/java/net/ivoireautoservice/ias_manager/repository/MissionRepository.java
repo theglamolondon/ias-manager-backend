@@ -45,6 +45,15 @@ public interface MissionRepository extends JpaRepository<MissionEntity, Long> {
 
     List<MissionEntity> findByVehiculeIdOrderByDhmsDebutPreviDesc(Long vehiculeId);
 
+    /**
+     * Vrai si le véhicule est engagé sur une mission réellement démarrée et non terminée.
+     * Sert à distinguer un véhicule légitimement en MISSION d'un véhicule resté bloqué
+     * dans ce statut sans mission active (données désynchronisées).
+     */
+    @Query("SELECT COUNT(m) > 0 FROM MissionEntity m WHERE m.vehicule.id = :vehiculeId " +
+            "AND m.dhmsAnnulation IS NULL AND m.dhmsDebutReel IS NOT NULL AND m.dhmsFinReel IS NULL")
+    boolean existsMissionEnCoursPourVehicule(@Param("vehiculeId") Long vehiculeId);
+
     List<MissionEntity> findByChauffeurIdOrderByDhmsDebutPreviDesc(Long chauffeurId);
 
     /**

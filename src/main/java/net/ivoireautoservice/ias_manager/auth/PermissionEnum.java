@@ -34,6 +34,7 @@ public enum PermissionEnum {
     INTERVENTION_READ("VEHICULES", "Interventions", "Voir les interventions"),
     INTERVENTION_CREATE("VEHICULES", "Interventions", "Créer une intervention"),
     INTERVENTION_UPDATE("VEHICULES", "Interventions", "Modifier une intervention"),
+    INTERVENTION_PAYER("VEHICULES", "Interventions", "Payer une intervention"),
     INTERVENTION_DELETE("VEHICULES", "Interventions", "Supprimer une intervention"),
 
     // ===================== RESSOURCES HUMAINES =====================

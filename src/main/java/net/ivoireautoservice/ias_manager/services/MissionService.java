@@ -296,6 +296,17 @@ public class MissionService {
 		VehiculeEntity vehicule = vehiculeRepository.findById(request.getVehiculeId())
 				.orElseThrow(() -> new ResourceNotFoundException("Véhicule", request.getVehiculeId()));
 
+		// Sur une mission déjà démarrée, substituer le véhicule ici laisserait l'ancien
+		// bloqué en MISSION (plus aucune mission ne pointe vers lui, donc terminerMission
+		// ne le libèrera jamais) et le nouveau non réservé. Seul changerVehicule() sait
+		// faire cette bascule proprement.
+		Long vehiculeActuelId = entity.getVehicule() != null ? entity.getVehicule().getId() : null;
+		if (entity.getDhmsDebutReel() != null && !Objects.equals(vehiculeActuelId, request.getVehiculeId())) {
+			throw new BadRequestException("Le véhicule d'une mission démarrée ne peut pas être changé ici. "
+					+ "Utilisez l'action « Changer de véhicule » afin de libérer l'ancien véhicule "
+					+ "et de réserver le nouveau.");
+		}
+
 		missionMapper.updateEntity(request, entity);
 		entity.setVehicule(vehicule);
 		resolveRelations(request, entity);

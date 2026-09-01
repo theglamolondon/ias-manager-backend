@@ -52,6 +52,18 @@ public class PartenaireController {
         return ResponseEntity.ok(partenaireService.getClients(pageable));
     }
 
+    @GetMapping("/clients/recherche")
+    public ResponseEntity<PagedResponse<Partenaire>> rechercherClients(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int taille,
+            @RequestParam(defaultValue = "raisonSociale") String tri,
+            @RequestParam(defaultValue = "asc") String ordre) {
+        Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
+        Pageable pageable = PageRequest.of(page, taille, sort);
+        return ResponseEntity.ok(partenaireService.rechercherClients(keyword, pageable));
+    }
+
     @GetMapping("/fournisseurs")
     public ResponseEntity<PagedResponse<Partenaire>> getFournisseurs(
             @RequestParam(defaultValue = "0") int page,

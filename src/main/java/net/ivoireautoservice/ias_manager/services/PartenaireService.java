@@ -49,6 +49,14 @@ public class PartenaireService {
     }
 
     @Transactional(readOnly = true)
+    public PagedResponse<Partenaire> rechercherClients(String keyword, Pageable pageable) {
+        var page = (keyword != null && !keyword.isBlank())
+                ? partenaireRepository.searchClientsByKeyword(keyword.trim(), pageable)
+                : partenaireRepository.findByIsClientTrue(pageable);
+        return PagedResponse.of(page.map(partenaireMapper::toDto));
+    }
+
+    @Transactional(readOnly = true)
     public PagedResponse<Partenaire> getFournisseurs(Pageable pageable) {
         return PagedResponse.of(partenaireRepository.findByIsFournisseurTrue(pageable).map(partenaireMapper::toDto));
     }

@@ -20,4 +20,9 @@ public class Intervention {
 	private TypeIntervention typeIntervention;
 	private Vehicule vehicule;
 	private Partenaire garage;
+
+	/** Non nulle = la dépense a été enregistrée en trésorerie (indépendant de {@link #statut}). */
+	private LocalDate dhmsPaiement;
+	private Long comptePaiementId;
+	private String comptePaiementIntitule;
 }

@@ -378,7 +378,7 @@ class InterventionServiceTest {
 		@Test
 		@DisplayName("supprimer une intervention inconnue lève 404")
 		void delete_absente() {
-			when(interventionRepository.existsById(99L)).thenReturn(false);
+			when(interventionRepository.findById(99L)).thenReturn(Optional.empty());
 
 			assertThatThrownBy(() -> service.deleteIntervention(99L))
 					.isInstanceOf(ResourceNotFoundException.class);

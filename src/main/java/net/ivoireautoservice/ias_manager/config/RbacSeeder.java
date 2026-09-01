@@ -124,7 +124,8 @@ public class RbacSeeder implements ApplicationRunner {
                     PermissionEnum.MISSION_READ, PermissionEnum.MISSION_CREATE,
                     PermissionEnum.MISSION_UPDATE, PermissionEnum.MISSION_ANNULER,
                     PermissionEnum.INTERVENTION_READ, PermissionEnum.INTERVENTION_CREATE,
-                    PermissionEnum.INTERVENTION_UPDATE, PermissionEnum.INTERVENTION_DELETE,
+                    PermissionEnum.INTERVENTION_UPDATE, PermissionEnum.INTERVENTION_PAYER,
+                    PermissionEnum.INTERVENTION_DELETE,
                     PermissionEnum.CHAUFFEUR_READ,
                     PermissionEnum.LIVRAISON_CLIENT_READ, PermissionEnum.LIVRAISON_CLIENT_CREATE,
                     PermissionEnum.LIVRAISON_CLIENT_UPDATE, PermissionEnum.LIVRAISON_CLIENT_DELETE);
@@ -138,6 +139,7 @@ public class RbacSeeder implements ApplicationRunner {
                     PermissionEnum.LIVRAISON_CLIENT_READ, PermissionEnum.LIVRAISON_CLIENT_CREATE);
             case RECOUVREMENT -> EnumSet.of(
                     PermissionEnum.DASHBOARD_READ,
+                    PermissionEnum.INTERVENTION_READ, PermissionEnum.INTERVENTION_PAYER,
                     PermissionEnum.FACTURE_CLIENT_READ, PermissionEnum.FACTURE_CLIENT_VALIDER,
                     PermissionEnum.FACTURE_FOURNISSEUR_READ, PermissionEnum.FACTURE_FOURNISSEUR_VALIDER,
                     PermissionEnum.TRESORERIE_READ, PermissionEnum.TRESORERIE_CREATE,
