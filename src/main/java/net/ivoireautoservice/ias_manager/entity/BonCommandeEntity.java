@@ -8,7 +8,7 @@ import net.ivoireautoservice.ias_manager.enums.BonCommandeStatusEnum;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "BONS_COMMANDE")
+@Table(name = "bons_commande")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

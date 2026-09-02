@@ -3,31 +3,31 @@
 -- les livraisons (client + fournisseur) et les factures.
 --
 -- Hibernate (ddl-auto=update) ajoutera automatiquement la colonne created_by_id
--- nullable et la clé étrangère vers UTILISATEUR au prochain démarrage.
+-- nullable et la clé étrangère vers utilisateur au prochain démarrage.
 -- Ce script documente l'intention et permet d'exécuter la modification
 -- manuellement (ou de la rejouer sur un environnement où ddl-auto est désactivé).
 -- =============================================================================
 
--- 1) BONS_COMMANDE
-ALTER TABLE BONS_COMMANDE
+-- 1) bons_commande
+ALTER TABLE bons_commande
     ADD COLUMN IF NOT EXISTS created_by_id BIGINT NULL,
     ADD CONSTRAINT fk_bon_commande_created_by
-        FOREIGN KEY (created_by_id) REFERENCES UTILISATEUR(id);
+        FOREIGN KEY (created_by_id) REFERENCES utilisateur(id);
 
--- 2) FACTURES
-ALTER TABLE FACTURES
+-- 2) factures
+ALTER TABLE factures
     ADD COLUMN IF NOT EXISTS created_by_id BIGINT NULL,
     ADD CONSTRAINT fk_facture_created_by
-        FOREIGN KEY (created_by_id) REFERENCES UTILISATEUR(id);
+        FOREIGN KEY (created_by_id) REFERENCES utilisateur(id);
 
--- 3) LIVRAISONS_CLIENT
-ALTER TABLE LIVRAISONS_CLIENT
+-- 3) livraisons_client
+ALTER TABLE livraisons_client
     ADD COLUMN IF NOT EXISTS created_by_id BIGINT NULL,
     ADD CONSTRAINT fk_livraison_client_created_by
-        FOREIGN KEY (created_by_id) REFERENCES UTILISATEUR(id);
+        FOREIGN KEY (created_by_id) REFERENCES utilisateur(id);
 
--- 4) LIVRAISONS_FOURNISSEUR
-ALTER TABLE LIVRAISONS_FOURNISSEUR
+-- 4) livraisons_fournisseur
+ALTER TABLE livraisons_fournisseur
     ADD COLUMN IF NOT EXISTS created_by_id BIGINT NULL,
     ADD CONSTRAINT fk_livraison_fournisseur_created_by
-        FOREIGN KEY (created_by_id) REFERENCES UTILISATEUR(id);
+        FOREIGN KEY (created_by_id) REFERENCES utilisateur(id);

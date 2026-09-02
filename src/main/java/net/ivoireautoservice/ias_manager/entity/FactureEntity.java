@@ -10,7 +10,7 @@ import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "FACTURES")
+@Table(name = "factures")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

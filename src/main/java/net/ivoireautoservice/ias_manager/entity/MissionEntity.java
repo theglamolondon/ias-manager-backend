@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "MISSIONS")
+@Table(name = "missions")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

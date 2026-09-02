@@ -6,7 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "TYPES_ASSURANCE")
+@Table(name = "types_assurance")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

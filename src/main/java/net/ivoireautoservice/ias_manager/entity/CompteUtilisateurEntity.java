@@ -5,7 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "COMPTE_UTILISATEURS", uniqueConstraints = {
+@Table(name = "compte_utilisateurs", uniqueConstraints = {
 		@UniqueConstraint(columnNames = {"compte_id", "utilisateur_id"})
 })
 @Data

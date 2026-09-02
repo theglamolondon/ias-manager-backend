@@ -2,10 +2,10 @@
 -- Migration : Remplacement de is_interieur par localisation sur les missions
 --
 -- Ancien champ :
---   • MISSIONS.is_interieur  BOOLEAN (true = intérieur du pays, false/null = extérieur)
+--   • missions.is_interieur  BOOLEAN (true = intérieur du pays, false/null = extérieur)
 --
 -- Nouveau champ :
---   • MISSIONS.localisation  VARCHAR(20)
+--   • missions.localisation  VARCHAR(20)
 --     Valeurs : VILLE | INTERIEUR | EXTERIEUR
 --
 -- Sémantique :
@@ -19,15 +19,15 @@
 --   - is_interieur = null  → VILLE  (était traité comme extérieur à tort)
 -- =============================================================================
 
-ALTER TABLE MISSIONS
+ALTER TABLE missions
     ADD COLUMN localisation VARCHAR(20);
 
-UPDATE MISSIONS
+UPDATE missions
 SET localisation = CASE
     WHEN is_interieur = true  THEN 'INTERIEUR'
     WHEN is_interieur = false THEN 'EXTERIEUR'
     ELSE 'VILLE'
 END;
 
-ALTER TABLE MISSIONS
+ALTER TABLE missions
     DROP COLUMN is_interieur;

@@ -16,7 +16,7 @@ import net.ivoireautoservice.ias_manager.enums.notification.TypeNotificationEnum
  * naturellement individuels.</p>
  */
 @Entity
-@Table(name = "NOTIFICATIONS", uniqueConstraints = @UniqueConstraint(
+@Table(name = "notifications", uniqueConstraints = @UniqueConstraint(
 		name = "uk_notification_destinataire_cle",
 		columnNames = {"destinataire_id", "cle_dedoublonnage"}))
 @Data

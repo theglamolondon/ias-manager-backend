@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 
 @Entity
-@Table(name = "LIGNES_FACTURE")
+@Table(name = "lignes_facture")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

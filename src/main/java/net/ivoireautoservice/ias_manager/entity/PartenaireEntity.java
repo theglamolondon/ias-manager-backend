@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.TypePartenaireEnum;
 
 @Entity
-@Table(name = "PARTENAIRES")
+@Table(name = "partenaires")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

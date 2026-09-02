@@ -5,7 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "PRODUITS")
+@Table(name = "produits")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

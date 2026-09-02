@@ -14,7 +14,7 @@ import java.util.Optional;
  * Toutes les lectures « périmètre trésorerie » partagent le même paramètre
  * {@code userId} : <b>{@code null} = accès total</b> (trésorier en chef,
  * cf. {@code TRESORERIE_ADMIN}), sinon seuls les comptes rattachés à
- * l'utilisateur — affectation explicite (COMPTE_UTILISATEURS) ou rôle de
+ * l'utilisateur — affectation explicite (compte_utilisateurs) ou rôle de
  * manager du compte — sont visibles. Le filtrage reste en SQL pour que la
  * pagination et les agrégats restent justes.
  */

@@ -8,7 +8,7 @@ import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "INTERVENTIONS")
+@Table(name = "interventions")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

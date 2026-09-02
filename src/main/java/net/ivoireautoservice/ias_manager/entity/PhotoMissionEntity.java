@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.PhotoMissionTypeEnum;
 
 @Entity
-@Table(name = "PHOTOS_MISSION")
+@Table(name = "photos_mission")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

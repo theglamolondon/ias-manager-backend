@@ -5,15 +5,15 @@
 -- où l'auto-update est désactivé.
 --
 -- ---------------------------------------------------------------------------
--- 1) INTERVENTIONS : traçabilité du règlement
+-- 1) interventions : traçabilité du règlement
 -- ---------------------------------------------------------------------------
 -- `dhms_paiement` non nulle = la dépense a été passée en trésorerie.
 -- `paiement_compte_id` = compte débité.
 --
--- ALTER TABLE INTERVENTIONS ADD COLUMN dhms_paiement DATE NULL;
--- ALTER TABLE INTERVENTIONS ADD COLUMN paiement_compte_id BIGINT NULL;
--- ALTER TABLE INTERVENTIONS ADD CONSTRAINT fk_intervention_paiement_compte
---     FOREIGN KEY (paiement_compte_id) REFERENCES COMPTES (id);
+-- ALTER TABLE interventions ADD COLUMN dhms_paiement DATE NULL;
+-- ALTER TABLE interventions ADD COLUMN paiement_compte_id BIGINT NULL;
+-- ALTER TABLE interventions ADD CONSTRAINT fk_intervention_paiement_compte
+--     FOREIGN KEY (paiement_compte_id) REFERENCES comptes (id);
 --
 -- Historique : avant ce changement, la dépense était créée par la clôture
 -- (PATCH /interventions/{id}/cloturer?compteId=...) sans être tracée sur
@@ -23,15 +23,15 @@
 -- bien généré une écriture et les rapprocher à la main :
 --
 --   SELECT i.id, i.objet, i.cout, v.immatriculation, l.id AS ligne_compte_id, l.compte_id
---   FROM INTERVENTIONS i
---   JOIN VEHICULES v ON v.id = i.vehicule_id
---   JOIN LIGNES_COMPTE l ON l.objet LIKE CONCAT('INTERVENTION %— ', v.immatriculation)
+--   FROM interventions i
+--   JOIN vehicules v ON v.id = i.vehicule_id
+--   JOIN lignes_compte l ON l.objet LIKE CONCAT('INTERVENTION %— ', v.immatriculation)
 --                       AND l.montant = i.cout
 --                       AND l.type = 'DEPENSE'
 --   WHERE i.statut = 'CLOTUREE' AND i.dhms_paiement IS NULL;
 --
 -- puis, après vérification :
---   UPDATE INTERVENTIONS SET dhms_paiement = <date>, paiement_compte_id = <compte>
+--   UPDATE interventions SET dhms_paiement = <date>, paiement_compte_id = <compte>
 --   WHERE id = <id>;
 --
 -- ---------------------------------------------------------------------------
@@ -57,27 +57,27 @@
 --
 -- a) Immobilisés au GARAGE sans aucune intervention en cours :
 --   SELECT v.id, v.immatriculation, v.statut
---   FROM VEHICULES v
+--   FROM vehicules v
 --   WHERE v.statut = 'GARAGE'
---     AND NOT EXISTS (SELECT 1 FROM INTERVENTIONS i
+--     AND NOT EXISTS (SELECT 1 FROM interventions i
 --                     WHERE i.vehicule_id = v.id AND i.statut = 'EN_COURS');
 --
 -- b) Bloqués en MISSION sans mission réellement en cours (désynchronisation
 --    causée par un changement de véhicule sur une mission déjà démarrée via
 --    PUT /missions/{id}, désormais refusé) :
 --   SELECT v.id, v.immatriculation, v.statut
---   FROM VEHICULES v
+--   FROM vehicules v
 --   WHERE v.statut = 'MISSION'
---     AND NOT EXISTS (SELECT 1 FROM MISSIONS m
+--     AND NOT EXISTS (SELECT 1 FROM missions m
 --                     WHERE m.vehicule_id = v.id
 --                       AND m.dhms_annulation IS NULL
 --                       AND m.dhms_debut_reel IS NOT NULL
 --                       AND m.dhms_fin_reel IS NULL);
 --
 -- Le cas (b) peut aussi être corrigé en masse :
---   UPDATE VEHICULES v SET v.statut = 'DISPONIBLE'
+--   UPDATE vehicules v SET v.statut = 'DISPONIBLE'
 --   WHERE v.statut = 'MISSION'
---     AND NOT EXISTS (SELECT 1 FROM MISSIONS m
+--     AND NOT EXISTS (SELECT 1 FROM missions m
 --                     WHERE m.vehicule_id = v.id
 --                       AND m.dhms_annulation IS NULL
 --                       AND m.dhms_debut_reel IS NOT NULL

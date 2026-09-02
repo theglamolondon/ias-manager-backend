@@ -8,7 +8,7 @@ import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "VEHICULES")
+@Table(name = "vehicules")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

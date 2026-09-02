@@ -15,9 +15,9 @@
 -- =============================================================================
 
 -- 1. Renommer les véhicules en PANNE → GARAGE
-UPDATE VEHICULES
+UPDATE vehicules
 SET statut = 'GARAGE'
 WHERE statut = 'PANNE';
 
 -- 2. Vérification (résultat attendu : 0 lignes)
--- SELECT COUNT(*) FROM VEHICULES WHERE statut = 'PANNE';
+-- SELECT COUNT(*) FROM vehicules WHERE statut = 'PANNE';

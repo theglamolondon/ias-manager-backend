@@ -6,7 +6,7 @@ import lombok.experimental.SuperBuilder;
 import net.ivoireautoservice.ias_manager.enums.PieceJointeOwnerTypeEnum;
 
 @Entity
-@Table(name = "PIECES_JOINTES", indexes = {
+@Table(name = "pieces_jointes", indexes = {
 	@Index(name = "idx_pj_owner", columnList = "owner_type,owner_id")
 })
 @Data

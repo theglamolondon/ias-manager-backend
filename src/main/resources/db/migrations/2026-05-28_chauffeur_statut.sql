@@ -2,7 +2,7 @@
 -- Migration : Ajout du statut de disponibilité sur les chauffeurs
 --
 -- Nouveau champ :
---   • CHAUFFEURS.statut  VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE'
+--   • chauffeurs.statut  VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE'
 --     Valeurs : DISPONIBLE | MISSION | INDISPONIBLE
 --
 -- Comportement :
@@ -12,8 +12,8 @@
 --   - Seuls les chauffeurs DISPONIBLE peuvent être affectés à une mission.
 -- =============================================================================
 
-ALTER TABLE CHAUFFEURS
+ALTER TABLE chauffeurs
     ADD COLUMN statut VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE';
 
 -- Backfill : s'assurer que toutes les lignes ont la valeur correcte.
-UPDATE CHAUFFEURS SET statut = 'DISPONIBLE' WHERE statut IS NULL OR statut = '';
+UPDATE chauffeurs SET statut = 'DISPONIBLE' WHERE statut IS NULL OR statut = '';

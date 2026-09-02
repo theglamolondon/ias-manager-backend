@@ -8,7 +8,7 @@ import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "LIGNES_COMPTE")
+@Table(name = "lignes_compte")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

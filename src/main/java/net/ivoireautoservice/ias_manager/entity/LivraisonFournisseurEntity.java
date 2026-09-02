@@ -8,7 +8,7 @@ import net.ivoireautoservice.ias_manager.enums.StatutBonLivraisonEnum;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "LIVRAISONS_FOURNISSEUR")
+@Table(name = "livraisons_fournisseur")
 @AssociationOverride(
 		name = "facture",
 		joinColumns = @JoinColumn(name = "facture_id", referencedColumnName = "id")

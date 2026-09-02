@@ -7,7 +7,7 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 @Entity
-@Table(name = "CATEGORIES")
+@Table(name = "categories")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

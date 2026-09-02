@@ -5,7 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(name = "DEPENSES_MISSION")
+@Table(name = "depenses_mission")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

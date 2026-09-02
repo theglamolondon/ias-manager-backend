@@ -7,7 +7,7 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "EMPLOYES")
+@Table(name = "employes")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS utilisateur_roles (
     role_id        BIGINT NOT NULL,
     PRIMARY KEY (utilisateur_id, role_id),
     CONSTRAINT fk_utilisateur_roles_user
-        FOREIGN KEY (utilisateur_id) REFERENCES UTILISATEUR(id) ON DELETE CASCADE,
+        FOREIGN KEY (utilisateur_id) REFERENCES utilisateur(id) ON DELETE CASCADE,
     CONSTRAINT fk_utilisateur_roles_role
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS utilisateur_groupes (
     groupe_id      BIGINT NOT NULL,
     PRIMARY KEY (utilisateur_id, groupe_id),
     CONSTRAINT fk_utilisateur_groupes_user
-        FOREIGN KEY (utilisateur_id) REFERENCES UTILISATEUR(id) ON DELETE CASCADE,
+        FOREIGN KEY (utilisateur_id) REFERENCES utilisateur(id) ON DELETE CASCADE,
     CONSTRAINT fk_utilisateur_groupes_groupe
         FOREIGN KEY (groupe_id) REFERENCES groupes(id) ON DELETE CASCADE
 );
@@ -84,6 +84,6 @@ CREATE TABLE IF NOT EXISTS utilisateur_groupes (
 -- -----------------------------------------------------------------------------
 -- INSERT INTO utilisateur_roles (utilisateur_id, role_id)
 -- SELECT u.id, (SELECT id FROM roles WHERE nom = 'ADMIN')
--- FROM UTILISATEUR u
+-- FROM utilisateur u
 -- WHERE NOT EXISTS (SELECT 1 FROM utilisateur_roles ur WHERE ur.utilisateur_id = u.id)
 --   AND NOT EXISTS (SELECT 1 FROM utilisateur_groupes ug WHERE ug.utilisateur_id = u.id);

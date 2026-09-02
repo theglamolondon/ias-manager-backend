@@ -18,6 +18,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Entity
+@Table(name = "utilisateur")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -91,8 +92,8 @@ public class Utilisateur extends AuditableEntity implements UserDetails {
      * aucune synchronisation à maintenir. L'effet est immédiat : le filtre JWT
      * recharge l'utilisateur depuis la base à chaque requête.</p>
      */
-    @Formula("(case when exists (select 1 from COMPTE_UTILISATEURS cu where cu.utilisateur_id = id) "
-            + "or exists (select 1 from COMPTES c where c.utilisateur_id = id) then true else false end)")
+    @Formula("(case when exists (select 1 from compte_utilisateurs cu where cu.utilisateur_id = id) "
+            + "or exists (select 1 from comptes c where c.utilisateur_id = id) then true else false end)")
     private boolean rattacheACompte;
 
     // ------------------------------------------------------------------
