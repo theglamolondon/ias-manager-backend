@@ -18,6 +18,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Amorce le modèle RBAC au démarrage (idempotent).
@@ -26,8 +27,15 @@ import java.util.Set;
  *   <li>Crée/maintient les <b>rôles système</b> issus de {@link RoleEnum}. Le rôle
  *       {@code ADMIN} reçoit systématiquement <b>toutes</b> les permissions (pour qu'une
  *       nouvelle {@link PermissionEnum} ajoutée en code soit immédiatement accordée à
- *       l'admin). Les autres rôles système ne sont créés que s'ils n'existent pas
- *       encore — afin de respecter les ajustements faits ensuite par un administrateur.</li>
+ *       l'admin). Les autres rôles système sont créés s'ils manquent, puis
+ *       <b>resynchronisés sur leur préréglage</b> à chaque démarrage : leurs permissions
+ *       étant figées côté API ({@code RoleService#updateRole}), le code reste la seule
+ *       source de vérité et une permission ajoutée à un préréglage arrive en base sans
+ *       intervention manuelle. Les rôles <i>non</i> système (créés par un admin) ne sont
+ *       jamais touchés.</li>
+ *   <li>Les valeurs de {@code role_permissions} qui n'existent plus dans
+ *       {@link PermissionEnum} (permission renommée/supprimée) sont purgées avant tout
+ *       chargement de rôle.</li>
  *   <li><b>Bascule de sécurité (one-time)</b> : si <i>aucun</i> utilisateur ne possède
  *       de rôle ni de groupe (cas du tout premier démarrage après l'introduction du
  *       RBAC), on attribue le rôle {@code ADMIN} à tous les utilisateurs existants pour
@@ -47,8 +55,24 @@ public class RbacSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        purgerPermissionsObsoletes();
         RoleEntity admin = seedRolesSysteme();
         backfillUtilisateursSansDroits(admin);
+    }
+
+    /**
+     * Nettoie les permissions présentes en base mais disparues du code (renommage ou
+     * suppression d'une valeur de {@link PermissionEnum}). Sans ce nettoyage, le
+     * chargement du rôle concerné échouerait sur une valeur d'enum inconnue.
+     */
+    private void purgerPermissionsObsoletes() {
+        Set<String> connues = EnumSet.allOf(PermissionEnum.class).stream()
+                .map(PermissionEnum::name)
+                .collect(Collectors.toSet());
+        int supprimees = roleRepository.purgerPermissionsInconnues(connues);
+        if (supprimees > 0) {
+            log.warn("RBAC: {} permission(s) obsolète(s) supprimée(s) de role_permissions", supprimees);
+        }
     }
 
     private RoleEntity seedRolesSysteme() {
@@ -60,16 +84,26 @@ public class RbacSeeder implements ApplicationRunner {
         admin.setPermissions(EnumSet.allOf(PermissionEnum.class));
         admin = roleRepository.save(admin);
 
-        // Autres rôles système : créés uniquement s'ils n'existent pas encore.
+        // Autres rôles système : créés s'ils n'existent pas, puis resynchronisés sur
+        // leur préréglage. Les permissions d'un rôle système sont figées côté API
+        // (cf. RoleService#updateRole) : le code est donc la seule source de vérité,
+        // et une permission ajoutée à un préréglage doit atteindre la base au démarrage.
         for (RoleEnum role : RoleEnum.values()) {
             if (role == RoleEnum.ADMIN) {
                 continue;
             }
-            if (roleRepository.findByNom(role.name()).isEmpty()) {
-                RoleEntity entity = nouveauRoleSysteme(role.name(), libelleParDefaut(role));
-                entity.setPermissions(permissionsParDefaut(role));
+            RoleEntity entity = roleRepository.findByNom(role.name()).orElse(null);
+            boolean creation = entity == null;
+            if (creation) {
+                entity = nouveauRoleSysteme(role.name(), libelleParDefaut(role));
+            }
+            Set<PermissionEnum> attendues = permissionsParDefaut(role);
+            boolean desynchronise = !attendues.equals(entity.getPermissions());
+            if (creation || desynchronise) {
+                entity.setSystemRole(true);
+                entity.setPermissions(attendues);
                 roleRepository.save(entity);
-                log.info("RBAC: rôle système '{}' créé", role.name());
+                log.info("RBAC: rôle système '{}' {}", role.name(), creation ? "créé" : "resynchronisé");
             }
         }
         return admin;
