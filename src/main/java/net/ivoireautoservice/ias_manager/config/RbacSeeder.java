@@ -69,10 +69,19 @@ public class RbacSeeder implements ApplicationRunner {
         Set<String> connues = EnumSet.allOf(PermissionEnum.class).stream()
                 .map(PermissionEnum::name)
                 .collect(Collectors.toSet());
-        int supprimees = roleRepository.purgerPermissionsInconnues(connues);
-        if (supprimees > 0) {
-            log.warn("RBAC: {} permission(s) obsolète(s) supprimée(s) de role_permissions", supprimees);
+        // Les valeurs à supprimer sont calculées ici puis énumérées explicitement dans
+        // le DELETE. Surtout pas un « DELETE ... WHERE permission NOT IN (catalogue) » :
+        // au moindre problème de liaison du paramètre, cette forme viderait toute la
+        // table et effacerait silencieusement les droits des rôles non système.
+        List<String> obsoletes = roleRepository.findPermissionsDistinctes().stream()
+                .filter(nom -> !connues.contains(nom))
+                .toList();
+        if (obsoletes.isEmpty()) {
+            return;
         }
+        int supprimees = roleRepository.supprimerPermissions(obsoletes);
+        log.warn("RBAC: {} attribution(s) supprimée(s) pour {} permission(s) disparue(s) du code : {}",
+                supprimees, obsoletes.size(), obsoletes);
     }
 
     private RoleEntity seedRolesSysteme() {
