@@ -1,7 +1,7 @@
 package net.ivoireautoservice.ias_manager.services;
 
 import lombok.RequiredArgsConstructor;
-import net.ivoireautoservice.ias_manager.dto.core.DepenseMission;
+import net.ivoireautoservice.ias_manager.dto.core.DepenseImputee;
 import net.ivoireautoservice.ias_manager.dto.core.Intervention;
 import net.ivoireautoservice.ias_manager.dto.core.InterventionHistorique;
 import net.ivoireautoservice.ias_manager.dto.core.MissionHistorique;
@@ -11,7 +11,6 @@ import net.ivoireautoservice.ias_manager.dto.core.VehiculeHistorique;
 import net.ivoireautoservice.ias_manager.dto.request.InterventionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.entity.AssuranceEntity;
-import net.ivoireautoservice.ias_manager.entity.DepenseMissionEntity;
 import net.ivoireautoservice.ias_manager.entity.DocumentVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.InterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneFactureEntity;
@@ -22,16 +21,18 @@ import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
+import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.dto.core.DocumentVehicule;
-import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
 import net.ivoireautoservice.ias_manager.mapper.DocumentVehiculeMapper;
 import net.ivoireautoservice.ias_manager.mapper.InterventionMapper;
 import net.ivoireautoservice.ias_manager.mapper.VehiculeMapper;
-import net.ivoireautoservice.ias_manager.repository.DepenseMissionRepository;
+import net.ivoireautoservice.ias_manager.repository.LigneCompteRepository;
 import net.ivoireautoservice.ias_manager.repository.DocumentVehiculeRepository;
 import net.ivoireautoservice.ias_manager.repository.InterventionRepository;
 import net.ivoireautoservice.ias_manager.entity.MarqueEntity;
@@ -66,7 +67,7 @@ public class VehiculeService {
     private final TypeInterventionRepository typeInterventionRepository;
     private final InterventionRepository interventionRepository;
     private final MissionRepository missionRepository;
-    private final DepenseMissionRepository depenseMissionRepository;
+    private final LigneCompteRepository ligneCompteRepository;
     private final LigneFactureRepository ligneFactureRepository;
     private final DocumentVehiculeRepository documentVehiculeRepository;
     private final MediaRepository mediaRepository;
@@ -75,7 +76,6 @@ public class VehiculeService {
     private final SharedService sharedService;
     private final VehiculeMapper vehiculeMapper;
     private final InterventionMapper interventionMapper;
-    private final DepenseMissionMapper depenseMissionMapper;
     private final DocumentVehiculeMapper documentVehiculeMapper;
 
     @Transactional(readOnly = true)
@@ -217,6 +217,14 @@ public class VehiculeService {
         if (!vehiculeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Véhicule", id);
         }
+        // Supprimer un véhicule auquel des dépenses sont imputées effacerait leur
+        // rattachement : elles deviendraient des décaissements sans propriétaire.
+        long depenses = ligneCompteRepository.countByVehiculeId(id);
+        if (depenses > 0) {
+            throw new BadRequestException("Ce véhicule porte " + depenses
+                    + " opération(s) de trésorerie et ne peut pas être supprimé. "
+                    + "Passez-le au statut RÉFORMÉ pour le sortir de la flotte");
+        }
         vehiculeRepository.deleteById(id);
     }
 
@@ -314,6 +322,20 @@ public class VehiculeService {
         mediaService.deleteMedia(mediaId);
     }
 
+    /**
+     * Interventions du véhicule au coût renseigné mais non réglées. Alimente
+     * l'avertissement affiché à la saisie d'une dépense imputée à ce véhicule.
+     */
+    @Transactional(readOnly = true)
+    public List<Intervention> getInterventionsNonReglees(Long vehiculeId) {
+        if (!vehiculeRepository.existsById(vehiculeId)) {
+            throw new ResourceNotFoundException("Véhicule", vehiculeId);
+        }
+        return interventionMapper.toDtoList(
+                interventionRepository
+                        .findByVehiculeIdAndDhmsPaiementIsNullAndCoutGreaterThanOrderByDhmsDebutDesc(vehiculeId, 0L));
+    }
+
     // ==================== HISTORIQUE ====================
 
     @Transactional(readOnly = true)
@@ -345,21 +367,39 @@ public class VehiculeService {
             }
         }
 
-        // 4. Construire les MissionHistorique
+        // 4. Dépenses de trésorerie portant la valeur analytique du véhicule : une seule
+        // requête, répartie en mémoire entre les missions et le hors-mission. Les lignes
+        // générées par un règlement d'intervention ou une facture en sont exclues — leur
+        // coût est déjà porté par l'objet source.
+        List<LigneCompteEntity> lignesImputees = ligneCompteRepository.findDepensesImputees(
+                vehiculeId, CompteLigneType.DEPENSE, LigneCompteOrigine.MANUELLE);
+
+        Map<Long, List<DepenseImputee>> depensesByMission = new java.util.HashMap<>();
+        List<DepenseImputee> depensesDirectes = new java.util.ArrayList<>();
+        long totalDepensesDirectes = 0;
+
+        for (LigneCompteEntity ligne : lignesImputees) {
+            DepenseImputee depense = toDepenseImputee(ligne);
+            totalDepensesDirectes += depense.getMontant();
+            if (ligne.getMission() != null) {
+                depensesByMission.computeIfAbsent(ligne.getMission().getId(), k -> new java.util.ArrayList<>())
+                        .add(depense);
+            } else {
+                depensesDirectes.add(depense);
+            }
+        }
+
+        // 5. Construire les MissionHistorique
         long totalGains = 0;
-        long totalDepensesMissions = 0;
         List<MissionHistorique> missionsHistorique = new java.util.ArrayList<>();
 
         for (MissionEntity m : missionEntities) {
-            // Dépenses de la mission
-            List<DepenseMissionEntity> depenseEntities = depenseMissionRepository.findByMissionId(m.getId());
-            List<DepenseMission> depenses = depenseMissionMapper.toDtoList(depenseEntities);
-            long totalDepensesMission = depenseEntities.stream().mapToLong(d -> d.getMontant() != null ? d.getMontant() : 0).sum();
+            // Dépenses imputées à la mission. Contrairement aux recettes, elles sont
+            // conservées même sur une mission annulée : l'argent est sorti de caisse,
+            // l'annulation de la mission ne le fait pas revenir.
+            List<DepenseImputee> depenses = depensesByMission.getOrDefault(m.getId(), List.of());
+            long totalDepensesMission = depenses.stream().mapToLong(DepenseImputee::getMontant).sum();
             boolean missionAnnulee = m.getDhmsAnnulation() != null;
-            // Les missions annulées restent affichées mais sont exclues des agrégats.
-            if (!missionAnnulee) {
-                totalDepensesMissions += totalDepensesMission;
-            }
 
             // Facture liée
             List<LigneFactureEntity> lignesMission = lignesByCodeMission.getOrDefault(m.getCodeMission(), List.of());
@@ -419,7 +459,7 @@ public class VehiculeService {
                     .build());
         }
 
-        // 5. Interventions du véhicule
+        // 6. Interventions du véhicule
         List<InterventionEntity> interventionEntities = interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(vehiculeId);
         long totalDepensesInterventions = 0;
 
@@ -441,17 +481,40 @@ public class VehiculeService {
                     .build());
         }
 
-        long totalDepenses = totalDepensesMissions + totalDepensesInterventions;
+        // 7. Totaux. « Engagé » compte chaque dépense une fois, à la charge de son
+        // porteur ; « décaissé » lit les sorties de caisse réelles, toutes origines
+        // confondues. L'écart entre les deux est ce qui reste dû sur le véhicule.
+        long totalDepensesEngagees = totalDepensesDirectes + totalDepensesInterventions;
+        long totalDepensesDecaissees = ligneCompteRepository.sumMontantByVehicule(
+                vehiculeId, CompteLigneType.DEPENSE);
 
         return VehiculeHistorique.builder()
                 .vehicule(vehicule)
                 .totalGains(totalGains)
-                .totalDepenses(totalDepenses)
-                .totalDepensesMissions(totalDepensesMissions)
+                .totalDepenses(totalDepensesEngagees)
+                .totalDepensesDirectes(totalDepensesDirectes)
                 .totalDepensesInterventions(totalDepensesInterventions)
-                .solde(totalGains - totalDepenses)
+                .totalDepensesDecaissees(totalDepensesDecaissees)
+                .resteAPayer(totalDepensesEngagees - totalDepensesDecaissees)
+                .solde(totalGains - totalDepensesEngagees)
                 .missions(missionsHistorique)
                 .interventions(interventionsHistorique)
+                .depensesDirectes(depensesDirectes)
+                .build();
+    }
+
+    private DepenseImputee toDepenseImputee(LigneCompteEntity ligne) {
+        return DepenseImputee.builder()
+                .id(ligne.getId())
+                .libelle(ligne.getObjet())
+                .montant(ligne.getMontant() != null ? ligne.getMontant() : 0L)
+                .dhmsOperation(ligne.getDhmsOperation())
+                .typeDepenseId(ligne.getTypeDepense() != null ? ligne.getTypeDepense().getId() : null)
+                .typeDepenseLibelle(ligne.getTypeDepense() != null ? ligne.getTypeDepense().getLibelle() : null)
+                .compteId(ligne.getCompte() != null ? ligne.getCompte().getId() : null)
+                .compteIntitule(ligne.getCompte() != null ? ligne.getCompte().getIntitule() : null)
+                .missionId(ligne.getMission() != null ? ligne.getMission().getId() : null)
+                .codeMission(ligne.getMission() != null ? ligne.getMission().getCodeMission() : null)
                 .build();
     }
 

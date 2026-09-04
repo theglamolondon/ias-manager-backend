@@ -6,14 +6,20 @@ import net.ivoireautoservice.ias_manager.dto.core.Compte;
 import net.ivoireautoservice.ias_manager.dto.core.CompteUtilisateur;
 import net.ivoireautoservice.ias_manager.dto.core.LigneCompte;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
+import net.ivoireautoservice.ias_manager.dto.core.SyntheseCompte;
 import net.ivoireautoservice.ias_manager.dto.request.CompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.CompteUtilisateurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
+import net.ivoireautoservice.ias_manager.dto.request.LigneImputationRequest;
 import net.ivoireautoservice.ias_manager.entity.CompteEntity;
 import net.ivoireautoservice.ias_manager.entity.CompteUtilisateurEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
+import net.ivoireautoservice.ias_manager.entity.MissionEntity;
+import net.ivoireautoservice.ias_manager.entity.TypeDepenseEntity;
 import net.ivoireautoservice.ias_manager.entity.Utilisateur;
+import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.CompteMapper;
@@ -22,14 +28,19 @@ import net.ivoireautoservice.ias_manager.mapper.LigneCompteMapper;
 import net.ivoireautoservice.ias_manager.repository.CompteRepository;
 import net.ivoireautoservice.ias_manager.repository.CompteUtilisateurRepository;
 import net.ivoireautoservice.ias_manager.repository.LigneCompteRepository;
+import net.ivoireautoservice.ias_manager.repository.MissionRepository;
+import net.ivoireautoservice.ias_manager.repository.TypeDepenseRepository;
 import net.ivoireautoservice.ias_manager.repository.UserRepository;
+import net.ivoireautoservice.ias_manager.repository.VehiculeRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +50,9 @@ public class CompteService {
     private final CompteUtilisateurRepository compteUtilisateurRepository;
     private final LigneCompteRepository ligneCompteRepository;
     private final UserRepository userRepository;
+    private final TypeDepenseRepository typeDepenseRepository;
+    private final VehiculeRepository vehiculeRepository;
+    private final MissionRepository missionRepository;
     private final SecurityService securityService;
     private final MediaService mediaService;
     private final CompteMapper compteMapper;
@@ -140,6 +154,7 @@ public class CompteService {
                 .utilisateur(securityService.getUtilisateurConnecte())
                 .compte(compte)
                 .type(montant >= 0 ? CompteLigneType.APPROVISIONNEMENT : CompteLigneType.DEPENSE)
+                .origine(LigneCompteOrigine.MANUELLE)
                 .dhmsOperation(LocalDateTime.now())
                 .objet("APPROVISIONNEMENT INITIAL")
                 .montant(Math.abs(montant))
@@ -246,6 +261,36 @@ public class CompteService {
                 .map(ligneCompteMapper::toDto));
     }
 
+    /**
+     * Totaux de la fiche compte. Ils sont agrégés en base sur toutes les opérations :
+     * les déduire des lignes renvoyées par {@link #getLignesByCompte} ne totaliserait
+     * que la page consultée.
+     */
+    @Transactional(readOnly = true)
+    public SyntheseCompte getSyntheseCompte(Long compteId) {
+        getCompteVisible(compteId);
+
+        Map<CompteLigneType, Long> montants = new EnumMap<>(CompteLigneType.class);
+        long nombreOperations = 0L;
+        for (Object[] ligne : ligneCompteRepository.agregerParTypeByCompte(compteId)) {
+            if (ligne[0] == null) {
+                continue;
+            }
+            montants.put((CompteLigneType) ligne[0], ((Number) ligne[1]).longValue());
+            nombreOperations += ((Number) ligne[2]).longValue();
+        }
+
+        long remboursements = montants.getOrDefault(CompteLigneType.REMBOURSEMENT, 0L);
+        return SyntheseCompte.builder()
+                // Dépenses et remboursements débitent tous deux le compte
+                .totalDepenses(montants.getOrDefault(CompteLigneType.DEPENSE, 0L) + remboursements)
+                .totalApprovisionnements(montants.getOrDefault(CompteLigneType.APPROVISIONNEMENT, 0L))
+                .totalRemboursements(remboursements)
+                .totalSoldes(montants.getOrDefault(CompteLigneType.SOLDE, 0L))
+                .nombreOperations(nombreOperations)
+                .build();
+    }
+
     @Transactional(readOnly = true)
     public LigneCompte getLigneById(Long compteId, Long ligneId) {
         getCompteVisible(compteId);
@@ -257,13 +302,32 @@ public class CompteService {
         return ligneCompteMapper.toDto(entity);
     }
 
+    /**
+     * Saisie manuelle d'un mouvement depuis l'écran de trésorerie. Contrôle l'imputation
+     * analytique (voir {@link #validerSaisieManuelle}) puis enregistre le mouvement en
+     * {@link LigneCompteOrigine#MANUELLE} : la ligne porte alors la valeur de la dépense
+     * pour les agrégats métier.
+     */
     @Transactional
     public LigneCompte createLigne(Long compteId, LigneCompteRequest request) {
-        return ligneCompteMapper.toDto(createLigneEntity(compteId, request));
+        validerSaisieManuelle(request);
+        return ligneCompteMapper.toDto(enregistrerMouvement(compteId, request, LigneCompteOrigine.MANUELLE));
     }
 
+    /**
+     * Mouvement généré par un autre module (règlement d'intervention, encaissement ou
+     * remboursement de facture). L'origine est fournie par l'appelant et la ligne ne
+     * porte alors <b>pas</b> la valeur analytique de la dépense : celle-ci reste sur
+     * l'objet source, ce qui évite tout double comptage.
+     */
     @Transactional
-    public LigneCompteEntity createLigneEntity(Long compteId, LigneCompteRequest request) {
+    public LigneCompteEntity createLigneEntity(Long compteId, LigneCompteRequest request,
+                                               LigneCompteOrigine origine) {
+        return enregistrerMouvement(compteId, request, origine);
+    }
+
+    private LigneCompteEntity enregistrerMouvement(Long compteId, LigneCompteRequest request,
+                                                   LigneCompteOrigine origine) {
         CompteEntity compte = compteRepository.findById(compteId)
                 .orElseThrow(() -> new ResourceNotFoundException("Compte", compteId));
 
@@ -306,6 +370,7 @@ public class CompteService {
                 .utilisateur(utilisateur)
                 .compte(compte)
                 .type(request.getType())
+                .origine(origine)
                 .dhmsOperation(LocalDateTime.now())
                 .objet(request.getObjet())
                 .montant(request.getMontant())
@@ -313,7 +378,126 @@ public class CompteService {
                 .observation(request.getObservation())
                 .build();
 
+        resoudreImputation(request, entity);
+
         return ligneCompteRepository.save(entity);
+    }
+
+    // ==================== IMPUTATION ANALYTIQUE ====================
+
+    /**
+     * Contrôle une saisie manuelle avant enregistrement.
+     *
+     * <p>Deux principes : l'imputation n'a de sens que sur une dépense (un
+     * approvisionnement alimente le compte, il ne se rattache à aucun véhicule), et
+     * elle est <b>explicite</b> — ne rien imputer se demande en cochant « non
+     * imputable », faute de quoi l'oubli passerait inaperçu et la dépense
+     * disparaîtrait de toutes les fiches véhicule sans que rien ne le signale.</p>
+     */
+    private void validerSaisieManuelle(LigneCompteRequest request) {
+        if (request.getType() != CompteLigneType.DEPENSE
+                && request.getType() != CompteLigneType.APPROVISIONNEMENT) {
+            throw new BadRequestException("Seuls une dépense ou un approvisionnement peuvent être saisis. "
+                    + "Un solde s'obtient par l'action « Solder », un remboursement par l'annulation de la facture");
+        }
+
+        boolean vehicule = request.getVehiculeId() != null;
+        boolean mission = request.getMissionId() != null;
+        boolean nonImputable = Boolean.TRUE.equals(request.getNonImputable());
+
+        if (request.getType() != CompteLigneType.DEPENSE) {
+            if (request.getTypeDepenseId() != null || vehicule || mission || nonImputable) {
+                throw new BadRequestException("Seule une dépense peut être imputée à un véhicule ou à une mission");
+            }
+            return;
+        }
+
+        if (request.getTypeDepenseId() == null) {
+            throw new BadRequestException("La nature de la dépense est obligatoire");
+        }
+
+        int branches = (vehicule ? 1 : 0) + (mission ? 1 : 0) + (nonImputable ? 1 : 0);
+        if (branches == 0) {
+            throw new BadRequestException("Précisez l'imputation de la dépense (véhicule ou mission), "
+                    + "ou cochez « Dépense non imputable »");
+        }
+        if (branches > 1) {
+            throw new BadRequestException("Une dépense s'impute à un véhicule OU à une mission, pas aux deux");
+        }
+    }
+
+    /**
+     * Résout les références d'imputation et les pose sur la ligne.
+     *
+     * <p>Le véhicule est <b>toujours</b> écrit, y compris lorsque la saisie s'est faite
+     * par la mission : le véhicule d'une mission peut changer en cours de route
+     * ({@code changerVehicule}), et une résolution à la lecture reporterait alors des
+     * frais déjà engagés sur le véhicule suivant.</p>
+     */
+    private void resoudreImputation(LigneCompteRequest request, LigneCompteEntity entity) {
+        if (request.getTypeDepenseId() != null) {
+            TypeDepenseEntity typeDepense = typeDepenseRepository.findById(request.getTypeDepenseId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Type de dépense", request.getTypeDepenseId()));
+            entity.setTypeDepense(typeDepense);
+        }
+
+        if (request.getMissionId() != null) {
+            MissionEntity mission = missionRepository.findById(request.getMissionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Mission", request.getMissionId()));
+            if (mission.getVehicule() == null) {
+                throw new BadRequestException("La mission " + mission.getCodeMission()
+                        + " n'a pas de véhicule : imputez la dépense directement à un véhicule");
+            }
+            entity.setMission(mission);
+            entity.setVehicule(mission.getVehicule());
+        } else if (request.getVehiculeId() != null) {
+            VehiculeEntity vehicule = vehiculeRepository.findById(request.getVehiculeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Véhicule", request.getVehiculeId()));
+            entity.setVehicule(vehicule);
+        }
+    }
+
+    /**
+     * Corrige l'imputation d'une ligne existante : nature de la dépense et axe
+     * analytique, jamais le montant, le compte ni le type. La balance du compte et les
+     * {@code balanceAvant} des lignes suivantes restent donc intactes — une erreur de
+     * montant, elle, relève d'une contre-passation et non de cette correction.
+     */
+    @Transactional
+    public LigneCompte updateImputation(Long compteId, Long ligneId, LigneImputationRequest request) {
+        getCompteVisible(compteId);
+
+        LigneCompteEntity entity = ligneCompteRepository.findById(ligneId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ligne de compte", ligneId));
+
+        if (!entity.getCompte().getId().equals(compteId)) {
+            throw new ResourceNotFoundException("Ligne de compte " + ligneId
+                    + " non trouvée pour le compte " + compteId);
+        }
+        if (entity.getOrigine() != LigneCompteOrigine.MANUELLE) {
+            throw new BadRequestException("Ce mouvement a été généré automatiquement : "
+                    + "corrigez l'objet dont il provient plutôt que la ligne de trésorerie");
+        }
+        if (entity.getType() != CompteLigneType.DEPENSE) {
+            throw new BadRequestException("Seule une dépense peut être imputée");
+        }
+
+        LigneCompteRequest imputation = LigneCompteRequest.builder()
+                .type(entity.getType())
+                .montant(entity.getMontant())
+                .typeDepenseId(request.getTypeDepenseId())
+                .vehiculeId(request.getVehiculeId())
+                .missionId(request.getMissionId())
+                .nonImputable(request.getNonImputable())
+                .build();
+        validerSaisieManuelle(imputation);
+
+        entity.setTypeDepense(null);
+        entity.setVehicule(null);
+        entity.setMission(null);
+        resoudreImputation(imputation, entity);
+
+        return ligneCompteMapper.toDto(ligneCompteRepository.save(entity));
     }
 
     @Transactional
@@ -341,6 +525,7 @@ public class CompteService {
                 .utilisateur(utilisateur)
                 .compte(compte)
                 .type(CompteLigneType.SOLDE)
+                .origine(LigneCompteOrigine.MANUELLE)
                 .dhmsOperation(LocalDateTime.now())
                 .objet("SOLDE DU COMPTE")
                 .montant(Math.abs(balanceAvant))

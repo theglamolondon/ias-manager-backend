@@ -129,6 +129,11 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.getInterventionsByVehicule(vehiculeId, pageable));
     }
 
+    @GetMapping("/{vehiculeId}/interventions-non-reglees")
+    public ResponseEntity<List<Intervention>> getInterventionsNonReglees(@PathVariable Long vehiculeId) {
+        return ResponseEntity.ok(vehiculeService.getInterventionsNonReglees(vehiculeId));
+    }
+
     @PostMapping("/{vehiculeId}/interventions")
     @PreAuthorize("hasAuthority('INTERVENTION_CREATE')")
     public ResponseEntity<Intervention> createIntervention(

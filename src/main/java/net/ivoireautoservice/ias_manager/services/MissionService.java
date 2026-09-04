@@ -5,9 +5,7 @@ import net.ivoireautoservice.ias_manager.dto.core.*;
 import net.ivoireautoservice.ias_manager.dto.request.AffecterChauffeurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
-import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.FactureRequest;
-import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneFactureRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.entity.*;
@@ -26,7 +24,6 @@ import java.util.Objects;
 import net.ivoireautoservice.ias_manager.event.MissionCreatedEvent;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
-import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
 import net.ivoireautoservice.ias_manager.mapper.FactureMapper;
 import net.ivoireautoservice.ias_manager.mapper.MediaMapper;
 import net.ivoireautoservice.ias_manager.mapper.MissionMapper;
@@ -51,22 +48,18 @@ import java.util.List;
 public class MissionService {
 
 	private final MissionRepository missionRepository;
-	private final DepenseMissionRepository depenseMissionRepository;
 	private final PhotoMissionRepository photoMissionRepository;
 	private final VehiculeRepository vehiculeRepository;
 	private final ChauffeurRepository chauffeurRepository;
 	private final PartenaireRepository partenaireRepository;
-	private final TypeDepenseRepository typeDepenseRepository;
 	private final FactureRepository factureRepository;
 	private final LigneCompteRepository ligneCompteRepository;
 	private final InterventionRepository interventionRepository;
 	private final MissionMapper missionMapper;
 	private final FactureMapper factureMapper;
-	private final DepenseMissionMapper depenseMissionMapper;
 	private final MediaMapper mediaMapper;
 	private final MediaService mediaService;
 	private final FactureService factureService;
-	private final CompteService compteService;
 	private final SiteService siteService;
 	private final PrintService printService;
 	private final ApplicationEventPublisher eventPublisher;
@@ -174,8 +167,6 @@ public class MissionService {
 				.orElseThrow(() -> new ResourceNotFoundException("Mission", id));
 		Mission dto = missionMapper.toDto(entity);
 
-		List<DepenseMissionEntity> depenses = depenseMissionRepository.findByMissionId(id);
-		dto.setDepenses(depenseMissionMapper.toDtoList(depenses));
 
 		List<PhotoMissionEntity> photoEntities = photoMissionRepository.findByMissionId(id);
 		List<PhotoMission> photos = photoEntities.stream()
@@ -683,39 +674,6 @@ public class MissionService {
 
 		MissionEntity saved = missionRepository.save(nouvelleMission);
 		return missionMapper.toDto(saved);
-	}
-
-	// ==================== DEPENSES MISSION ====================
-
-	@Transactional
-	public DepenseMission addDepense(Long missionId, DepenseMissionRequest request) {
-		MissionEntity mission = missionRepository.findById(missionId)
-				.orElseThrow(() -> new ResourceNotFoundException("Mission", missionId));
-
-		TypeDepenseEntity typeDepense = typeDepenseRepository.findById(request.getTypeDepenseId())
-				.orElseThrow(() -> new ResourceNotFoundException("Type de dépense", request.getTypeDepenseId()));
-
-		DepenseMissionEntity entity = depenseMissionMapper.toEntity(request);
-		entity.setMission(mission);
-		entity.setTypeDepense(typeDepense);
-
-		DepenseMissionEntity saved = depenseMissionRepository.save(entity);
-
-		// Enregistrer la dépense comme ligne de compte
-		String objet = "DÉPENSE MISSION " + mission.getCodeMission()
-				+ " — " + typeDepense.getLibelle()
-				+ (request.getLibelle() != null ? " : " + request.getLibelle() : "");
-
-		LigneCompteRequest ligneRequest = LigneCompteRequest.builder()
-				.type(CompteLigneType.DEPENSE)
-				.objet(objet)
-				.montant(request.getMontant())
-				.observation("Mission " + mission.getCodeMission())
-				.build();
-
-		compteService.createLigne(request.getCompteId(), ligneRequest);
-
-		return depenseMissionMapper.toDto(saved);
 	}
 
 	// ==================== PHOTOS MISSION ====================

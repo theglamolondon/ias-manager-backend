@@ -6,7 +6,9 @@ import net.ivoireautoservice.ias_manager.dto.core.Vehicule;
 import net.ivoireautoservice.ias_manager.dto.core.VehiculeHistorique;
 import net.ivoireautoservice.ias_manager.dto.request.VehiculeRequest;
 import net.ivoireautoservice.ias_manager.entity.*;
+import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.*;
@@ -48,7 +50,7 @@ class VehiculeServiceTest {
 	@Mock private TypeInterventionRepository typeInterventionRepository;
 	@Mock private InterventionRepository interventionRepository;
 	@Mock private MissionRepository missionRepository;
-	@Mock private DepenseMissionRepository depenseMissionRepository;
+	@Mock private LigneCompteRepository ligneCompteRepository;
 	@Mock private LigneFactureRepository ligneFactureRepository;
 	@Mock private DocumentVehiculeRepository documentVehiculeRepository;
 	@Mock private MediaRepository mediaRepository;
@@ -57,7 +59,6 @@ class VehiculeServiceTest {
 	@Mock private SharedService sharedService;
 	@Mock private VehiculeMapper vehiculeMapper;
 	@Mock private InterventionMapper interventionMapper;
-	@Mock private DepenseMissionMapper depenseMissionMapper;
 	@Mock private DocumentVehiculeMapper documentVehiculeMapper;
 
 	@InjectMocks
@@ -320,6 +321,21 @@ class VehiculeServiceTest {
 			return FactureEntity.builder().id(9L).numFacture("DA/01/79/1").statut(statut).tva(tva).build();
 		}
 
+		/** Dépense de trésorerie imputée au véhicule, éventuellement rattachée à une mission. */
+		private LigneCompteEntity depense(long montant, MissionEntity mission) {
+			return LigneCompteEntity.builder()
+					.id(1L).montant(montant).objet("Plein").dhmsOperation(LocalDateTime.now())
+					.type(CompteLigneType.DEPENSE).origine(LigneCompteOrigine.MANUELLE)
+					.mission(mission)
+					.build();
+		}
+
+		private void stubDepenses(LigneCompteEntity... lignes) {
+			when(ligneCompteRepository.findDepensesImputees(
+					1L, CompteLigneType.DEPENSE, LigneCompteOrigine.MANUELLE))
+					.thenReturn(List.of(lignes));
+		}
+
 		@Test
 		@DisplayName("un chassis inconnu lève 404")
 		void chassisInconnu() {
@@ -343,7 +359,7 @@ class VehiculeServiceTest {
 			when(vehiculeMapper.toDto(vehicule)).thenReturn(Vehicule.builder().build());
 			when(missionRepository.findByVehiculeIdOrderByDhmsDebutPreviDesc(1L)).thenReturn(List.of(mission));
 			when(ligneFactureRepository.findByExtraRefInForMission(List.of("2026-001"))).thenReturn(List.of(ligne));
-			when(depenseMissionRepository.findByMissionId(1L)).thenReturn(List.of());
+			stubDepenses();
 			when(interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(1L)).thenReturn(List.of());
 
 			VehiculeHistorique historique = service.getHistorique("VF123");
@@ -366,7 +382,7 @@ class VehiculeServiceTest {
 			when(vehiculeMapper.toDto(vehicule)).thenReturn(Vehicule.builder().build());
 			when(missionRepository.findByVehiculeIdOrderByDhmsDebutPreviDesc(1L)).thenReturn(List.of(mission));
 			when(ligneFactureRepository.findByExtraRefInForMission(any())).thenReturn(List.of(ligne));
-			when(depenseMissionRepository.findByMissionId(1L)).thenReturn(List.of());
+			stubDepenses();
 			when(interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(1L)).thenReturn(List.of());
 
 			VehiculeHistorique historique = service.getHistorique("VF123");
@@ -376,53 +392,55 @@ class VehiculeServiceTest {
 		}
 
 		@Test
-		@DisplayName("une mission annulée est affichée mais exclue des agrégats")
+		@DisplayName("une mission annulée sort des recettes mais ses dépenses restent comptées")
 		void missionAnnuleeExclue() {
 			VehiculeEntity vehicule = vehicule();
 			MissionEntity mission = mission("2026-001", LocalDateTime.now());
 			FactureEntity facture = facture(FactureStatusEnum.PAYEE, 0f);
 			LigneFactureEntity ligne = LigneFactureEntity.builder()
 					.id(1L).extraRef("2026-001").montantHt(100_000L).facture(facture).build();
-			DepenseMissionEntity depense = DepenseMissionEntity.builder().id(1L).montant(20_000L).build();
 
 			when(vehiculeRepository.findByNumChassis("VF123")).thenReturn(Optional.of(vehicule));
 			when(vehiculeMapper.toDto(vehicule)).thenReturn(Vehicule.builder().build());
 			when(missionRepository.findByVehiculeIdOrderByDhmsDebutPreviDesc(1L)).thenReturn(List.of(mission));
 			when(ligneFactureRepository.findByExtraRefInForMission(any())).thenReturn(List.of(ligne));
-			when(depenseMissionRepository.findByMissionId(1L)).thenReturn(List.of(depense));
-			when(depenseMissionMapper.toDtoList(any())).thenReturn(List.of());
+			stubDepenses(depense(20_000L, mission));
 			when(interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(1L)).thenReturn(List.of());
 
 			VehiculeHistorique historique = service.getHistorique("VF123");
 
+			// La recette annulée disparaît (la facture ne sera jamais encaissée), mais la
+			// dépense reste : l'argent est sorti de caisse, annuler la mission ne le ramène pas.
 			assertThat(historique.getTotalGains()).isZero();
-			assertThat(historique.getTotalDepensesMissions()).isZero();
+			assertThat(historique.getTotalDepensesDirectes()).isEqualTo(20_000L);
 			assertThat(historique.getMissions()).hasSize(1);
 			assertThat(historique.getMissions().get(0).isAnnulee()).isTrue();
 			assertThat(historique.getMissions().get(0).getTotalDepenses()).isEqualTo(20_000L);
 		}
 
 		@Test
-		@DisplayName("le solde agrège dépenses de missions et coûts d'interventions")
+		@DisplayName("le coût engagé agrège dépenses imputées et coûts d'interventions")
 		void solde() {
 			VehiculeEntity vehicule = vehicule();
 			MissionEntity mission = mission("2026-001", null);
-			DepenseMissionEntity depense = DepenseMissionEntity.builder().id(1L).montant(20_000L).build();
 			InterventionEntity intervention = InterventionEntity.builder().id(1L).cout(50_000L).build();
 
 			when(vehiculeRepository.findByNumChassis("VF123")).thenReturn(Optional.of(vehicule));
 			when(vehiculeMapper.toDto(vehicule)).thenReturn(Vehicule.builder().build());
 			when(missionRepository.findByVehiculeIdOrderByDhmsDebutPreviDesc(1L)).thenReturn(List.of(mission));
 			when(ligneFactureRepository.findByExtraRefInForMission(any())).thenReturn(List.of());
-			when(depenseMissionRepository.findByMissionId(1L)).thenReturn(List.of(depense));
-			when(depenseMissionMapper.toDtoList(any())).thenReturn(List.of());
+			stubDepenses(depense(20_000L, mission));
 			when(interventionRepository.findByVehiculeIdOrderByDhmsDebutDesc(1L)).thenReturn(List.of(intervention));
+			// Seule l'intervention a été réglée : la dépense de route reste à décaisser.
+			when(ligneCompteRepository.sumMontantByVehicule(1L, CompteLigneType.DEPENSE)).thenReturn(50_000L);
 
 			VehiculeHistorique historique = service.getHistorique("VF123");
 
-			assertThat(historique.getTotalDepensesMissions()).isEqualTo(20_000L);
+			assertThat(historique.getTotalDepensesDirectes()).isEqualTo(20_000L);
 			assertThat(historique.getTotalDepensesInterventions()).isEqualTo(50_000L);
 			assertThat(historique.getTotalDepenses()).isEqualTo(70_000L);
+			assertThat(historique.getTotalDepensesDecaissees()).isEqualTo(50_000L);
+			assertThat(historique.getResteAPayer()).isEqualTo(20_000L);
 			assertThat(historique.getSolde()).isEqualTo(-70_000L);
 		}
 

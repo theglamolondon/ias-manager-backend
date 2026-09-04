@@ -5,8 +5,10 @@ import lombok.RequiredArgsConstructor;
 import net.ivoireautoservice.ias_manager.dto.core.Compte;
 import net.ivoireautoservice.ias_manager.dto.core.LigneCompte;
 import net.ivoireautoservice.ias_manager.dto.core.PagedResponse;
+import net.ivoireautoservice.ias_manager.dto.core.SyntheseCompte;
 import net.ivoireautoservice.ias_manager.dto.request.CompteRequest;
 import net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest;
+import net.ivoireautoservice.ias_manager.dto.request.LigneImputationRequest;
 import net.ivoireautoservice.ias_manager.services.CompteService;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
@@ -99,6 +101,15 @@ public class CompteController {
         return ResponseEntity.ok(compteService.getLignesByCompte(compteId, pageable));
     }
 
+    /**
+     * Totaux du compte sur l'ensemble de ses opérations, indépendamment de la
+     * pagination de {@link #getLignesByCompte}.
+     */
+    @GetMapping("/{compteId}/synthese")
+    public ResponseEntity<SyntheseCompte> getSyntheseCompte(@PathVariable Long compteId) {
+        return ResponseEntity.ok(compteService.getSyntheseCompte(compteId));
+    }
+
     @PostMapping("/{compteId}/lignes")
     @PreAuthorize("hasAuthority('TRESORERIE_CREATE')")
     public ResponseEntity<LigneCompte> createLigne(
@@ -106,6 +117,23 @@ public class CompteController {
             @Valid @RequestBody LigneCompteRequest request) {
         LigneCompte created = compteService.createLigne(compteId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * Corrige l'imputation analytique d'un mouvement : sa nature et l'axe auquel il se
+     * rattache. Le montant, le compte et le type sont hors d'atteinte — les modifier
+     * fausserait la balance et les soldes intermédiaires de toutes les lignes suivantes.
+     *
+     * <p>Réservé au trésorier en chef ({@code TRESORERIE_ADMIN}) : réécrire une écriture
+     * déjà passée reste un geste de contrôle, pas une opération courante de saisie.</p>
+     */
+    @PatchMapping("/{compteId}/lignes/{ligneId}/imputation")
+    @PreAuthorize("hasAuthority('TRESORERIE_ADMIN')")
+    public ResponseEntity<LigneCompte> updateImputation(
+            @PathVariable Long compteId,
+            @PathVariable Long ligneId,
+            @Valid @RequestBody LigneImputationRequest request) {
+        return ResponseEntity.ok(compteService.updateImputation(compteId, ligneId, request));
     }
 
     @PostMapping("/{compteId}/solder")

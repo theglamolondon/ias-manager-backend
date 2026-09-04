@@ -25,6 +25,7 @@ import net.ivoireautoservice.ias_manager.entity.PartenaireEntity;
 import net.ivoireautoservice.ias_manager.entity.ProduitEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.enums.FactureNatureEnum;
 import net.ivoireautoservice.ias_manager.enums.FactureTypeEnum;
 import net.ivoireautoservice.ias_manager.enums.StatutBonLivraisonEnum;
@@ -619,7 +620,8 @@ public class FactureService {
 				.observation("Facture " + numRef + " — " + (facture.getObjet() != null ? facture.getObjet() : ""))
 				.build();
 
-		LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneRequest);
+		LigneCompteEntity ligne = compteService.createLigneEntity(
+				compteId, ligneRequest, LigneCompteOrigine.FACTURE);
 		ligne.setFacture(facture);
 		ligneCompteRepository.save(ligne);
 	}
@@ -710,7 +712,8 @@ public class FactureService {
 						+ (facture.getObjet() != null ? " — " + facture.getObjet() : ""))
 				.build();
 
-		LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneRequest);
+		LigneCompteEntity ligne = compteService.createLigneEntity(
+				compteId, ligneRequest, LigneCompteOrigine.FACTURE);
 		ligne.setFacture(facture);
 		return ligneCompteRepository.save(ligne);
 	}

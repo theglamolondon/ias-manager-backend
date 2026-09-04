@@ -309,13 +309,13 @@ class FactureServiceTest {
 		void paiementFactureClient() {
 			FactureEntity entity = facture(FactureStatusEnum.PROFORMA, FactureNatureEnum.FACTURE, true);
 			when(factureRepository.findById(9L)).thenReturn(Optional.of(entity));
-			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class)))
+			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class), eq(LigneCompteOrigine.FACTURE)))
 					.thenReturn(new LigneCompteEntity());
 
 			service.changerStatut(9L, FactureStatusEnum.PAYEE, 3L);
 
 			ArgumentCaptor<LigneCompteRequest> captor = ArgumentCaptor.forClass(LigneCompteRequest.class);
-			verify(compteService).createLigneEntity(eq(3L), captor.capture());
+			verify(compteService).createLigneEntity(eq(3L), captor.capture(), eq(LigneCompteOrigine.FACTURE));
 			assertThat(captor.getValue().getType()).isEqualTo(CompteLigneType.APPROVISIONNEMENT);
 			assertThat(captor.getValue().getMontant()).isEqualTo(118_000L);
 			assertThat(captor.getValue().getObjet()).startsWith("ENCAISSEMENT FACTURE");
@@ -327,13 +327,13 @@ class FactureServiceTest {
 		void paiementFactureFournisseur() {
 			FactureEntity entity = facture(FactureStatusEnum.PROFORMA, FactureNatureEnum.FACTURE, false);
 			when(factureRepository.findById(9L)).thenReturn(Optional.of(entity));
-			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class)))
+			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class), eq(LigneCompteOrigine.FACTURE)))
 					.thenReturn(new LigneCompteEntity());
 
 			service.changerStatut(9L, FactureStatusEnum.PAYEE, 3L);
 
 			ArgumentCaptor<LigneCompteRequest> captor = ArgumentCaptor.forClass(LigneCompteRequest.class);
-			verify(compteService).createLigneEntity(eq(3L), captor.capture());
+			verify(compteService).createLigneEntity(eq(3L), captor.capture(), eq(LigneCompteOrigine.FACTURE));
 			assertThat(captor.getValue().getType()).isEqualTo(CompteLigneType.DEPENSE);
 			assertThat(captor.getValue().getObjet()).startsWith("PAIEMENT FACTURE");
 		}
@@ -461,13 +461,13 @@ class FactureServiceTest {
 		void remboursement() {
 			FactureEntity facture = facture(FactureStatusEnum.PAYEE, FactureNatureEnum.FACTURE, true);
 			LigneCompteEntity ligne = new LigneCompteEntity();
-			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class))).thenReturn(ligne);
+			when(compteService.createLigneEntity(eq(3L), any(LigneCompteRequest.class), eq(LigneCompteOrigine.FACTURE))).thenReturn(ligne);
 			when(ligneCompteRepository.save(ligne)).thenReturn(ligne);
 
 			service.enregistrerRemboursement(facture, 3L);
 
 			ArgumentCaptor<LigneCompteRequest> captor = ArgumentCaptor.forClass(LigneCompteRequest.class);
-			verify(compteService).createLigneEntity(eq(3L), captor.capture());
+			verify(compteService).createLigneEntity(eq(3L), captor.capture(), eq(LigneCompteOrigine.FACTURE));
 			assertThat(captor.getValue().getType()).isEqualTo(CompteLigneType.REMBOURSEMENT);
 			assertThat(captor.getValue().getMontant()).isEqualTo(118_000L);
 			assertThat(ligne.getFacture()).isSameAs(facture);

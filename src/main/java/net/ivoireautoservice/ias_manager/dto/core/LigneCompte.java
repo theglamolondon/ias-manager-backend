@@ -2,6 +2,7 @@ package net.ivoireautoservice.ias_manager.dto.core;
 
 import lombok.*;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 
 import java.time.LocalDateTime;
 
@@ -18,9 +19,18 @@ public class LigneCompte {
 	private String compteIntitule;
 	private Long factureId;
 	private CompteLigneType type;
+	private LigneCompteOrigine origine;
 	private LocalDateTime dhmsOperation;
 	private String objet;
 	private Long montant;
 	private Long balanceAvant;
 	private String observation;
+
+	// Imputation analytique (dépenses uniquement)
+	private Long typeDepenseId;
+	private String typeDepenseLibelle;
+	private Long vehiculeId;
+	private String vehiculeImmatriculation;
+	private Long missionId;
+	private String codeMission;
 }

@@ -13,7 +13,6 @@ import net.ivoireautoservice.ias_manager.enums.*;
 import net.ivoireautoservice.ias_manager.event.MissionCreatedEvent;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
-import net.ivoireautoservice.ias_manager.mapper.DepenseMissionMapper;
 import net.ivoireautoservice.ias_manager.mapper.FactureMapper;
 import net.ivoireautoservice.ias_manager.mapper.MediaMapper;
 import net.ivoireautoservice.ias_manager.mapper.MissionMapper;
@@ -51,22 +50,18 @@ import static org.mockito.Mockito.when;
 class MissionServiceTest {
 
 	@Mock private MissionRepository missionRepository;
-	@Mock private DepenseMissionRepository depenseMissionRepository;
 	@Mock private PhotoMissionRepository photoMissionRepository;
 	@Mock private VehiculeRepository vehiculeRepository;
 	@Mock private ChauffeurRepository chauffeurRepository;
 	@Mock private PartenaireRepository partenaireRepository;
-	@Mock private TypeDepenseRepository typeDepenseRepository;
 	@Mock private FactureRepository factureRepository;
 	@Mock private LigneCompteRepository ligneCompteRepository;
 	@Mock private InterventionRepository interventionRepository;
 	@Mock private MissionMapper missionMapper;
 	@Mock private FactureMapper factureMapper;
-	@Mock private DepenseMissionMapper depenseMissionMapper;
 	@Mock private MediaMapper mediaMapper;
 	@Mock private MediaService mediaService;
 	@Mock private FactureService factureService;
-	@Mock private CompteService compteService;
 	@Mock private SiteService siteService;
 	@Mock private PrintService printService;
 	@Mock private ApplicationEventPublisher eventPublisher;
@@ -1025,50 +1020,6 @@ class MissionServiceTest {
 					.missionId(1L).nouveauVehiculeId(2L).build()))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("n'est pas disponible");
-		}
-	}
-
-	@Nested
-	@DisplayName("Dépenses de mission")
-	class Depenses {
-
-		@Test
-		@DisplayName("une dépense est imputée en DEPENSE sur le compte fourni")
-		void depenseImputee() {
-			MissionEntity mission = MissionEntity.builder().id(1L).codeMission("2026-001").build();
-			TypeDepenseEntity type = TypeDepenseEntity.builder().id(2L).libelle("Carburant").build();
-			var request = net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest.builder()
-					.libelle("Plein").montant(25_000L).typeDepenseId(2L).compteId(3L).build();
-			DepenseMissionEntity entity = new DepenseMissionEntity();
-			when(missionRepository.findById(1L)).thenReturn(Optional.of(mission));
-			when(typeDepenseRepository.findById(2L)).thenReturn(Optional.of(type));
-			when(depenseMissionMapper.toEntity(request)).thenReturn(entity);
-			when(depenseMissionRepository.save(entity)).thenReturn(entity);
-
-			service.addDepense(1L, request);
-
-			var captor = ArgumentCaptor.forClass(
-					net.ivoireautoservice.ias_manager.dto.request.LigneCompteRequest.class);
-			verify(compteService).createLigne(org.mockito.ArgumentMatchers.eq(3L), captor.capture());
-			assertThat(captor.getValue().getType()).isEqualTo(CompteLigneType.DEPENSE);
-			assertThat(captor.getValue().getMontant()).isEqualTo(25_000L);
-			assertThat(captor.getValue().getObjet()).contains("2026-001").contains("Carburant").contains("Plein");
-			assertThat(entity.getMission()).isSameAs(mission);
-			assertThat(entity.getTypeDepense()).isSameAs(type);
-		}
-
-		@Test
-		@DisplayName("un type de dépense inconnu lève 404")
-		void typeInconnu() {
-			var request = net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest.builder()
-					.montant(1_000L).typeDepenseId(99L).compteId(3L).build();
-			when(missionRepository.findById(1L))
-					.thenReturn(Optional.of(MissionEntity.builder().id(1L).build()));
-			when(typeDepenseRepository.findById(99L)).thenReturn(Optional.empty());
-
-			assertThatThrownBy(() -> service.addDepense(1L, request))
-					.isInstanceOf(ResourceNotFoundException.class)
-					.hasMessageContaining("Type de dépense");
 		}
 	}
 

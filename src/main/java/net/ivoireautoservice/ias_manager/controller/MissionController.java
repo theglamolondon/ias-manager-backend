@@ -10,7 +10,6 @@ import net.ivoireautoservice.ias_manager.enums.TypeTarificationEnum;
 import net.ivoireautoservice.ias_manager.dto.request.AffecterChauffeurRequest;
 import net.ivoireautoservice.ias_manager.dto.request.AnnulerMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.ChangerVehiculeMissionRequest;
-import net.ivoireautoservice.ias_manager.dto.request.DepenseMissionRequest;
 import net.ivoireautoservice.ias_manager.dto.request.MissionRequest;
 import net.ivoireautoservice.ias_manager.services.MissionService;
 import java.time.LocalDateTime;
@@ -169,17 +168,6 @@ public class MissionController {
 			@RequestParam LocalDateTime fin,
 			@RequestParam(required = false) LocalisationMissionEnum localisation) {
 		return ResponseEntity.ok(missionService.simulerTarif(vehiculeId, typeTarification, debut, fin, localisation));
-	}
-
-	// ==================== DEPENSES ====================
-
-	@PostMapping("/{missionId}/depenses")
-	@PreAuthorize("hasAuthority('MISSION_UPDATE')")
-	public ResponseEntity<DepenseMission> addDepense(
-			@PathVariable Long missionId,
-			@Valid @RequestBody DepenseMissionRequest request) {
-		DepenseMission created = missionService.addDepense(missionId, request);
-		return ResponseEntity.status(HttpStatus.CREATED).body(created);
 	}
 
 	// ==================== PHOTOS ====================

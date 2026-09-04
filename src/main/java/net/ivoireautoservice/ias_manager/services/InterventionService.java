@@ -12,6 +12,7 @@ import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
@@ -159,14 +160,14 @@ public class InterventionService {
     /**
      * Clôture l'intervention et rend le véhicule à la flotte.
      *
-     * <p>Le paramètre {@code compteId} est optionnel : lorsqu'il est fourni et que le coût
-     * est renseigné, la dépense est imputée sur ce compte de trésorerie dans la foulée de
-     * la clôture. Cette imputation ne vaut pas règlement du garage — celui-ci reste une
-     * action distincte ({@link #payerIntervention}) qui horodate {@code dhmsPaiement} et
-     * trace le compte débité.</p>
+     * <p>La clôture est purement opérationnelle : elle ne touche pas à la trésorerie.
+     * Le règlement du garage est une action distincte ({@link #payerIntervention}) qui
+     * horodate {@code dhmsPaiement}, trace le compte débité et produit l'unique
+     * décaissement de l'intervention — clôturer et payer sur le même compte
+     * débiterait sinon deux fois le même coût.</p>
      */
     @Transactional
-    public Intervention cloturerIntervention(Long id, boolean vehiculeDisponible, Long compteId) {
+    public Intervention cloturerIntervention(Long id, boolean vehiculeDisponible) {
         InterventionEntity entity = interventionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Intervention", id));
 
@@ -184,15 +185,17 @@ public class InterventionService {
             vehiculeRepository.save(vehicule);
         }
 
-        // Pas de compte ou pas de coût : la clôture reste purement opérationnelle
-        if (compteId != null && entity.getCout() != null && entity.getCout() > 0) {
-            compteService.createLigne(compteId, ligneDepense(entity));
-        }
-
         return interventionMapper.toDto(interventionRepository.save(entity));
     }
 
-    /** Mouvement de trésorerie correspondant au coût de l'intervention. */
+    /**
+     * Mouvement de trésorerie correspondant au coût de l'intervention.
+     *
+     * <p>La ligne porte le véhicule — la vue trésorerie peut ainsi filtrer sur lui —
+     * mais son origine {@code INTERVENTION} l'exclut des agrégats de coût du véhicule :
+     * la valeur analytique reste portée par {@code interventions.cout}, dès la clôture
+     * et non au décaissement.</p>
+     */
     private LigneCompteRequest ligneDepense(InterventionEntity entity) {
         String vehiculeInfo = entity.getVehicule().getImmatriculation();
         String typeInfo = entity.getTypeIntervention() != null
@@ -203,6 +206,7 @@ public class InterventionService {
                 .montant(entity.getCout())
                 .objet("INTERVENTION " + typeInfo + " — " + vehiculeInfo)
                 .observation(entity.getObjet())
+                .vehiculeId(entity.getVehicule().getId())
                 .build();
     }
 
@@ -226,7 +230,8 @@ public class InterventionService {
             throw new BadRequestException("Le compte à débiter est obligatoire");
         }
 
-        LigneCompteEntity ligne = compteService.createLigneEntity(compteId, ligneDepense(entity));
+        LigneCompteEntity ligne = compteService.createLigneEntity(
+                compteId, ligneDepense(entity), LigneCompteOrigine.INTERVENTION);
 
         entity.setDhmsPaiement(LocalDate.now());
         entity.setComptePaiement(ligne.getCompte());

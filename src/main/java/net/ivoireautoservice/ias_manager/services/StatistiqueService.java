@@ -7,6 +7,7 @@ import net.ivoireautoservice.ias_manager.entity.VehiculeEntity;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
 import net.ivoireautoservice.ias_manager.enums.FactureStatusEnum;
 import net.ivoireautoservice.ias_manager.enums.InterventionStatut;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.enums.VehiculeStatusEnum;
 import net.ivoireautoservice.ias_manager.repository.*;
 import org.springframework.stereotype.Service;
@@ -321,6 +322,11 @@ public class StatistiqueService {
 			stats.facturesImpayeesNombre(toLong(impayees[0]))
 					.facturesImpayeesMontant(toLong(impayees[1]));
 		}
+
+		stats.depensesNonImputees(ligneCompteRepository.sumDepensesNonImputees(
+				CompteLigneType.DEPENSE, LigneCompteOrigine.MANUELLE,
+				LocalDateTime.now().minusDays(30), null));
+
 		return stats.build();
 	}
 

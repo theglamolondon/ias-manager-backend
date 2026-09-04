@@ -35,4 +35,13 @@ public interface InterventionRepository extends JpaRepository<InterventionEntity
             "WHERE YEAR(i.createdAt) = :annee " +
             "GROUP BY MONTH(i.createdAt) ORDER BY MONTH(i.createdAt)")
     java.util.List<Object[]> coutMensuel(@Param("annee") int annee);
+
+    /**
+     * Interventions du véhicule dont le coût est connu mais non encore réglé.
+     * Sert à alerter au moment d'une saisie manuelle en trésorerie : passer un frais
+     * de garage à la main alors que l'action « Payer » reste à faire produirait un
+     * double décaissement.
+     */
+    java.util.List<InterventionEntity> findByVehiculeIdAndDhmsPaiementIsNullAndCoutGreaterThanOrderByDhmsDebutDesc(
+            Long vehiculeId, Long cout);
 }

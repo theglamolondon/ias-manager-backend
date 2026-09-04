@@ -247,7 +247,7 @@ class InterventionServiceTest {
 			when(interventionRepository.save(entity)).thenReturn(entity);
 			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
 
-			service.cloturerIntervention(1L, true, null);
+			service.cloturerIntervention(1L, true);
 
 			assertThat(entity.getStatut()).isEqualTo(InterventionStatut.CLOTUREE);
 			assertThat(entity.getDhmsFin()).isEqualTo(LocalDate.now());
@@ -263,7 +263,7 @@ class InterventionServiceTest {
 			when(interventionRepository.save(entity)).thenReturn(entity);
 			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
 
-			service.cloturerIntervention(1L, false, null);
+			service.cloturerIntervention(1L, false);
 
 			assertThat(vehicule.getStatut()).isEqualTo(VehiculeStatusEnum.GARAGE);
 		}
@@ -274,63 +274,29 @@ class InterventionServiceTest {
 			InterventionEntity entity = intervention(InterventionStatut.CREEE, vehicule(VehiculeStatusEnum.DISPONIBLE));
 			when(interventionRepository.findById(1L)).thenReturn(Optional.of(entity));
 
-			assertThatThrownBy(() -> service.cloturerIntervention(1L, true, null))
+			assertThatThrownBy(() -> service.cloturerIntervention(1L, true))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("statut EN_COURS");
 		}
 
 		@Test
-		@DisplayName("le coût est imputé en dépense sur le compte fourni")
-		void coutImputeAuCompte() {
-			VehiculeEntity vehicule = vehicule(VehiculeStatusEnum.GARAGE);
+		@DisplayName("la clôture ne touche jamais à la trésorerie, même avec un coût connu")
+		void clotureSansMouvementDeCompte() {
 			InterventionEntity entity = InterventionEntity.builder()
-					.id(1L).statut(InterventionStatut.EN_COURS).vehicule(vehicule)
+					.id(1L).statut(InterventionStatut.EN_COURS)
+					.vehicule(vehicule(VehiculeStatusEnum.GARAGE))
 					.cout(75_000L).objet("Changement plaquettes")
-					.typeIntervention(TypeInterventionEntity.builder().id(2L).libelle("Freinage").build())
 					.build();
 			when(interventionRepository.findById(1L)).thenReturn(Optional.of(entity));
 			when(interventionRepository.save(entity)).thenReturn(entity);
 			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
 
-			service.cloturerIntervention(1L, true, 3L);
+			service.cloturerIntervention(1L, true);
 
-			ArgumentCaptor<LigneCompteRequest> captor = ArgumentCaptor.forClass(LigneCompteRequest.class);
-			verify(compteService).createLigne(eq(3L), captor.capture());
-			LigneCompteRequest ligne = captor.getValue();
-			assertThat(ligne.getType()).isEqualTo(CompteLigneType.DEPENSE);
-			assertThat(ligne.getMontant()).isEqualTo(75_000L);
-			assertThat(ligne.getObjet()).contains("Freinage").contains("AB-123-CD");
-			assertThat(ligne.getObservation()).isEqualTo("Changement plaquettes");
-		}
-
-		@Test
-		@DisplayName("aucun mouvement de compte sans compte fourni")
-		void sansCompte() {
-			InterventionEntity entity = InterventionEntity.builder()
-					.id(1L).statut(InterventionStatut.EN_COURS)
-					.vehicule(vehicule(VehiculeStatusEnum.GARAGE)).cout(75_000L).build();
-			when(interventionRepository.findById(1L)).thenReturn(Optional.of(entity));
-			when(interventionRepository.save(entity)).thenReturn(entity);
-			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
-
-			service.cloturerIntervention(1L, true, null);
-
+			// Décaisser ici puis à nouveau au règlement débiterait deux fois le même coût :
+			// seul payerIntervention sort l'argent de la caisse.
 			verifyNoInteractions(compteService);
-		}
-
-		@Test
-		@DisplayName("aucun mouvement de compte pour un coût nul ou zéro")
-		void coutNul() {
-			InterventionEntity entity = InterventionEntity.builder()
-					.id(1L).statut(InterventionStatut.EN_COURS)
-					.vehicule(vehicule(VehiculeStatusEnum.GARAGE)).cout(0L).build();
-			when(interventionRepository.findById(1L)).thenReturn(Optional.of(entity));
-			when(interventionRepository.save(entity)).thenReturn(entity);
-			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
-
-			service.cloturerIntervention(1L, true, 3L);
-
-			verifyNoInteractions(compteService);
+			assertThat(entity.getDhmsPaiement()).isNull();
 		}
 
 		@Test
@@ -342,7 +308,7 @@ class InterventionServiceTest {
 			when(interventionRepository.save(entity)).thenReturn(entity);
 			when(interventionMapper.toDto(entity)).thenReturn(new Intervention());
 
-			service.cloturerIntervention(1L, true, null);
+			service.cloturerIntervention(1L, true);
 
 			assertThat(vehicule.getStatut()).isEqualTo(VehiculeStatusEnum.MISSION);
 			verify(vehiculeRepository, never()).save(any());

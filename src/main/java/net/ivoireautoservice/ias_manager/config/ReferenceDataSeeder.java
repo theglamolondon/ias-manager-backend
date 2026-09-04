@@ -21,12 +21,22 @@ import java.util.List;
 public class ReferenceDataSeeder implements ApplicationRunner {
 
     private static final List<String> TYPES_DEPENSE_SYSTEME = List.of(
+            // Frais de route, engagés pendant une mission
             "Carburant",
             "Péage",
             "Réparation",
             "Hébergement",
             "Restauration",
             "Perdiem chauffeur",
+            // Frais portés par le véhicule hors mission
+            "Assurance",
+            "Visite technique",
+            "Pièces détachées",
+            "Pneumatiques",
+            "Lavage",
+            "Gardiennage",
+            "Amende",
+            "Frais administratifs",
             "Autre"
     );
 

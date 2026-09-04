@@ -30,6 +30,7 @@ import net.ivoireautoservice.ias_manager.entity.TypeCarburantEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeDepenseEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeInterventionEntity;
 import net.ivoireautoservice.ias_manager.entity.TypeVehiculeEntity;
+import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.AssuranceMapper;
 import net.ivoireautoservice.ias_manager.mapper.CategorieMapper;
@@ -48,6 +49,7 @@ import net.ivoireautoservice.ias_manager.repository.MarqueRepository;
 import net.ivoireautoservice.ias_manager.repository.ServiceRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeAssuranceRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeCarburantRepository;
+import net.ivoireautoservice.ias_manager.repository.LigneCompteRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeDepenseRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeInterventionRepository;
 import net.ivoireautoservice.ias_manager.repository.TypeVehiculeRepository;
@@ -67,6 +69,7 @@ public class SharedService {
     private final TypeInterventionRepository typeInterventionRepository;
     private final FamilleProduitRepository familleProduitRepository;
     private final TypeDepenseRepository typeDepenseRepository;
+    private final LigneCompteRepository ligneCompteRepository;
     private final TypeCarburantRepository typeCarburantRepository;
     private final TypeAssuranceRepository typeAssuranceRepository;
     private final AssuranceRepository assuranceRepository;
@@ -321,6 +324,13 @@ public class SharedService {
     public void deleteTypeDepense(Long id) {
         if (!typeDepenseRepository.existsById(id)) {
             throw new ResourceNotFoundException("Type de dépense", id);
+        }
+        // Les dépenses déjà saisies y font référence : les délier viderait la
+        // ventilation par nature sans que personne ne s'en aperçoive.
+        long utilisations = ligneCompteRepository.countByTypeDepenseId(id);
+        if (utilisations > 0) {
+            throw new BadRequestException("Ce type de dépense est utilisé par " + utilisations
+                    + " opération(s) de trésorerie et ne peut pas être supprimé");
         }
         typeDepenseRepository.deleteById(id);
     }

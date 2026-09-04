@@ -76,9 +76,8 @@ public class InterventionController {
     @PreAuthorize("hasAuthority('INTERVENTION_UPDATE')")
     public ResponseEntity<Intervention> cloturerIntervention(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "true") boolean vehiculeDisponible,
-            @RequestParam(required = false) Long compteId) {
-        return ResponseEntity.ok(interventionService.cloturerIntervention(id, vehiculeDisponible, compteId));
+            @RequestParam(defaultValue = "true") boolean vehiculeDisponible) {
+        return ResponseEntity.ok(interventionService.cloturerIntervention(id, vehiculeDisponible));
     }
 
     @PatchMapping("/{id}/payer")

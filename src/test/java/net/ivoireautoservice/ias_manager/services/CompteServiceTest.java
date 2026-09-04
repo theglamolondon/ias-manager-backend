@@ -11,6 +11,7 @@ import net.ivoireautoservice.ias_manager.entity.CompteUtilisateurEntity;
 import net.ivoireautoservice.ias_manager.entity.LigneCompteEntity;
 import net.ivoireautoservice.ias_manager.entity.Utilisateur;
 import net.ivoireautoservice.ias_manager.enums.CompteLigneType;
+import net.ivoireautoservice.ias_manager.enums.LigneCompteOrigine;
 import net.ivoireautoservice.ias_manager.exception.BadRequestException;
 import net.ivoireautoservice.ias_manager.exception.ResourceNotFoundException;
 import net.ivoireautoservice.ias_manager.mapper.CompteMapper;
@@ -128,7 +129,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			LigneCompteEntity resultat = service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 30_000L));
+			LigneCompteEntity resultat = service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 30_000L), LigneCompteOrigine.MANUELLE);
 
 			assertThat(compte.getBalance()).isEqualTo(70_000L);
 			assertThat(resultat.getBalanceAvant()).isEqualTo(100_000L);
@@ -143,7 +144,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			service.createLigneEntity(1L, ligne(CompteLigneType.REMBOURSEMENT, 25_000L));
+			service.createLigneEntity(1L, ligne(CompteLigneType.REMBOURSEMENT, 25_000L), LigneCompteOrigine.FACTURE);
 
 			assertThat(compte.getBalance()).isEqualTo(75_000L);
 		}
@@ -155,7 +156,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, true, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			service.createLigneEntity(1L, ligne(CompteLigneType.APPROVISIONNEMENT, 50_000L));
+			service.createLigneEntity(1L, ligne(CompteLigneType.APPROVISIONNEMENT, 50_000L), LigneCompteOrigine.MANUELLE);
 
 			assertThat(compte.getBalance()).isEqualTo(150_000L);
 		}
@@ -167,7 +168,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 10_000L));
+			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 10_000L), LigneCompteOrigine.MANUELLE);
 
 			verify(compteRepository).save(compte);
 		}
@@ -183,7 +184,7 @@ class CompteServiceTest {
 			CompteEntity compte = compte(100_000L, false, false);
 			stubHabilitation(compte, null);
 
-			assertThatThrownBy(() -> service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 1_000L)))
+			assertThatThrownBy(() -> service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 1_000L), LigneCompteOrigine.MANUELLE))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("pas autorisé à effectuer des mouvements");
 			verify(ligneCompteRepository, never()).save(any());
@@ -196,7 +197,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, true, false));
 
 			assertThatThrownBy(() -> service.createLigneEntity(1L,
-					ligne(CompteLigneType.APPROVISIONNEMENT, 1_000L)))
+					ligne(CompteLigneType.APPROVISIONNEMENT, 1_000L), LigneCompteOrigine.MANUELLE))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("n'autorise pas l'approvisionnement");
 		}
@@ -208,7 +209,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 
 			assertThatThrownBy(() -> service.createLigneEntity(1L,
-					ligne(CompteLigneType.APPROVISIONNEMENT, 1_000L)))
+					ligne(CompteLigneType.APPROVISIONNEMENT, 1_000L), LigneCompteOrigine.MANUELLE))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("pas autorisé à approvisionner");
 		}
@@ -219,7 +220,7 @@ class CompteServiceTest {
 			CompteEntity compte = compte(10_000L, false, false);
 			stubHabilitation(compte, habilitation(compte, false, false));
 
-			assertThatThrownBy(() -> service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 15_000L)))
+			assertThatThrownBy(() -> service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 15_000L), LigneCompteOrigine.MANUELLE))
 					.isInstanceOf(BadRequestException.class)
 					.hasMessageContaining("Solde insuffisant");
 			assertThat(compte.getBalance()).isEqualTo(10_000L);
@@ -233,7 +234,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 15_000L));
+			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 15_000L), LigneCompteOrigine.MANUELLE);
 
 			assertThat(compte.getBalance()).isEqualTo(-5_000L);
 		}
@@ -245,7 +246,7 @@ class CompteServiceTest {
 			stubHabilitation(compte, habilitation(compte, false, false));
 			when(ligneCompteRepository.save(any(LigneCompteEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 10_000L));
+			service.createLigneEntity(1L, ligne(CompteLigneType.DEPENSE, 10_000L), LigneCompteOrigine.MANUELLE);
 
 			assertThat(compte.getBalance()).isZero();
 		}
@@ -255,7 +256,7 @@ class CompteServiceTest {
 		void compteInconnu() {
 			when(compteRepository.findById(99L)).thenReturn(Optional.empty());
 
-			assertThatThrownBy(() -> service.createLigneEntity(99L, ligne(CompteLigneType.DEPENSE, 1L)))
+			assertThatThrownBy(() -> service.createLigneEntity(99L, ligne(CompteLigneType.DEPENSE, 1L), LigneCompteOrigine.MANUELLE))
 					.isInstanceOf(ResourceNotFoundException.class)
 					.hasMessageContaining("Compte avec l'id 99");
 		}

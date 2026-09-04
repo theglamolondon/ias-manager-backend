@@ -29,9 +29,9 @@ public class MissionHistorique {
     // Annulation : true si la mission a été annulée (dhmsAnnulation renseigné)
     private boolean annulee;
 
-    // Dépenses mission
+    // Dépenses de trésorerie imputées à cette mission
     private long totalDepenses;
-    private List<DepenseMission> depenses;
+    private List<DepenseImputee> depenses;
 
     // Lien facture
     private Long factureId;

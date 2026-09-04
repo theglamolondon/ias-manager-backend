@@ -37,7 +37,6 @@ public class Mission {
 	private Vehicule vehicule;
 	private Chauffeur chauffeur;
 	private Partenaire client;
-	private List<DepenseMission> depenses;
 	private List<PhotoMission> photos;
 	private Facture facture;
 }
