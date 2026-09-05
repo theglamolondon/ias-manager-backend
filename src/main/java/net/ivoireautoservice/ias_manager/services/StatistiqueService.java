@@ -24,6 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static net.ivoireautoservice.ias_manager.config.CritereRecherche.normaliser;
+
 @Service
 @RequiredArgsConstructor
 public class StatistiqueService {
@@ -568,13 +570,22 @@ public class StatistiqueService {
 				.build();
 	}
 
+	/**
+	 * Agrégats KPI d'une liste de factures. Les critères sont exactement ceux de
+	 * la liste (cf. {@code FactureService.rechercher}) afin que les cartes
+	 * correspondent au contenu du tableau qu'elles surmontent. Tous sont
+	 * optionnels ; des dates nulles ne bornent pas la période, les KPI portent
+	 * alors sur tout l'historique.
+	 */
 	@Transactional(readOnly = true)
-	public FactureStats getFactureStats(boolean factureClient, LocalDate dateDebut, LocalDate dateFin) {
-		LocalDateTime debut = dateDebut.atStartOfDay();
-		LocalDateTime fin = dateFin.plusDays(1).atStartOfDay();
+	public FactureStats getFactureStats(boolean factureClient, Long partenaireId, String keyword,
+			String numFacture, String codeMission, LocalDate dateDebut, LocalDate dateFin) {
+		LocalDateTime debut = dateDebut != null ? dateDebut.atStartOfDay() : null;
+		LocalDateTime fin = dateFin != null ? dateFin.plusDays(1).atStartOfDay() : null;
 
 		// Une seule requête groupée par statut (count + sum)
-		List<StatutAgregat> agregats = factureRepository.statsParStatut(factureClient, debut, fin);
+		List<StatutAgregat> agregats = factureRepository.statsParStatut(factureClient, partenaireId,
+				normaliser(keyword), normaliser(numFacture), normaliser(codeMission), debut, fin);
 		Map<FactureStatusEnum, StatutAgregat> map = agregats.stream()
 				.collect(Collectors.toMap(StatutAgregat::getStatut, a -> a));
 

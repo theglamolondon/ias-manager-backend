@@ -29,6 +29,17 @@ public interface PartenaireRepository extends JpaRepository<PartenaireEntity, Lo
     Page<PartenaireEntity> searchClientsByKeyword(@Param("keyword") String keyword, Pageable pageable);
 
     @Query("SELECT p FROM PartenaireEntity p " +
+            "WHERE p.isFournisseur = true AND (" +
+            "LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.telephone1) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.telephone2) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.email1) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.email2) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.numRc) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.numCc) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<PartenaireEntity> searchFournisseursByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT p FROM PartenaireEntity p " +
             "WHERE LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(p.telephone1) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "OR LOWER(p.telephone2) LIKE LOWER(CONCAT('%', :keyword, '%')) " +

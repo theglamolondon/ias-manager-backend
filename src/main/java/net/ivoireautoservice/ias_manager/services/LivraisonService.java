@@ -92,8 +92,10 @@ public class LivraisonService {
         //     throw new BadRequestException("Une facture de type MISSION ne peut pas faire l'objet d'une livraison client");
         // }
 
-        if (facture.getStatut() != FactureStatusEnum.PROFORMA && facture.getStatut() != FactureStatusEnum.PAYEE) {
-            throw new BadRequestException("La livraison client nécessite une facture PROFORMA ou PAYEE");
+        if (facture.getStatut() != FactureStatusEnum.PROFORMA
+                && facture.getStatut() != FactureStatusEnum.FACTUREE
+                && facture.getStatut() != FactureStatusEnum.PAYEE) {
+            throw new BadRequestException("La livraison client nécessite une facture PROFORMA, FACTUREE ou PAYEE");
         }
 
         if (livraisonClientRepository.findByFactureId(factureId).isPresent()) {

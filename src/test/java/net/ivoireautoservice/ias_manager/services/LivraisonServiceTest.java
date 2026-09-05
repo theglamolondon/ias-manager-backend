@@ -108,15 +108,29 @@ class LivraisonServiceTest {
 	class Client {
 
 		@ParameterizedTest
-		@EnumSource(value = FactureStatusEnum.class, names = {"BROUILLON", "FACTUREE", "ANNULEE"})
-		@DisplayName("seule une facture PROFORMA ou PAYEE peut être livrée")
+		@EnumSource(value = FactureStatusEnum.class, names = {"BROUILLON", "ANNULEE"})
+		@DisplayName("seule une facture PROFORMA, FACTUREE ou PAYEE peut être livrée")
 		void statutFactureInvalide(FactureStatusEnum statut) {
 			when(factureRepository.findById(9L))
 					.thenReturn(Optional.of(facture(statut, true, FactureTypeEnum.PRODUIT)));
 
 			assertThatThrownBy(() -> service.enregistrerLivraisonClient(9L, null))
 					.isInstanceOf(BadRequestException.class)
-					.hasMessageContaining("PROFORMA ou PAYEE");
+					.hasMessageContaining("PROFORMA, FACTUREE ou PAYEE");
+		}
+
+		@Test
+		@DisplayName("une facture déjà FACTUREE conserve son statut")
+		void factureFactureeConserveStatut() {
+			FactureEntity facture = facture(FactureStatusEnum.FACTUREE, true, FactureTypeEnum.PRODUIT);
+			when(factureRepository.findById(9L)).thenReturn(Optional.of(facture));
+			when(livraisonClientRepository.findByFactureId(9L)).thenReturn(Optional.empty());
+			when(ligneFactureRepository.findByFactureId(9L)).thenReturn(List.of());
+
+			service.enregistrerLivraisonClient(9L, null);
+
+			assertThat(facture.getStatut()).isEqualTo(FactureStatusEnum.FACTUREE);
+			verify(factureRepository, never()).save(any());
 		}
 
 		@Test

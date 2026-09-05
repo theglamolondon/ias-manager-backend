@@ -97,17 +97,50 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
             @Param("factureClient") Boolean factureClient,
             Pageable pageable);
 
+    /**
+     * Recherche paginée multi-critères des factures. Tous les critères sont
+     * optionnels et se cumulent (ET logique) : un critère à null (ou vide pour
+     * les chaînes) n'applique aucune restriction.
+     *
+     * <p>Deux subtilités volontaires :</p>
+     * <ul>
+     *   <li>{@code numFacture} filtre aussi sur {@code numProforma} : une facture
+     *   au statut PROFORMA n'a pas encore de numéro de facture définitif, un
+     *   filtre strict sur la seule colonne {@code numFacture} serait donc aveugle
+     *   sur une grande partie du stock.</li>
+     *   <li>{@code codeMission} est borné aux factures de type MISSION, pour la
+     *   même raison que {@link #findByLigneExtraRef(String)} : {@code extraRef}
+     *   est un champ générique multi-usages, également alimenté en texte libre
+     *   depuis {@code LigneBonCommande.extraRef}. Sans cette garde, un extraRef
+     *   de bon de commande qui coïnciderait avec un codeMission ferait remonter
+     *   une facture fournisseur comme liée à la mission.</li>
+     * </ul>
+     */
     @Query("SELECT f FROM FactureEntity f LEFT JOIN f.partenaire p " +
             "WHERE (:factureClient IS NULL OR f.factureClient = :factureClient) " +
             "AND (:partenaireId IS NULL OR p.id = :partenaireId) " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin) " +
             "AND (COALESCE(:keyword, '') = '' " +
             "    OR LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "    OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "    OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+            "    OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (COALESCE(:numFacture, '') = '' " +
+            "    OR LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :numFacture, '%')) " +
+            "    OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :numFacture, '%'))) " +
+            "AND (COALESCE(:codeMission, '') = '' " +
+            "    OR (f.type = net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION " +
+            "        AND EXISTS (SELECT lf FROM LigneFactureEntity lf " +
+            "                    WHERE lf.facture = f " +
+            "                    AND LOWER(lf.extraRef) LIKE LOWER(CONCAT('%', :codeMission, '%')))))")
     Page<FactureEntity> findFiltered(
             @Param("keyword") String keyword,
             @Param("factureClient") Boolean factureClient,
             @Param("partenaireId") Long partenaireId,
+            @Param("numFacture") String numFacture,
+            @Param("codeMission") String codeMission,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin,
             Pageable pageable);
 
     @Query("SELECT MONTH(f.createdAt), SUM(f.montantTtc) FROM FactureEntity f " +
@@ -139,13 +172,42 @@ public interface FactureRepository extends JpaRepository<FactureEntity, Long> {
     @Query("SELECT COALESCE(SUM(f.montantTtc), 0) FROM FactureEntity f WHERE f.factureClient = :factureClient AND f.statut IN (net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.PROFORMA, net.ivoireautoservice.ias_manager.enums.FactureStatusEnum.FACTUREE) AND f.createdAt BETWEEN :debut AND :fin")
     long sumMontantImpayeByFactureClient(@Param("factureClient") Boolean factureClient, @Param("debut") java.time.LocalDateTime debut, @Param("fin") java.time.LocalDateTime fin);
 
+    /**
+     * Agrégats (nombre + montant TTC) par statut, pour les KPI des listes de
+     * factures. Les critères sont volontairement identiques à ceux de
+     * {@link #findFiltered} — mêmes prédicats, même sémantique — pour que les
+     * cartes affichées au-dessus d'une liste correspondent exactement à son
+     * contenu. Tous sont optionnels : des bornes de dates nulles ne bornent pas
+     * la période, les KPI portent alors sur l'intégralité de l'historique.
+     * La borne {@code fin} est exclusive.
+     */
     @Query("SELECT new net.ivoireautoservice.ias_manager.dto.core.StatutAgregat(f.statut, COUNT(f), COALESCE(SUM(f.montantTtc), 0)) " +
-            "FROM FactureEntity f WHERE f.factureClient = :factureClient AND f.createdAt BETWEEN :debut AND :fin " +
+            "FROM FactureEntity f LEFT JOIN f.partenaire p " +
+            "WHERE f.factureClient = :factureClient " +
+            "AND (:partenaireId IS NULL OR p.id = :partenaireId) " +
+            "AND (:debut IS NULL OR f.createdAt >= :debut) " +
+            "AND (:fin IS NULL OR f.createdAt < :fin) " +
+            "AND (COALESCE(:keyword, '') = '' " +
+            "    OR LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "    OR LOWER(p.raisonSociale) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (COALESCE(:numFacture, '') = '' " +
+            "    OR LOWER(f.numFacture) LIKE LOWER(CONCAT('%', :numFacture, '%')) " +
+            "    OR LOWER(f.numProforma) LIKE LOWER(CONCAT('%', :numFacture, '%'))) " +
+            "AND (COALESCE(:codeMission, '') = '' " +
+            "    OR (f.type = net.ivoireautoservice.ias_manager.enums.FactureTypeEnum.MISSION " +
+            "        AND EXISTS (SELECT lf FROM LigneFactureEntity lf " +
+            "                    WHERE lf.facture = f " +
+            "                    AND LOWER(lf.extraRef) LIKE LOWER(CONCAT('%', :codeMission, '%'))))) " +
             "GROUP BY f.statut")
     List<net.ivoireautoservice.ias_manager.dto.core.StatutAgregat> statsParStatut(
             @Param("factureClient") Boolean factureClient,
-            @Param("debut") java.time.LocalDateTime debut,
-            @Param("fin") java.time.LocalDateTime fin);
+            @Param("partenaireId") Long partenaireId,
+            @Param("keyword") String keyword,
+            @Param("numFacture") String numFacture,
+            @Param("codeMission") String codeMission,
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin);
 
     @Query("SELECT COUNT(f), COALESCE(SUM(f.montantTtc), 0) FROM FactureEntity f " +
             "WHERE f.nature <> net.ivoireautoservice.ias_manager.enums.FactureNatureEnum.AVOIR " +

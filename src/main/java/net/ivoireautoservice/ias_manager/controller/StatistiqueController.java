@@ -106,22 +106,38 @@ public class StatistiqueController {
 		return ResponseEntity.ok(statistiqueService.getRapportFinancier(debut, fin));
 	}
 
+	/**
+	 * KPI des factures fournisseur. Accepte exactement les mêmes critères que
+	 * {@code GET /api/factures/fournisseurs}, pour que les cartes correspondent au
+	 * contenu de la liste qu'elles surmontent. Sans borne de dates, les agrégats
+	 * portent sur l'intégralité de l'historique.
+	 */
 	@GetMapping("/factures/fournisseurs")
 	public ResponseEntity<FactureStats> getFactureFournisseurStats(
+			@RequestParam(required = false) Long partenaireId,
+			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) String numFacture,
+			@RequestParam(required = false) String codeMission,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-		if (dateDebut == null) dateDebut = LocalDate.of(LocalDate.now().getYear(), 1, 1);
-		if (dateFin == null) dateFin = LocalDate.of(LocalDate.now().getYear(), 12, 31);
-		return ResponseEntity.ok(statistiqueService.getFactureStats(false, dateDebut, dateFin));
+		return ResponseEntity.ok(statistiqueService.getFactureStats(false, partenaireId,
+				keyword, numFacture, codeMission, dateDebut, dateFin));
 	}
 
+	/**
+	 * KPI des factures client. Cf. {@link #getFactureFournisseurStats} pour la
+	 * sémantique des critères.
+	 */
 	@GetMapping("/factures/clients")
 	public ResponseEntity<FactureStats> getFactureClientStats(
+			@RequestParam(required = false) Long partenaireId,
+			@RequestParam(required = false) String keyword,
+			@RequestParam(required = false) String numFacture,
+			@RequestParam(required = false) String codeMission,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
 			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-		if (dateDebut == null) dateDebut = LocalDate.of(LocalDate.now().getYear(), 1, 1);
-		if (dateFin == null) dateFin = LocalDate.of(LocalDate.now().getYear(), 12, 31);
-		return ResponseEntity.ok(statistiqueService.getFactureStats(true, dateDebut, dateFin));
+		return ResponseEntity.ok(statistiqueService.getFactureStats(true, partenaireId,
+				keyword, numFacture, codeMission, dateDebut, dateFin));
 	}
 
 	@GetMapping("/recap-mensuel")

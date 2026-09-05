@@ -22,8 +22,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -941,6 +946,66 @@ class FactureServiceTest {
 			when(factureRepository.findByNumProforma("2026-001")).thenReturn(Optional.of(facture));
 
 			assertThat(service.getFacturesByCodeMission("2026-001")).hasSize(1);
+		}
+	}
+
+	@Nested
+	@DisplayName("Recherche paginée multi-critères")
+	class Recherche {
+
+		private final Pageable pageable = PageRequest.of(0, 20);
+
+		@BeforeEach
+		void videParDefaut() {
+			when(factureRepository.findFiltered(any(), any(), any(), any(), any(), any(), any(), any()))
+					.thenReturn(Page.empty());
+		}
+
+		@Test
+		@DisplayName("les factures clients forcent factureClient à vrai, les fournisseurs à faux")
+		void sensDeLaFacture() {
+			service.getFacturesClients(null, null, null, null, null, null, pageable);
+			verify(factureRepository).findFiltered(null, true, null, null, null, null, null, pageable);
+
+			service.getFacturesFournisseurs(null, null, null, null, null, null, pageable);
+			verify(factureRepository).findFiltered(null, false, null, null, null, null, null, pageable);
+		}
+
+		@Test
+		@DisplayName("tous les critères de recherche sont transmis au dépôt")
+		void criteresTransmis() {
+			service.getFacturesClients("acme", 7L, "DA/01", "2026-001",
+					LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31), pageable);
+
+			verify(factureRepository).findFiltered("acme", true, 7L, "DA/01", "2026-001",
+					LocalDateTime.of(2026, 3, 1, 0, 0),
+					LocalDateTime.of(2026, 4, 1, 0, 0),
+					pageable);
+		}
+
+		@Test
+		@DisplayName("les critères textuels vides ou en blanc sont ramenés à null et n'appliquent aucun filtre")
+		void criteresVidesNormalises() {
+			service.getFacturesClients("   ", null, "", "  ", null, null, pageable);
+
+			verify(factureRepository).findFiltered(null, true, null, null, null, null, null, pageable);
+		}
+
+		@Test
+		@DisplayName("les critères textuels sont débarrassés de leurs espaces superflus")
+		void criteresTrimmes() {
+			service.getFacturesFournisseurs("  acme  ", null, "  DA/01  ", null, null, null, pageable);
+
+			verify(factureRepository).findFiltered("acme", false, null, "DA/01", null, null, null, pageable);
+		}
+
+		@Test
+		@DisplayName("une seule borne de date suffit : l'autre reste nulle")
+		void borneUnique() {
+			service.getFacturesClients(null, null, null, null, LocalDate.of(2026, 3, 1), null, pageable);
+
+			verify(factureRepository).findFiltered(null, true, null, null, null,
+					LocalDateTime.of(2026, 3, 1, 0, 0), null, pageable);
 		}
 	}
 }

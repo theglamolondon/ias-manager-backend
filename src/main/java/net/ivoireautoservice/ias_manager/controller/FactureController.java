@@ -14,12 +14,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/factures")
@@ -37,39 +40,56 @@ public class FactureController {
 			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) Boolean factureClient,
 			@RequestParam(required = false) Long partenaireId,
+			@RequestParam(required = false) String numFacture,
+			@RequestParam(required = false) String codeMission,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, partenaireId, pageable));
+		return ResponseEntity.ok(factureService.getAllFactures(keyword, factureClient, partenaireId,
+				numFacture, codeMission, dateDebut, dateFin, pageable));
 	}
 
 	@GetMapping("/clients")
 	@PreAuthorize("hasAuthority('FACTURE_CLIENT_READ')")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesClients(
+			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) Long partenaireId,
+			@RequestParam(required = false) String numFacture,
+			@RequestParam(required = false) String codeMission,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getFacturesClients(partenaireId, pageable));
+		return ResponseEntity.ok(factureService.getFacturesClients(keyword, partenaireId,
+				numFacture, codeMission, dateDebut, dateFin, pageable));
 	}
 
 	@GetMapping("/fournisseurs")
 	@PreAuthorize("hasAuthority('FACTURE_FOURNISSEUR_READ')")
 	public ResponseEntity<PagedResponse<Facture>> getFacturesFournisseurs(
+			@RequestParam(required = false) String keyword,
 			@RequestParam(required = false) Long partenaireId,
+			@RequestParam(required = false) String numFacture,
+			@RequestParam(required = false) String codeMission,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int taille,
 			@RequestParam(defaultValue = "createdAt") String tri,
 			@RequestParam(defaultValue = "desc") String ordre) {
 		Sort sort = ordre.equalsIgnoreCase("desc") ? Sort.by(tri).descending() : Sort.by(tri).ascending();
 		Pageable pageable = PageRequest.of(page, taille, sort);
-		return ResponseEntity.ok(factureService.getFacturesFournisseurs(partenaireId, pageable));
+		return ResponseEntity.ok(factureService.getFacturesFournisseurs(keyword, partenaireId,
+				numFacture, codeMission, dateDebut, dateFin, pageable));
 	}
 
 	@GetMapping("/livrables")

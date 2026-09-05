@@ -38,10 +38,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static net.ivoireautoservice.ias_manager.config.CritereRecherche.normaliser;
 
 @Service
 @RequiredArgsConstructor
@@ -71,19 +75,37 @@ public class FactureService {
 	// ==================== FACTURES ====================
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getAllFactures(String keyword, Boolean factureClient, Long partenaireId, Pageable pageable) {
-		String keywordParam = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
-		return PagedResponse.of(factureRepository.findFiltered(keywordParam, factureClient, partenaireId, pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getAllFactures(String keyword, Boolean factureClient, Long partenaireId,
+			String numFacture, String codeMission, LocalDate dateDebut, LocalDate dateFin, Pageable pageable) {
+		return rechercher(keyword, factureClient, partenaireId, numFacture, codeMission, dateDebut, dateFin, pageable);
 	}
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getFacturesClients(Long partenaireId, Pageable pageable) {
-		return PagedResponse.of(factureRepository.findFiltered(null, true, partenaireId, pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getFacturesClients(String keyword, Long partenaireId,
+			String numFacture, String codeMission, LocalDate dateDebut, LocalDate dateFin, Pageable pageable) {
+		return rechercher(keyword, true, partenaireId, numFacture, codeMission, dateDebut, dateFin, pageable);
 	}
 
 	@Transactional(readOnly = true)
-	public PagedResponse<Facture> getFacturesFournisseurs(Long partenaireId, Pageable pageable) {
-		return PagedResponse.of(factureRepository.findFiltered(null, false, partenaireId, pageable).map(this::toDtoWithItems));
+	public PagedResponse<Facture> getFacturesFournisseurs(String keyword, Long partenaireId,
+			String numFacture, String codeMission, LocalDate dateDebut, LocalDate dateFin, Pageable pageable) {
+		return rechercher(keyword, false, partenaireId, numFacture, codeMission, dateDebut, dateFin, pageable);
+	}
+
+	/**
+	 * Point d'entrée unique de la recherche paginée : normalise les critères
+	 * (chaînes vides ramenées à null, dates converties en bornes de temps avec
+	 * une fin exclusive au lendemain) puis délègue à
+	 * {@link FactureRepository#findFiltered}.
+	 */
+	private PagedResponse<Facture> rechercher(String keyword, Boolean factureClient, Long partenaireId,
+			String numFacture, String codeMission, LocalDate dateDebut, LocalDate dateFin, Pageable pageable) {
+		LocalDateTime debut = dateDebut != null ? dateDebut.atStartOfDay() : null;
+		LocalDateTime fin = dateFin != null ? dateFin.plusDays(1).atStartOfDay() : null;
+		return PagedResponse.of(factureRepository.findFiltered(
+						normaliser(keyword), factureClient, partenaireId,
+						normaliser(numFacture), normaliser(codeMission), debut, fin, pageable)
+				.map(this::toDtoWithItems));
 	}
 
 	@Transactional(readOnly = true)

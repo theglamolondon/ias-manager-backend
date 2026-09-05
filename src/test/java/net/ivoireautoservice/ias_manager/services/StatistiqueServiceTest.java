@@ -199,9 +199,9 @@ class StatistiqueServiceTest {
 		@Test
 		@DisplayName("en attente = proforma + facturée, en nombre comme en montant")
 		void enAttente() {
-			when(factureRepository.statsParStatut(anyBoolean(), any(), any())).thenReturn(agregats());
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any())).thenReturn(agregats());
 
-			FactureStats stats = service.getFactureStats(true,
+			FactureStats stats = service.getFactureStats(true, null, null, null, null,
 					LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
 
 			assertThat(stats.getEnAttente()).isEqualTo(5L);
@@ -213,9 +213,9 @@ class StatistiqueServiceTest {
 		@Test
 		@DisplayName("le montant total exclut les factures annulées, mais le nombre total les compte")
 		void totaux() {
-			when(factureRepository.statsParStatut(anyBoolean(), any(), any())).thenReturn(agregats());
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any())).thenReturn(agregats());
 
-			FactureStats stats = service.getFactureStats(true,
+			FactureStats stats = service.getFactureStats(true, null, null, null, null,
 					LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
 
 			assertThat(stats.getTotal()).isEqualTo(11L);
@@ -228,10 +228,10 @@ class StatistiqueServiceTest {
 		@Test
 		@DisplayName("un statut absent est traité comme zéro")
 		void statutAbsent() {
-			when(factureRepository.statsParStatut(anyBoolean(), any(), any()))
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any()))
 					.thenReturn(List.of(new StatutAgregat(FactureStatusEnum.PAYEE, 1, 10_000)));
 
-			FactureStats stats = service.getFactureStats(false,
+			FactureStats stats = service.getFactureStats(false, null, null, null, null,
 					LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31));
 
 			assertThat(stats.getEnAttente()).isZero();
@@ -242,13 +242,33 @@ class StatistiqueServiceTest {
 		@Test
 		@DisplayName("la borne de fin est exclusive au lendemain de la date demandée")
 		void bornesDeDates() {
-			when(factureRepository.statsParStatut(anyBoolean(), any(), any())).thenReturn(List.of());
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any())).thenReturn(List.of());
 
-			service.getFactureStats(true, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31));
+			service.getFactureStats(true, null, null, null, null, LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31));
 
-			verify(factureRepository).statsParStatut(true,
+			verify(factureRepository).statsParStatut(true, null, null, null, null,
 					LocalDateTime.of(2026, 3, 1, 0, 0),
 					LocalDateTime.of(2026, 4, 1, 0, 0));
+		}
+
+		@Test
+		@DisplayName("sans dates, aucune borne n'est transmise : les KPI portent sur tout l'historique")
+		void sansBornesDeDates() {
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+
+			service.getFactureStats(true, null, null, null, null, null, null);
+
+			verify(factureRepository).statsParStatut(true, null, null, null, null, null, null);
+		}
+
+		@Test
+		@DisplayName("le partenaire demandé est transmis au dépôt")
+		void filtreParPartenaire() {
+			when(factureRepository.statsParStatut(anyBoolean(), any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+
+			service.getFactureStats(false, 42L, null, null, null, null, null);
+
+			verify(factureRepository).statsParStatut(false, 42L, null, null, null, null, null);
 		}
 	}
 
